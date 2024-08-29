@@ -1,4 +1,4 @@
-# Parking Radar
+# Smart Parking Radar
 
 Parking Radar es una aplicación web para identificar y monitorear parqueaderos en tiempo real. Proporciona una visualización interactiva de los parqueaderos disponibles en un mapa, permitiendo a los usuarios ver la disponibilidad de espacios en tiempo real.
 
