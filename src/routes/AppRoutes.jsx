@@ -1,13 +1,25 @@
+// AppRoutes.js
 import { Routes, Route } from 'react-router-dom';
-//import Home from '../pages/Home';
+import Header from '../components/Header';
+import Menu from '../components/Menu';
+import Footer from '../components/Footer';
 import MapPage from '../pages/MapPage';
-//import Login from '../pages/Login';
-//import Register from '../pages/Register';
+import HomePage from '../pages/HomePage';
+import RegistroAdmin from '../pages/RegisterAdmin';
 
 const AppRoutes = () => (
-  <Routes>
-    <Route path="/map" element={<MapPage />} />
-  </Routes>
+  <>
+    <Header />
+    <Menu />
+    <div className="app-container">
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/map" element={<MapPage />} />
+        <Route path="/register-admin" element={<RegistroAdmin/>} />
+      </Routes>
+    </div>
+    <Footer />
+  </>
 );
 
 export default AppRoutes;

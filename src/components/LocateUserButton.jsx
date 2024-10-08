@@ -1,7 +1,8 @@
 // components/LocateUserButton.jsx
 import { useMap } from 'react-leaflet';
-import { getUserLocation } from '../services/geolocationService'; // Importar el servicio de geolocalización
-import PropTypes from 'prop-types'; // Importa PropTypes
+import { getUserLocation } from '../services/geolocationService';
+import PropTypes from 'prop-types';
+import locationIcon from '../assets/location-icon.svg'; // Asegúrate de tener un icono de ubicación en tu carpeta de assets
 
 const LocateUserButton = ({ onLocationFound }) => {
   const map = useMap();
@@ -9,7 +10,7 @@ const LocateUserButton = ({ onLocationFound }) => {
   const handleLocateUser = async () => {
     try {
       const { latitude, longitude, accuracy } = await getUserLocation();
-      onLocationFound([latitude, longitude], accuracy); // Llama a la función del componente padre para actualizar la ubicación
+      onLocationFound([latitude, longitude], accuracy); // Actualiza la ubicación
       map.setView([latitude, longitude], 13); // Centra el mapa en la ubicación del usuario
     } catch (error) {
       alert(error);
@@ -25,20 +26,25 @@ const LocateUserButton = ({ onLocationFound }) => {
         top: '50px',
         right: '10px',
         padding: '10px',
-        backgroundColor: 'white',
-        border: '2px solid #007BFF',
-        borderRadius: '5px',
+        backgroundColor: '#007BFF', // Fondo azul para mejor visibilidad
+        border: 'none', // Sin bordes
+        borderRadius: '50%', // Hacer el botón redondo
+        width: '50px', // Ancho del botón
+        height: '50px', // Altura del botón
+        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)', // Añadir sombra para dar un efecto elevado
         cursor: 'pointer',
+        transition: 'background-color 0.3s ease', // Efecto de transición al cambiar color
       }}
+      onMouseEnter={(e) => (e.target.style.backgroundColor = '#0056b3')} // Cambiar el color al pasar el mouse
+      onMouseLeave={(e) => (e.target.style.backgroundColor = '#007BFF')} // Restaurar el color al salir del mouse
     >
-      Mostrar Mi Ubicación
+      <img src={locationIcon} alt="Ubicación" style={{ width: '20px', height: '20px' }} />
     </button>
   );
 };
 
-// Añadir validación de PropTypes
 LocateUserButton.propTypes = {
-  onLocationFound: PropTypes.func.isRequired, // Define que 'onLocationFound' es una función requerida
+  onLocationFound: PropTypes.func.isRequired,
 };
 
 export default LocateUserButton;

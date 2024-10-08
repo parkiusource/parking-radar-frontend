@@ -1,0 +1,34 @@
+/* Estilos del Menú */
+.app-menu {
+  background-color: #333;
+  padding: 10px 20px;
+}
+
+.app-menu ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: space-around;
+}
+
+.app-menu li {
+  margin: 0;
+}
+
+.app-menu a {
+  color: white;
+  text-decoration: none;
+  padding: 10px 15px;
+  transition: background-color 0.3s ease;
+}
+
+.app-menu a:hover {
+  background-color: #555;
+  border-radius: 5px;
+}
+
+.app-menu a.active {
+  background-color: #007bff;
+  border-radius: 5px;
+}
