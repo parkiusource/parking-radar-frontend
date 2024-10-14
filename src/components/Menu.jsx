@@ -18,10 +18,10 @@ const Menu = () => (
             <Link className="nav-link" to="/map">Mapa</Link>
           </li>
           <li className="nav-item">
-            <Link className="nav-link" to="/features">Características</Link>
+            <Link className="nav-link" to="/features">Nosotros</Link>
           </li>
           <li className="nav-item">
-            <Link className="nav-link" to="/contact">Contacto</Link>
+            <Link className="nav-link" to="/pqrs">Contacto</Link>
           </li>
           <li className="nav-item">
             <Link className="nav-link" to="/register-admin">Registro</Link>
