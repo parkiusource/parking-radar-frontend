@@ -6,6 +6,8 @@ import Footer from '../components/Footer';
 import MapPage from '../pages/MapPage';
 import HomePage from '../pages/HomePage';
 import RegistroAdmin from '../pages/RegisterAdmin';
+import PQRSForm from '../pages/PQRSForm';
+import Features from '../pages/Features';
 
 const AppRoutes = () => (
   <>
@@ -16,6 +18,8 @@ const AppRoutes = () => (
         <Route path="/" element={<HomePage />} />
         <Route path="/map" element={<MapPage />} />
         <Route path="/register-admin" element={<RegistroAdmin/>} />
+        <Route path="/features" element={<Features/>} />
+        <Route path="/pqrs" element={<PQRSForm/>} />
       </Routes>
     </div>
     <Footer />
