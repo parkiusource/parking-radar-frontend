@@ -1,0 +1,53 @@
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* Asegura que el contenedor ocupe toda la altura de la ventana */
+}
+
+.app-header {
+  width: 100%;
+  padding: 20px;
+  background-color: #1a73e8;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+}
+
+.app-logo {
+  width: 160px;
+  height: 80px;
+}
+.home-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  font-family: Arial, sans-serif; /* Cambia la fuente si lo deseas */
+}
+
+.home-header {
+  background-color: #1a73e8;
+  color: white;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.home-content {
+  padding: 20px;
+  display: flex;
+  justify-content: center; /* Centra horizontalmente */
+  align-items: center; /* Centra verticalmente */
+  flex-direction: column; /* Asegura que los elementos se apilen */
+}
+
+.home-content section {
+  margin: 20px 0;
+  padding: 20px;
+  background-color: #ffffff; /* Fondo blanco para secciones */
+  border-radius: 8px; /* Bordes redondeados */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Sombra para profundidad */
+  width: 100%; /* Asegura que ocupe todo el ancho */
+  max-width: 800px; /* Limita el ancho máximo */
+}
