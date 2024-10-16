@@ -7,8 +7,8 @@ import { twMerge } from 'tailwind-merge';
 const getHeaderclassName = ({ className } = {}) => {
   return twMerge([
     'fixed top-0 z-10',
-    'w-full h-16 p-4', // Ajusté la altura a h-16 para un tamaño más compacto
-    'bg-secondary shadow-md', // Añadí una sombra para mayor contraste
+    'w-full h-16 p-4',
+    'bg-secondary shadow-md',
     'flex justify-between items-center',
     'text-white',
     className,
@@ -35,7 +35,7 @@ const Header = () => (
 
       <div className="text-xl flex items-center gap-4">
         <a
-          href="https://www.facebook.com/profile.php?id=100009699556618"
+          href="https://www.facebook.com/"
           target="_blank"
           rel="noopener noreferrer"
           className="hover:text-primary transition-colors"
