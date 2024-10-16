@@ -1,13 +1,13 @@
-import { useState } from "react";
-import iconPQRS from "../assets/Icon-PQRS.png";
+import { useState } from 'react';
+import iconPQRS from '../assets/Icon-PQRS.png';
 
-const API_URL = "https://eo5k21qt8rpapp6.m.pipedream.net";
+const API_URL = 'https://eo5k21qt8rpapp6.m.pipedream.net';
 
 const PQRSForm = () => {
   const [formData, setFormData] = useState({
-    username: "",
-    email: "",
-    description: ""
+    username: '',
+    email: '',
+    description: '',
   });
 
   const handleChange = (e) => {
@@ -17,38 +17,54 @@ const PQRSForm = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log("Datos del formulario:", formData);
+    console.log('Datos del formulario:', formData);
 
     fetch(API_URL, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json"
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(formData)
+      body: JSON.stringify(formData),
     })
       .then((response) => response.json())
       .then((data) => {
-        console.log("Exito:", data);
-        alert("Tu PQRS ha sido enviado correctamente.");
+        console.log('Exito:', data);
+        alert('Tu PQRS ha sido enviado correctamente.');
         setFormData({
-          username: "",
-          email: "",
-          description: ""
+          username: '',
+          email: '',
+          description: '',
         });
       })
       .catch((error) => {
-        console.error("Error:", error);
-        alert("Estamos presentando dificultades, \n Intentalo nuevamente mas tarde.");
+        console.error('Error:', error);
+        alert(
+          'Estamos presentando dificultades, \n Intentalo nuevamente mas tarde.',
+        );
       });
   };
 
   return (
     <div className="container mt-5">
       <section className="card mb-4 shadow-sm">
-        <div className="card-body" style={{ textAlign: "left" }}>
-          <div className="feature-item" style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-            <h2>Envía tu Peticion, Queja, Sugerencia o Reclamo y estaremos atentos para resolverla</h2>
-            <img src={iconPQRS} alt="Icono de presentación" className="feature-icon" />
+        <div className="card-body" style={{ textAlign: 'left' }}>
+          <div
+            className="feature-item"
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <h2>
+              Envía tu Peticion, Queja, Sugerencia o Reclamo y estaremos atentos
+              para resolverla
+            </h2>
+            <img
+              src={iconPQRS}
+              alt="Icono de presentación"
+              className="feature-icon"
+            />
           </div>
 
           <form onSubmit={handleSubmit}>

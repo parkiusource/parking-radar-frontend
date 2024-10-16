@@ -1,19 +1,17 @@
-// AppRoutes.js
-import { Routes, Route } from "react-router-dom";
-import MapPage from "../pages/MapPage";
-import HomePage from "../pages/HomePage";
-import RegistroAdmin from "../pages/RegisterAdmin";
-import PQRSForm from "../pages/PQRSForm";
-import Features from "../pages/Features";
+import { Routes, Route } from 'react-router-dom';
+
+import MapPage from '@/pages/MapPage';
+import HomePage from '@/pages/HomePage';
+import About from '@/pages/About';
+import Login from '@/pages/Login';
 
 const AppRoutes = () => (
   <>
     <Routes>
       <Route path="/" element={<HomePage />} />
+      <Route path="/about" element={<About />} />
       <Route path="/map" element={<MapPage />} />
-      <Route path="/register-admin" element={<RegistroAdmin />} />
-      <Route path="/features" element={<Features />} />
-      <Route path="/pqrs" element={<PQRSForm />} />
+      <Route path="/login" element={<Login />} />
     </Routes>
   </>
 );

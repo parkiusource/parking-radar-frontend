@@ -1,36 +1,48 @@
-import logo from "@/assets/Parkify.svg";
-import { Link } from "react-router-dom";
+import { Button } from '@/components/common';
+import Logo from '@/components/Logo';
+import { FaInstagram, FaSquareFacebook } from 'react-icons/fa6';
+import { Link } from 'react-router-dom';
 
-import { twMerge } from "tailwind-merge";
+import { twMerge } from 'tailwind-merge';
 
 const getHeaderclassName = ({ className } = {}) => {
-  return twMerge(["fixed top-0", "w-full h-50 p-4", "bg-secondary", "flex justify-between items-center", "text-white", className]);
+  return twMerge([
+    'fixed top-0 z-10',
+    'w-full h-50 p-4',
+    'bg-secondary',
+    'flex justify-between items-center',
+    'text-white',
+    className,
+  ]);
 };
 
 const Header = () => (
   <header className={getHeaderclassName()}>
-    <div className="flex items-center gap-2">
-      <img src={logo} alt="Logo" style={{ width: "40px", height: "auto" }} className="app-logo" />
-      <Link className="font-medium text-lg" to="/">
-        Parkify
-      </Link>
-    </div>
+    <Link className="font-medium text-2xl flex items-center gap-2" to="/">
+      <Logo />
+      <span className="translate-y-1">Parkify</span>
+    </Link>
     <div className="items-center gap-8 hidden md:flex">
-      <Link className="nav-link" to="/">
-        Inicio
+      <Link to="/about">Nosotros</Link>
+      <Link to="/login">
+        <Button>Inicia ahora</Button>
       </Link>
-      <Link className="nav-link" to="/map">
-        Mapa
-      </Link>
-      <Link className="nav-link" to="/features">
-        Nosotros
-      </Link>
-      <Link className="nav-link" to="/pqrs">
-        Contacto
-      </Link>
-      <Link className="nav-link" to="/register-admin">
-        Registro
-      </Link>
+
+      <div className="text-xl flex items-center gap-4 pr-2">
+        <Link
+          href="https://www.facebook.com/profile.php?id=100009699556618"
+          target="_blank"
+        >
+          <FaSquareFacebook />
+        </Link>
+
+        <Link
+          href="https://www.facebook.com/profile.php?id=100009699556618"
+          target="_blank"
+        >
+          <FaInstagram />
+        </Link>
+      </div>
     </div>
   </header>
 );
