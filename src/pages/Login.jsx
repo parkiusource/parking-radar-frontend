@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { LuLock } from 'react-icons/lu';
+import { Link } from 'react-router-dom';
 
 import { Button, Card } from '@/components/common';
 import Logo from '@/components/Logo';
@@ -64,13 +65,17 @@ export default function Login() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500"
                 />
               </div>
-              <Button
-                type="submit"
-                className="w-full bg-sky-500 hover:bg-sky-600 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-300 flex items-center justify-center"
-              >
-                <LuLock className="w-4 h-4 mr-2" />
-                Inicia Sesión
-              </Button>
+              <div>
+                <Link to="/map">
+                  <Button
+                    type="submit"
+                    className="w-full bg-sky-500 hover:bg-sky-600 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-300 flex items-center justify-center"
+                  >
+                    <LuLock className="w-4 h-4 mr-2" />
+                    Inicia Sesión
+                  </Button>
+                </Link>
+              </div>
             </form>
           </div>
           <div className="text-center">
