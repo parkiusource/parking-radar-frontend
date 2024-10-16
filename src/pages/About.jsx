@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unescaped-entities */
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { LuCar, LuClock, LuMapPin, LuUsers } from 'react-icons/lu';
@@ -13,23 +14,23 @@ export default function About() {
     {
       icon: LuCar,
       title: 'Localización Inteligente',
-      description: 'Encuentra el parqueadero más cercano en cuestión de segundos.',
+      description: 'Descubre el parqueadero ideal cerca de ti en segundos.',
     },
     {
       icon: LuClock,
       title: 'Actualización en Tiempo Real',
-      description: 'Mantente informado sobre la disponibilidad de estacionamiento en tiempo real.',
+      description: 'Conoce al instante si hay espacios libres en tu destino.',
     },
     {
       icon: LuMapPin,
-      title: 'Ahorra Tiempo',
-      description: 'Optimiza tu tiempo encontrando parqueaderos con facilidad.',
+      title: 'Gana Tiempo para Ti',
+      description: 'Encuentra estacionamiento rápidamente y dedica más tiempo a lo que importa.',
     },
     {
       icon: LuUsers,
-      title: 'Comunidad Activa',
+      title: 'Comunidad a Tu Servicio',
       description:
-        'Datos precisos generados por una comunidad de usuarios comprometidos.',
+        'Disfruta de información fiable, actualizada por usuarios como tú.',
     },
   ];
 
@@ -54,7 +55,7 @@ export default function About() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
           >
-            Disponibilidad en tiempo real de parqueaderos en toda tu ciudad.
+            Encuentra parqueaderos disponibles en tiempo real, donde y cuando lo necesites.
           </motion.p>
         </section>
 
@@ -106,14 +107,14 @@ export default function About() {
         <section className="container mx-auto px-4 py-20 text-center">
           <div className="max-w-3xl mx-auto bg-sky-500 bg-opacity-10 rounded-3xl p-12">
             <h2 className="text-4xl font-bold mb-6 text-gray-800">
-              ¿Listo para Transformar Tu Experiencia de Parqueo?
+              ¿Listo para Olvidarte del Estrés al Estacionar?
             </h2>
             <p className="text-xl text-gray-700 mb-8">
-              Únete a miles de usuarios satisfechos y disfruta de estacionar sin complicaciones.
+              Únete a miles de usuarios que ya disfrutan de estacionar fácil y rápido.
             </p>
             <Link to="/parking">
               <Button className="bg-sky-500 hover:bg-sky-600 text-white font-semibold py-3 px-8 rounded-full text-lg shadow-lg hover:shadow-xl transition-all duration-300">
-                Comienza Ahora
+                ¡Encuentra Tu Parqueadero!
               </Button>
             </Link>
           </div>
