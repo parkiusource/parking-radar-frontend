@@ -1,14 +1,17 @@
 // eslint-disable-next-line no-unused-vars
 import React from 'react';
-import 'bootstrap/dist/css/bootstrap.min.css';
-import AppRoutes from './routes/AppRoutes'; // Importa el archivo de rutas
-import ScrollToTop from './services/ScrollToTop';
-// import './styles/App.css';
+import AppRoutes from '@/routes/AppRoutes'; // Importa el archivo de rutas
+import ScrollToTop from '@/services/ScrollToTop';
+import Header from '@/components/Header';
+
 
 const App = () => (
-  <div className="App">
-    <ScrollToTop />
-    <AppRoutes />
+  <div className="bg-secondary-950 overflow-scroll relative h-screen no-scrollbar">
+    <div className="w-full min-w-screen min-h-screen">
+      <Header />
+      <ScrollToTop />
+      <AppRoutes />
+    </div>
   </div>
 );
 

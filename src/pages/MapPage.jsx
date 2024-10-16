@@ -1,13 +1,18 @@
 import { useEffect, useState, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  Circle,
+  useMap,
+} from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { fetchParkingSpots } from '../services/ParkingService';
 import LocateUserButton from '../components/LocateUserButton';
 import availableIcon from '../assets/available-parking.png';
 import fullIcon from '../assets/full-parking.png';
-import '../styles/MapPage.css'; // Estilos personalizados
-import 'bootstrap/dist/css/bootstrap.min.css';
 
 const userIcon = L.divIcon({
   className: '',
@@ -27,10 +32,9 @@ const getParkingIcon = (availableSpaces) => {
 };
 
 const TILE_LAYERS = {
-  DAY: "https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoiY2FtaWxvLXBheWFuZW5lIiwiYSI6ImNtMGV1NjdxcDBhOHkybXE0dHZsMmFidjkifQ.cbxHX5muhJt0G7uXU1IgMQ",
+  DAY: 'https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoiY2FtaWxvLXBheWFuZW5lIiwiYSI6ImNtMGV1NjdxcDBhOHkybXE0dHZsMmFidjkifQ.cbxHX5muhJt0G7uXU1IgMQ',
 };
 
-// eslint-disable-next-line react/prop-types
 const ZoomToUserLocation = ({ userLocation }) => {
   const map = useMap();
 
@@ -52,7 +56,8 @@ const MapPage = () => {
     try {
       const data = await fetchParkingSpots();
       const uniqueData = data.filter(
-        (value, index, self) => index === self.findIndex((t) => t.id === value.id)
+        (value, index, self) =>
+          index === self.findIndex((t) => t.id === value.id),
       );
       setParkingSpots(uniqueData);
     } catch (error) {
@@ -76,10 +81,14 @@ const MapPage = () => {
   };
 
   return (
-    <div className="app-container">
+    <main className="app-container bg-red-500">
       {/* Contenedor del mapa con borde y sombras */}
       <div className="map-container-wrapper">
-        <MapContainer center={[4.711, -74.0721]} zoom={12} className="map-container">
+        <MapContainer
+          center={[4.711, -74.0721]}
+          zoom={12}
+          className="map-container"
+        >
           <LocateUserButton onLocationFound={handleLocationFound} />
           <TileLayer
             url={TILE_LAYERS.DAY}
@@ -91,7 +100,7 @@ const MapPage = () => {
               <Circle
                 center={userLocation}
                 radius={circleRadius}
-                className='user-location-circle-around'
+                className="user-location-circle-around"
                 pathOptions={{
                   color: '#4285f4',
                   fillColor: '#4285f4',
@@ -106,17 +115,29 @@ const MapPage = () => {
           {parkingSpots.map((spot) => {
             const parkingIcon = getParkingIcon(spot.available_spaces);
             return (
-              <Marker key={spot.id} position={[spot.latitude, spot.longitude]} icon={parkingIcon}>
+              <Marker
+                key={spot.id}
+                position={[spot.latitude, spot.longitude]}
+                icon={parkingIcon}
+              >
                 <Popup>
                   <div className="popup-content">
                     <div className="popup-title">{spot.name}</div>
                     <div>{`Dirección: ${spot.address}`}</div>
-                    <div className={spot.available_spaces > 0 ? "popup-available" : "popup-full"}>
+                    <div
+                      className={
+                        spot.available_spaces > 0
+                          ? 'popup-available'
+                          : 'popup-full'
+                      }
+                    >
                       {`Espacios disponibles: ${spot.available_spaces}`}
                     </div>
                     <button
                       className="btn btn-primary mt-2"
-                      onClick={() => openNavigation(spot.latitude, spot.longitude)}
+                      onClick={() =>
+                        openNavigation(spot.latitude, spot.longitude)
+                      }
                     >
                       Navegar aquí
                     </button>
@@ -127,7 +148,7 @@ const MapPage = () => {
           })}
         </MapContainer>
       </div>
-    </div>
+    </main>
   );
 };
 
