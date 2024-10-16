@@ -26,18 +26,24 @@ const variants = cva(
   },
 );
 
+export const getButtonClassName = (
+  { className, variant, size } = { variant: 'default', size: 'default' },
+) => {
+  return twMerge(
+    variants({ variant, size, className }),
+    'transition-all duration-300 ease-in-out',
+    {
+      'hover:translate-y-[-2px]': variant !== 'ghost',
+    },
+  );
+};
+
 const Button = React.forwardRef(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
     return (
       <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
         <button
-          className={twMerge(
-            variants({ variant, size, className }),
-            'transition-all duration-300 ease-in-out',
-            {
-              'hover:translate-y-[-2px]': variant !== 'ghost',
-            },
-          )}
+          className={getButtonClassName({ className, variant, size })}
           ref={ref}
           {...props}
         />
