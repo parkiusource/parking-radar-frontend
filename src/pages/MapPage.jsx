@@ -35,7 +35,6 @@ const TILE_LAYERS = {
   DAY: 'https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoiY2FtaWxvLXBheWFuZW5lIiwiYSI6ImNtMGV1NjdxcDBhOHkybXE0dHZsMmFidjkifQ.cbxHX5muhJt0G7uXU1IgMQ',
 };
 
-// eslint-disable-next-line react/prop-types
 const ZoomToUserLocation = ({ userLocation }) => {
   const map = useMap();
 
