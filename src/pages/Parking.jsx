@@ -45,7 +45,7 @@ export default function Parking() {
   const [selectedSpot, setSelectedSpot] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedParking, setSelectedParking] = useState([]);
+  const [selectedParking, setSelectedParking] = useState(null);
 
   const [spotNavigation, setSpotNavigation] = useState(null);
 
@@ -97,85 +97,76 @@ export default function Parking() {
           </div>
           <div className="overflow-y-scroll h-[calc(100vh-200px)]">
             <AnimatePresence>
-              {parkings.map(({ id, name, spots, address }) => {
-                const carSpots = (spots ?? []).filter(
-                  (s) => s && s.type === 'car',
-                );
-                const bikeSpots = (spots ?? []).filter(
-                  (s) => s && s.type === 'bike',
-                );
-                return (
-                  <motion.div
-                    key={id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.3 }}
-                    layout
-                  >
-                    <div
-                      className={`mb-4 p-4 bg-white rounded-lg shadow-sm transition-all duration-300 hover:shadow-md ${selectedSpot === id ? 'border-l-4 border-sky-500' : ''}`}
-                      onClick={() => setSelectedSpot(id)}
+              {(selectedParking ? [selectedParking] : parkings).map(
+                ({ id, name, spots, address }) => {
+                  const carSpots = (spots ?? []).filter(
+                    (s) => s && s.type === 'car',
+                  );
+                  const bikeSpots = (spots ?? []).filter(
+                    (s) => s && s.type === 'bike',
+                  );
+                  return (
+                    <motion.div
+                      key={`parking_${id}`}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.3 }}
+                      layout
                     >
-                      <div className="flex justify-between items-start mb-2 flex-col">
-                        <h3 className="font-medium text-secondary-800">
-                          {name}
-                        </h3>
-                        <span className="text-sm text-secondary-500">
-                          {address}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex flex-col gap-1">
-                          <div className="flex items-center">
-                            <LuCar className="w-4 h-4 text-sky-500 mr-2" />
-                            <span className="text-sm text-secondary-600">
-                              {carSpots.length || 0} disponibles
-                            </span>
-                          </div>
-                          <div className="flex items-center">
-                            <RiEBike2Line className="w-4 h-4 text-sky-500 mr-2" />
-                            <span className="text-sm text-secondary-600">
-                              {bikeSpots.length || 0} disponibles
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex items-center">
-                          <LuDollarSign className="w-4 h-4 text-green-500 mr-1" />
-                          <span className="text-sm text-secondary-600">
-                            60 a 100/min
+                      <div
+                        className={`mb-4 p-4 bg-white rounded-lg shadow-sm transition-all duration-300 hover:shadow-md ${selectedSpot === id ? 'border-l-4 border-sky-500' : ''}`}
+                        onClick={() => setSelectedSpot(id)}
+                      >
+                        <div className="flex justify-between items-start mb-2 flex-col">
+                          <h3 className="font-medium text-secondary-800">
+                            {name}
+                          </h3>
+                          <span className="text-sm text-secondary-500">
+                            {address}
                           </span>
                         </div>
-                      </div>
-                      {typeof spotNavigation === 'function' && (
-                        <div className="flex gap-2 w-full justify-end">
-                          <Link to="/login">
-                            <Button
-                              // eslint-disable-next-line no-undef
-                              onClick={() => handleBook(id)}
-                              className="flex-grow bg-sky-500 hover:bg-sky-600 text-white transition-colors duration-300"
-                            >
-                              Reservar
-                            </Button>
-                          </Link>
-                          <Button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              spotNavigation();
-                            }}
-                            variant="ghost"
-                            size="icon"
-                            className="w-10 h-10 transition-colors duration-300 translate-y-[1px]"
-                          >
-                            <LuNavigation className="w-5 h-5 text-gray-600" />
-                            <span className="sr-only">Navegar al spot</span>
-                          </Button>
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center">
+                              <LuCar className="w-4 h-4 text-sky-500 mr-2" />
+                              <span className="text-sm text-secondary-600">
+                                {carSpots.length || 0} disponibles
+                              </span>
+                            </div>
+                            <div className="flex items-center">
+                              <RiEBike2Line className="w-4 h-4 text-sky-500 mr-2" />
+                              <span className="text-sm text-secondary-600">
+                                {bikeSpots.length || 0} disponibles
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center">
+                            <LuDollarSign className="w-4 h-4 text-green-500 mr-1" />
+                            <span className="text-sm text-secondary-600">
+                              60 a 100/min
+                            </span>
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  </motion.div>
-                );
-              })}
+                        {typeof spotNavigation === 'function' && (
+                          <div className="flex gap-2 w-full justify-end">
+                            <Button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                spotNavigation();
+                              }}
+                              className="text-white flex items-center gap-2"
+                            >
+                              <LuNavigation className="w-5 h-5" />
+                              <span>Navegar</span>
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                },
+              )}
             </AnimatePresence>
           </div>
         </section>

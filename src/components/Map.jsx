@@ -13,6 +13,10 @@ import { fetchParkingSpots } from '@/services/ParkingService';
 
 import availableIcon from '@/assets/available-parking.png';
 import fullIcon from '@/assets/full-parking.png';
+import { twMerge } from 'tailwind-merge';
+import { Button } from '@/components/common';
+
+import { LuNavigation } from 'react-icons/lu';
 
 const TILE_LAYERS = {
   DAY: 'https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoiY2FtaWxvLXBheWFuZW5lIiwiYSI6ImNtMGV1NjdxcDBhOHkybXE0dHZsMmFidjkifQ.cbxHX5muhJt0G7uXU1IgMQ',
@@ -98,7 +102,7 @@ export function Map({ onParkingSpotSelected }) {
             <Circle
               center={userLocation}
               radius={circleRadius}
-              className="user-location-circle-around"
+              className="bg-primary"
               pathOptions={{
                 color: '#4285f4',
                 fillColor: '#4285f4',
@@ -130,21 +134,31 @@ export function Map({ onParkingSpotSelected }) {
               }}
             >
               <Popup>
-                <div className="popup-content">
-                  <div className="popup-title">{spot.name}</div>
+                <div className="p-2 text-center space-y-1">
+                  <div className="popup-title text-lg font-semibold mb-2">
+                    {spot.name}
+                  </div>
                   <div>{`Dirección: ${spot.address}`}</div>
                   <div
-                    className={
+                    className={twMerge([
+                      'font-medium',
                       spot.available_spaces > 0
-                        ? 'popup-available'
-                        : 'popup-full'
-                    }
+                        ? 'text-primary'
+                        : 'text-red-700',
+                      ,
+                    ])}
                   >
                     {`Espacios disponibles: ${spot.available_spaces}`}
                   </div>
-                  <button className="btn btn-primary mt-2" onClick={navigate}>
-                    Navegar aquí
-                  </button>
+                  {spot.available_spaces && (
+                    <Button
+                      className="font-medium mt-4 flex gap-2 items-center mx-auto"
+                      onClick={navigate}
+                    >
+                      <LuNavigation />
+                      <span>Navegar</span>
+                    </Button>
+                  )}
                 </div>
               </Popup>
             </Marker>
