@@ -24,7 +24,7 @@ const Header = () => (
     </Link>
     <div className="items-center gap-8 hidden md:flex">
       <Link to="/about">Nosotros</Link>
-      <Link to="/login">
+      <Link to="/parking">
         <Button>Inicia ahora</Button>
       </Link>
 

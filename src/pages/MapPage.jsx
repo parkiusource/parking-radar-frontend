@@ -82,7 +82,7 @@ const MapPage = () => {
   };
 
   return (
-    <div className="app-container">
+    <main className="app-container bg-red-500">
       {/* Contenedor del mapa con borde y sombras */}
       <div className="map-container-wrapper">
         <MapContainer
@@ -149,7 +149,7 @@ const MapPage = () => {
           })}
         </MapContainer>
       </div>
-    </div>
+    </main>
   );
 };
 
