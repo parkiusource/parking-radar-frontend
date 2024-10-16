@@ -9,6 +9,7 @@ import Pedro from '@/assets/team/Pedro.jpg';
 
 import { Button, Card } from '@/components/common';
 import Footer from '@/components/Footer';
+import { Link } from 'react-router-dom';
 
 export default function About() {
   const [hoveredFeature, setHoveredFeature] = useState(null);
@@ -168,9 +169,11 @@ export default function About() {
               Únete a miles de usuarios satisfechos y despídete del estrés de
               estacionar.
             </p>
-            <Button className="bg-sky-500 hover:bg-sky-600 text-white font-semibold py-3 px-8 rounded-full text-lg shadow-lg hover:shadow-xl transition-all duration-300">
-              Comienza Ahora
-            </Button>
+            <Link to="/parking">
+              <Button className="bg-sky-500 hover:bg-sky-600 text-white font-semibold py-3 px-8 rounded-full text-lg shadow-lg hover:shadow-xl transition-all duration-300">
+                Comienza Ahora
+              </Button>
+            </Link>
           </div>
         </section>
       </main>
