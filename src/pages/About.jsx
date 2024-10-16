@@ -95,7 +95,6 @@ export default function About() {
           </div>
         </section>
 
-        {/* Sección de Características */}
         <section className="container mx-auto px-4 py-16">
           <h2 className="text-4xl font-bold mb-12 text-center text-gray-800">
             Qué Nos Hace Únicos
@@ -129,37 +128,39 @@ export default function About() {
             ))}
           </div>
         </section>
-        <section className="container mx-auto px-4 py-16">
-          <h2 className="text-4xl font-bold mb-12 text-center text-gray-800">
-            Conoce a Nuestro Equipo
-          </h2>
-          <div className="flex flex-wrap justify-center gap-8">
-            {teamMembers.map((member, index) => (
-              <motion.div
-                key={index}
-                className="text-center"
-                initial={{ opacity: 0, y: 50 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.2 }}
-              >
-                <div className="w-48 h-48 mx-auto mb-4 rounded-full overflow-hidden shadow-lg hover:shadow-2xl transition-shadow duration-300">
-                  <img
-                    src={member.image}
-                    alt={member.name}
-                    className={twMerge(
-                      'w-full h-full object-cover',
-                      member.imageClassName,
-                    )}
-                  />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-800">
-                  {member.name}
-                </h3>
-                <p className="text-gray-600">{member.role}</p>
-              </motion.div>
-            ))}
-          </div>
-        </section>
+        {false && (
+          <section className="container mx-auto px-4 py-16">
+            <h2 className="text-4xl font-bold mb-12 text-center text-gray-800">
+              Conoce a Nuestro Equipo
+            </h2>
+            <div className="flex flex-wrap justify-center gap-8">
+              {teamMembers.map((member, index) => (
+                <motion.div
+                  key={index}
+                  className="text-center"
+                  initial={{ opacity: 0, y: 50 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.2 }}
+                >
+                  <div className="w-48 h-48 mx-auto mb-4 rounded-full overflow-hidden shadow-lg hover:shadow-2xl transition-shadow duration-300">
+                    <img
+                      src={member.image}
+                      alt={member.name}
+                      className={twMerge(
+                        'w-full h-full object-cover',
+                        member.imageClassName,
+                      )}
+                    />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-800">
+                    {member.name}
+                  </h3>
+                  <p className="text-gray-600">{member.role}</p>
+                </motion.div>
+              ))}
+            </div>
+          </section>
+        )}
         <section className="container mx-auto px-4 py-20 text-center">
           <div className="max-w-3xl mx-auto bg-sky-500 bg-opacity-10 rounded-3xl p-12">
             <h2 className="text-4xl font-bold mb-6 text-gray-800">

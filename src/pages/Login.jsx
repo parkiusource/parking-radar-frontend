@@ -88,8 +88,6 @@ export default function Login() {
           </div>
         </Card>
       </motion.div>
-
-      {/* Decorative elements */}
       <motion.div
         className="absolute top-10 left-10 w-20 h-20 bg-sky-300 rounded-full opacity-50"
         animate={{
