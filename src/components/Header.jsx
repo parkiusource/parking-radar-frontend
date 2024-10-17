@@ -15,6 +15,12 @@ const getHeaderclassName = ({ className } = {}) => {
   ]);
 };
 
+const CtaButton = () => (
+  <Link to="/parking">
+    <Button>Inicia ahora</Button>
+  </Link>
+);
+
 const Header = () => (
   <header className={getHeaderclassName()}>
     <Link className="font-medium text-2xl flex items-center gap-2" to="/">
@@ -30,7 +36,7 @@ const Header = () => (
         PQRS
       </Link>
       <Link to="/parking">
-        <Button>Inicia ahora</Button>
+        <CtaButton />
       </Link>
 
       <div className="text-xl flex items-center gap-4">
@@ -51,6 +57,9 @@ const Header = () => (
           <FaInstagram />
         </a>
       </div>
+    </nav>
+    <nav className="flex md:hidden items-center gap-8">
+      <CtaButton />
     </nav>
   </header>
 );
