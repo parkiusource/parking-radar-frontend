@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { LuCar, LuDollarSign, LuSearch, LuNavigation } from 'react-icons/lu';
-import { RiEBike2Line } from 'react-icons/ri';
+/* import { RiEBike2Line } from 'react-icons/ri'; */
 import { Button } from '@/components/common';
 import Map from '@/components/Map';
 import Logo from '@/components/Logo';
@@ -66,10 +66,10 @@ export default function Parking() {
         <section className="w-full md:w-1/3">
           <div className="mb-4">
             <h2 className="text-2xl font-medium text-secondary-700 mb-2">
-              Parqueaderos cercanos
+              Spots cercanos
             </h2>
             <small className="text-secondary-500 text-base font-light">
-              Selecciona un parqueadero en el mapa para ver sus espacios disponibles...
+              Selecciona un parqueadero en el mapa para ver sus spots disponibles...
             </small>
           </div>
           <div className="overflow-y-auto h-[calc(100vh-200px)]">
@@ -102,12 +102,6 @@ export default function Parking() {
                           <LuCar className="w-4 h-4 text-sky-500 mr-2" />
                           <span className="text-sm text-secondary-600">
                             {parking.spots.filter((s) => s.type === 'car').length} disponibles
-                          </span>
-                        </div>
-                        <div className="flex items-center">
-                          <RiEBike2Line className="w-4 h-4 text-sky-500 mr-2" />
-                          <span className="text-sm text-secondary-600">
-                            {parking.spots.filter((s) => s.type === 'bike').length} disponibles
                           </span>
                         </div>
                       </div>
