@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   MapContainer,
   TileLayer,
@@ -17,6 +17,7 @@ import { twMerge } from 'tailwind-merge';
 import { Button } from '@/components/common';
 
 import { LuNavigation } from 'react-icons/lu';
+import { connectWebSocket, closeWebSocket } from '@/services/WebSocketService';
 
 const TILE_LAYERS = {
   DAY: 'https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoiY2FtaWxvLXBheWFuZW5lIiwiYSI6ImNtMGV1NjdxcDBhOHkybXE0dHZsMmFidjkifQ.cbxHX5muhJt0G7uXU1IgMQ',
@@ -69,10 +70,22 @@ export function Map({ onParkingSpotSelected }) {
     }
   }, []);
 
+  // Connect WebSocket and fetch initial data
   useEffect(() => {
     fetchSpots();
-    const intervalId = setInterval(fetchSpots, 10000);
-    return () => clearInterval(intervalId);
+
+    const handleWebSocketMessage = (data) => {
+      if (data.type === 'new-change-in-parking') {
+        console.log('New change detected:', data.payload);
+        fetchSpots();
+      }
+    };
+
+    connectWebSocket('wss://parking-radar-61e65e5cb889.herokuapp.com/ws', handleWebSocketMessage);
+
+    return () => {
+      closeWebSocket();
+    };
   }, [fetchSpots]);
 
   const handleLocationFound = (location) => {
