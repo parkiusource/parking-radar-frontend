@@ -9,5 +9,13 @@ export default defineConfig({
       "@": "/src"
     }
   },
-  base: "/"
+  base: "/",
+  server: {
+    historyApiFallback: true,
+  },
+  build: {
+    rollupOptions: {
+      input: "/index.html",
+    }
+  }
 });

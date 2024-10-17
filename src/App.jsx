@@ -1,6 +1,4 @@
-// eslint-disable-next-line no-unused-vars
-import React from 'react';
-import AppRoutes from '@/routes/AppRoutes'; // Importa el archivo de rutas
+import AppRoutes from '@/routes/AppRoutes';
 import ScrollToTop from '@/services/ScrollToTop';
 import Header from '@/components/Header';
 
