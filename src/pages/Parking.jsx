@@ -36,11 +36,11 @@ export default function Parking() {
       {/* Header */}
       <header className="bg-white shadow p-4 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-1 text-2xl font-semibold text-secondary-800">
+          <Link to="/" className="flex items-center gap-1 text-1xl md:text-2xl font-semibold text-secondary-800">
             <Logo variant="secondary" className="-translate-y-1" />
             Parkify
           </Link>
-          <div className="relative w-full max-w-xs">
+          <div className="relative w-full max-w-56 md:max-w-xs">
             <input
               type="text"
               placeholder="Buscar parqueadero..."
@@ -54,7 +54,7 @@ export default function Parking() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-grow flex flex-col md:flex-row p-4 gap-4 max-w-6xl mx-auto w-full">
+      <main className="flex-grow flex flex-col md:flex-row p-4 mt-4 sm:mt-2 md:mt-0 gap-4 max-w-6xl mx-auto w-full">
         {/* Map Section */}
         <section className="w-full md:w-2/3 bg-white rounded-lg shadow-sm overflow-hidden">
           <div className="h-full min-h-[400px] bg-secondary-100 flex items-center justify-center">
@@ -72,7 +72,7 @@ export default function Parking() {
               Selecciona un parqueadero en el mapa para ver sus spots disponibles...
             </small>
           </div>
-          <div className="overflow-y-auto h-[calc(100vh-200px)]">
+          <div className="overflow-y-auto h-[calc(100dvh-200px)]">
             <AnimatePresence>
               {(selectedParking ? [selectedParking] : parkings).map((parking) => (
                 <motion.div
