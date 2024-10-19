@@ -32,9 +32,9 @@ export default function Parking() {
   };
 
   return (
-    <div className="min-h-screen bg-secondary-50 flex flex-col">
+    <div className="min-h-screen bg-secondary-100 flex flex-col">
       {/* Header */}
-      <header className="bg-white shadow p-4 sticky top-0 z-10">
+      <header className="w-full bg-white shadow p-4 sticky top-0 z-[1010]">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <Link to="/" className="flex items-center gap-1 text-1xl md:text-2xl font-semibold text-secondary-800">
             <Logo variant="secondary" className="-translate-y-1" />
@@ -65,10 +65,10 @@ export default function Parking() {
         {/* Parking Spots Section */}
         <section className="w-full md:w-1/3">
           <div className="mb-4">
-            <h2 className="text-2xl font-medium text-secondary-700 mb-2">
+            <h2 className="text-2xl font-medium text-secondary-800 mb-2">
               Spots cercanos
             </h2>
-            <small className="text-secondary-500 text-base font-light">
+            <small className="text-secondary-600 text-base font-light">
               Selecciona un parqueadero en el mapa para ver sus spots disponibles...
             </small>
           </div>

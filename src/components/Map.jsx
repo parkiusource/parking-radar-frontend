@@ -8,6 +8,7 @@ import {
   useMap,
 } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
 import LocateUserButton from '@/components/LocateUserButton';
 import { fetchParkingSpots } from '@/services/ParkingService';
 
@@ -158,7 +159,6 @@ export function Map({ onParkingSpotSelected }) {
                       spot.available_spaces > 0
                         ? 'text-primary'
                         : 'text-red-700',
-                      ,
                     ])}
                   >
                     {`Espacios disponibles: ${spot.available_spaces}`}
