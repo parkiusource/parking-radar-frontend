@@ -10,8 +10,8 @@ Smart Parking Radar es una aplicación web para identificar y monitorear parquea
 - **Autenticación de Usuario:** Funcionalidad de inicio de sesión y registro para los usuarios.
 
 ## Tecnologías Utilizadas
-
-- **Frontend:** React, React Leaflet, Vite
+Leaflet
+- **Frontend:** React, Google maps api, Vite
 - **Backend:** Go (Golang), Gin Web Framework
 - **Base de Datos:** PostgreSQL
 - **Herramientas:** Docker, pre-commit, Git
