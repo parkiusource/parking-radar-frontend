@@ -17,12 +17,10 @@ const getHeaderclassName = ({ className } = {}) => {
 };
 
 const CtaButton = () => {
-  const navigate = useNavigate();
-
   return (
-    <Button onClick={() => navigate('/parking')}>
-      Inicia ahora
-    </Button>
+    <Link to="/parking">
+      <Button>Inicia ahora</Button>
+    </Link>
   );
 };
 
@@ -40,9 +38,7 @@ const Header = () => (
       <Link to="/pqrs" className="hover:text-primary transition-colors">
         PQRS
       </Link>
-      <Link to="/parking">
-        <CtaButton />
-      </Link>
+      <CtaButton />
 
       <div className="text-xl flex items-center gap-4">
         <a

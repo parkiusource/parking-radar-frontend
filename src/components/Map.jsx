@@ -6,7 +6,6 @@ import availableIcon from '@/assets/available-parking.png';
 import fullIcon from '@/assets/full-parking.png';
 import { Button } from '@/components/common';
 import { LuNavigation } from 'react-icons/lu';
-import '../styles/MapStyles.css';
 
 const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 // Define the libraries required for Google Maps
@@ -54,7 +53,7 @@ const Map = memo(({ parkingSpots, selectedSpot, setSelectedSpot }) => {
         });
       },
       (error) => console.error('Error fetching location:', error),
-      { enableHighAccuracy: true }
+      { enableHighAccuracy: true },
     );
   }, [zoomToUserLocation]);
 
@@ -105,18 +104,26 @@ const Map = memo(({ parkingSpots, selectedSpot, setSelectedSpot }) => {
   // Synchronize `selectedSpot` with the latest data from `parkingSpots`
   useEffect(() => {
     if (selectedSpot) {
-      const updatedSpot = parkingSpots.find((spot) => spot.id === selectedSpot.id);
-      if (updatedSpot && updatedSpot.available_spaces !== selectedSpot.available_spaces) {
+      const updatedSpot = parkingSpots.find(
+        (spot) => spot.id === selectedSpot.id,
+      );
+      if (
+        updatedSpot &&
+        updatedSpot.available_spaces !== selectedSpot.available_spaces
+      ) {
         setSelectedSpot(updatedSpot);
       }
     }
   }, [parkingSpots, selectedSpot, setSelectedSpot]);
 
   // Handle map load event to initialize markers
-  const handleMapLoad = useCallback((map) => {
-    mapRef.current = map;
-    initializeMarkers();
-  }, [initializeMarkers]);
+  const handleMapLoad = useCallback(
+    (map) => {
+      mapRef.current = map;
+      initializeMarkers();
+    },
+    [initializeMarkers],
+  );
 
   // Open Google Maps navigation with the given latitude and longitude
   const openNavigation = (lat, lng) => {
@@ -139,9 +146,13 @@ const Map = memo(({ parkingSpots, selectedSpot, setSelectedSpot }) => {
         onLoad={handleMapLoad}
         options={{
           mapId: '554ef11d99dc3101',
-          zoomControlOptions: { position: window.google.maps.ControlPosition.LEFT_BOTTOM },
+          zoomControlOptions: {
+            position: window.google.maps.ControlPosition.LEFT_BOTTOM,
+          },
           fullscreenControl: true,
-          fullscreenControlOptions: { position: window.google.maps.ControlPosition.RIGHT_BOTTOM },
+          fullscreenControlOptions: {
+            position: window.google.maps.ControlPosition.RIGHT_BOTTOM,
+          },
           streetViewControl: false,
         }}
       >
@@ -154,21 +165,31 @@ const Map = memo(({ parkingSpots, selectedSpot, setSelectedSpot }) => {
 
         {selectedSpot && infoWindowOpen && (
           <InfoWindowF
-            className='gm-ui-hover-effect'
-            position={{ lat: selectedSpot.latitude, lng: selectedSpot.longitude }}
+            className="gm-ui-hover-effect"
+            position={{
+              lat: selectedSpot.latitude,
+              lng: selectedSpot.longitude,
+            }}
             onCloseClick={() => setInfoWindowOpen(false)} // Close InfoWindow on click
             options={{ pixelOffset: new window.google.maps.Size(0, -40) }}
           >
             <div className="p-2 text-center space-y-1">
               <h3 className="text-lg font-semibold">{selectedSpot.name}</h3>
               <p>{`Address: ${selectedSpot.address}`}</p>
-              <p className={`font-medium ${selectedSpot.available_spaces > 0 ? 'text-green-500' : 'text-red-500'}`}>
+              <p
+                className={`font-medium ${selectedSpot.available_spaces > 0 ? 'text-green-500' : 'text-red-500'}`}
+              >
                 {`Available spaces: ${selectedSpot.available_spaces}`}
               </p>
               {selectedSpot.available_spaces > 0 && (
                 <Button
                   className="mt-4 bg-blue-500 hover:bg-blue-600 text-white flex gap-2 items-center mx-auto"
-                  onClick={() => openNavigation(selectedSpot.latitude, selectedSpot.longitude)}
+                  onClick={() =>
+                    openNavigation(
+                      selectedSpot.latitude,
+                      selectedSpot.longitude,
+                    )
+                  }
                 >
                   <LuNavigation /> Navigate
                 </Button>
