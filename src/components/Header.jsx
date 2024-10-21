@@ -3,7 +3,6 @@ import Logo from '@/components/Logo';
 import { FaInstagram, FaSquareFacebook } from 'react-icons/fa6';
 import { Link } from 'react-router-dom';
 import { twMerge } from 'tailwind-merge';
-import { useNavigate } from 'react-router-dom';
 
 const getHeaderclassName = ({ className } = {}) => {
   return twMerge([
