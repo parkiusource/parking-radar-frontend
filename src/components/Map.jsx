@@ -1,185 +1,185 @@
-import { useCallback, useEffect, useState } from 'react';
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  Popup,
-  Circle,
-  useMap,
-} from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-import LocateUserButton from '@/components/LocateUserButton';
-import { fetchParkingSpots } from '@/services/ParkingService';
-
+import { useCallback, useEffect, useRef, memo, useState } from 'react';
+import { GoogleMap, InfoWindowF, useJsApiLoader } from '@react-google-maps/api';
+import { debounce } from 'lodash';
+import { BiTargetLock } from 'react-icons/bi';
 import availableIcon from '@/assets/available-parking.png';
 import fullIcon from '@/assets/full-parking.png';
-import { twMerge } from 'tailwind-merge';
 import { Button } from '@/components/common';
-
 import { LuNavigation } from 'react-icons/lu';
-import { connectWebSocket, closeWebSocket } from '@/services/WebSocketService';
+import '../styles/MapStyles.css';
 
-const TILE_LAYERS = {
-  DAY: 'https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoiY2FtaWxvLXBheWFuZW5lIiwiYSI6ImNtMGV1NjdxcDBhOHkybXE0dHZsMmFidjkifQ.cbxHX5muhJt0G7uXU1IgMQ',
-};
+const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+// Define the libraries required for Google Maps
+const LIBRARIES = ['marker'];
 
-const userIcon = L.divIcon({
-  className: '',
-  html: `<div class="user-location-circle"></div>`,
-  iconSize: [20, 20],
-  iconAnchor: [10, 10],
-});
-
-const getParkingIcon = (availableSpaces) => {
-  const iconUrl = availableSpaces > 0 ? availableIcon : fullIcon;
-  return L.icon({
-    iconUrl,
-    iconSize: [35, 45],
-    iconAnchor: [12, 41],
-    popupAnchor: [0, -41],
-  });
-};
-
-const ZoomToUserLocation = ({ userLocation }) => {
-  const map = useMap();
-
-  useEffect(() => {
-    if (userLocation) {
-      map.setView(userLocation, 16);
-    }
-  }, [userLocation, map]);
-
-  return null;
-};
-
-export function Map({ onParkingSpotSelected }) {
-  const [parkingSpots, setParkingSpots] = useState([]);
+// Component for rendering the map with parking spots
+const Map = memo(({ parkingSpots, selectedSpot, setSelectedSpot }) => {
   const [userLocation, setUserLocation] = useState(null);
-  const circleRadius = 20;
+  const [infoWindowOpen, setInfoWindowOpen] = useState(false);
+  const mapRef = useRef(null);
+  const markersRef = useRef([]);
+  const userCircleRef = useRef(null);
 
-  const fetchSpots = useCallback(async () => {
-    try {
-      const data = await fetchParkingSpots();
-      const uniqueData = data.filter(
-        (value, index, self) =>
-          index === self.findIndex((t) => t.id === value.id),
-      );
-      setParkingSpots(uniqueData);
-    } catch (error) {
-      console.error('Error al obtener los parqueaderos:', error);
+  // Load the Google Maps API
+  const { isLoaded, loadError } = useJsApiLoader({
+    googleMapsApiKey: apiKey,
+    libraries: LIBRARIES,
+  });
+
+  // Ubicar al usuario y centrar el mapa en su posición
+  const zoomToUserLocation = useCallback((location) => {
+    if (mapRef.current) {
+      mapRef.current.setCenter(location);
+      mapRef.current.setZoom(16); // Nivel de zoom al usuario
     }
   }, []);
 
-  // Connect WebSocket and fetch initial data
+  // Locate the user and center the map on their position
+  const locateUser = useCallback(() => {
+    navigator.geolocation?.getCurrentPosition(
+      ({ coords: { latitude, longitude } }) => {
+        const newLocation = { lat: latitude, lng: longitude };
+        setUserLocation(newLocation);
+        zoomToUserLocation(newLocation);
+        mapRef.current?.panTo(newLocation);
+
+        if (userCircleRef.current) userCircleRef.current.setMap(null);
+        userCircleRef.current = new window.google.maps.Circle({
+          map: mapRef.current,
+          center: newLocation,
+          radius: 30,
+          strokeColor: '#4285F4',
+          fillColor: '#4285F4',
+          fillOpacity: 0.35,
+        });
+      },
+      (error) => console.error('Error fetching location:', error),
+      { enableHighAccuracy: true }
+    );
+  }, [zoomToUserLocation]);
+
+  // Create marker content based on the spot's availability
+  const createMarkerContent = useCallback((spot) => {
+    const img = document.createElement('img');
+    img.src = spot.available_spaces > 0 ? availableIcon : fullIcon;
+    img.style.width = '35px';
+    img.style.height = '45px';
+    img.style.margin = '0';
+    img.style.padding = '0';
+    img.alt = spot.name;
+    return img;
+  }, []);
+
+  // Initialize and render markers on the map
+  const initializeMarkers = useCallback(async () => {
+    markersRef.current.forEach((marker) => marker.setMap(null)); // Clear existing markers
+    markersRef.current = [];
+
+    // eslint-disable-next-line no-undef
+    const { AdvancedMarkerElement } = await google.maps.importLibrary('marker');
+
+    parkingSpots.forEach((spot) => {
+      const marker = new AdvancedMarkerElement({
+        map: mapRef.current,
+        position: { lat: spot.latitude, lng: spot.longitude },
+        title: spot.name,
+        content: createMarkerContent(spot),
+      });
+
+      // Open the InfoWindow when the marker is clicked
+      marker.addListener('click', () => {
+        setSelectedSpot(spot);
+        setInfoWindowOpen(true);
+      });
+
+      markersRef.current.push(marker);
+    });
+  }, [parkingSpots, setSelectedSpot, createMarkerContent]);
+
+  // Reinitialize markers whenever the map loads or parking spots change
   useEffect(() => {
-    fetchSpots();
+    if (isLoaded && mapRef.current) initializeMarkers();
+    return () => markersRef.current.forEach((marker) => marker.setMap(null));
+  }, [isLoaded, initializeMarkers]);
 
-    const handleWebSocketMessage = (data) => {
-      if (data.type === 'new-change-in-parking') {
-        console.log('New change detected:', data.payload);
-        fetchSpots();
+  // Synchronize `selectedSpot` with the latest data from `parkingSpots`
+  useEffect(() => {
+    if (selectedSpot) {
+      const updatedSpot = parkingSpots.find((spot) => spot.id === selectedSpot.id);
+      if (updatedSpot && updatedSpot.available_spaces !== selectedSpot.available_spaces) {
+        setSelectedSpot(updatedSpot);
       }
-    };
+    }
+  }, [parkingSpots, selectedSpot, setSelectedSpot]);
 
-    connectWebSocket('wss://parking-radar-61e65e5cb889.herokuapp.com/ws', handleWebSocketMessage);
+  // Handle map load event to initialize markers
+  const handleMapLoad = useCallback((map) => {
+    mapRef.current = map;
+    initializeMarkers();
+  }, [initializeMarkers]);
 
-    return () => {
-      closeWebSocket();
-    };
-  }, [fetchSpots]);
-
-  const handleLocationFound = (location) => {
-    setUserLocation(location);
-  };
-
+  // Open Google Maps navigation with the given latitude and longitude
   const openNavigation = (lat, lng) => {
     const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
     window.open(url, '_blank');
   };
 
-  return (
-    <div className="map-container-wrapper w-full h-full min-h-[400px]">
-      <MapContainer
-        center={[4.711, -74.0721]}
-        zoom={12}
-        className="map-container w-full h-full min-h-[400px]"
-      >
-        <LocateUserButton onLocationFound={handleLocationFound} />
-        <TileLayer
-          url={TILE_LAYERS.DAY}
-          attribution='&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> contributors'
-        />
-        {userLocation && (
-          <>
-            <ZoomToUserLocation userLocation={userLocation} />
-            <Circle
-              center={userLocation}
-              radius={circleRadius}
-              className="bg-primary"
-              pathOptions={{
-                color: '#4285f4',
-                fillColor: '#4285f4',
-                fillOpacity: 0.15,
-                weight: 1.5,
-                dashOffset: '2',
-              }}
-            />
-            <Marker position={userLocation} icon={userIcon} />
-          </>
-        )}
-        {parkingSpots.map((spot) => {
-          const parkingIcon = getParkingIcon(spot.available_spaces);
-          const navigate = () => openNavigation(spot.latitude, spot.longitude);
+  // Display error or loading state if needed
+  if (loadError) return <div>Error loading map.</div>;
+  if (!isLoaded) return <div>Loading map...</div>;
 
-          return (
-            <Marker
-              key={spot.id}
-              position={[spot.latitude, spot.longitude]}
-              icon={parkingIcon}
-              eventHandlers={{
-                click: () => {
-                  if (typeof onParkingSpotSelected === 'function')
-                    onParkingSpotSelected({
-                      spot,
-                      navigate,
-                    });
-                },
-              }}
-            >
-              <Popup>
-                <div className="p-2 text-center space-y-1">
-                  <div className="popup-title text-lg font-semibold mb-2">
-                    {spot.name}
-                  </div>
-                  <div>{`Dirección: ${spot.address}`}</div>
-                  <div
-                    className={twMerge([
-                      'font-medium',
-                      spot.available_spaces > 0
-                        ? 'text-primary'
-                        : 'text-red-700',
-                    ])}
-                  >
-                    {`Espacios disponibles: ${spot.available_spaces}`}
-                  </div>
-                  {spot.available_spaces && (
-                    <Button
-                      className="font-medium mt-4 flex gap-2 items-center mx-auto"
-                      onClick={navigate}
-                    >
-                      <LuNavigation />
-                      <span>Navegar</span>
-                    </Button>
-                  )}
-                </div>
-              </Popup>
-            </Marker>
-          );
-        })}
-      </MapContainer>
+  const mapCenter = userLocation || { lat: 4.711, lng: -74.0721 }; // Default map center
+
+  return (
+    <div className="w-full h-full relative">
+      <GoogleMap
+        mapContainerClassName="w-full h-full"
+        center={mapCenter}
+        zoom={userLocation ? 15 : 12}
+        onLoad={handleMapLoad}
+        options={{
+          mapId: '554ef11d99dc3101',
+          zoomControlOptions: { position: window.google.maps.ControlPosition.LEFT_BOTTOM },
+          fullscreenControl: true,
+          fullscreenControlOptions: { position: window.google.maps.ControlPosition.RIGHT_BOTTOM },
+          streetViewControl: false,
+        }}
+      >
+        <button
+          onClick={debounce(locateUser, 300)} // Debounce to avoid multiple calls
+          className="absolute top-4 right-4 p-3 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600"
+        >
+          <BiTargetLock size={24} />
+        </button>
+
+        {selectedSpot && infoWindowOpen && (
+          <InfoWindowF
+            className='gm-ui-hover-effect'
+            position={{ lat: selectedSpot.latitude, lng: selectedSpot.longitude }}
+            onCloseClick={() => setInfoWindowOpen(false)} // Close InfoWindow on click
+            options={{ pixelOffset: new window.google.maps.Size(0, -40) }}
+          >
+            <div className="p-2 text-center space-y-1">
+              <h3 className="text-lg font-semibold">{selectedSpot.name}</h3>
+              <p>{`Address: ${selectedSpot.address}`}</p>
+              <p className={`font-medium ${selectedSpot.available_spaces > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                {`Available spaces: ${selectedSpot.available_spaces}`}
+              </p>
+              {selectedSpot.available_spaces > 0 && (
+                <Button
+                  className="mt-4 bg-blue-500 hover:bg-blue-600 text-white flex gap-2 items-center mx-auto"
+                  onClick={() => openNavigation(selectedSpot.latitude, selectedSpot.longitude)}
+                >
+                  <LuNavigation /> Navigate
+                </Button>
+              )}
+            </div>
+          </InfoWindowF>
+        )}
+      </GoogleMap>
     </div>
   );
-}
+});
 
+Map.displayName = 'Map';
 export default Map;

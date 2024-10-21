@@ -1,15 +1,23 @@
-let socket;
-let pingInterval;
+let socket = null;
+let pingInterval = null;
 
 export const connectWebSocket = (url, onMessage) => {
+  if (socket && socket.readyState !== WebSocket.CLOSED) {
+    console.warn('WebSocket ya está conectado.');
+    return;
+  }
+
   socket = new WebSocket(url);
 
   socket.onopen = () => {
     console.log('Connected to WebSocket server');
 
+    // Establecer intervalo de ping cada 30 segundos
     pingInterval = setInterval(() => {
       console.log('Sending ping');
-      socket.send(JSON.stringify({ type: 'ping' }));
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'ping' }));
+      }
     }, 30000);
   };
 
@@ -32,16 +40,20 @@ export const connectWebSocket = (url, onMessage) => {
 
     if (pingInterval) {
       clearInterval(pingInterval);
+      pingInterval = null;
     }
+    socket = null;
   };
 };
 
 export const closeWebSocket = () => {
   if (socket) {
+    console.log('Cerrando conexión WebSocket...');
     socket.close();
   }
 
   if (pingInterval) {
     clearInterval(pingInterval);
+    pingInterval = null;
   }
 };

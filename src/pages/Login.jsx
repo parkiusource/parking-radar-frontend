@@ -81,9 +81,6 @@ export default function Login() {
           <div className="text-center">
             <p className="text-sm text-gray-600">
               No tienes cuenta aún?{' '}
-              <a href="#" className="text-sky-500 hover:underline">
-                Regístrate gratis
-              </a>
             </p>
           </div>
         </Card>

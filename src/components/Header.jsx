@@ -3,6 +3,7 @@ import Logo from '@/components/Logo';
 import { FaInstagram, FaSquareFacebook } from 'react-icons/fa6';
 import { Link } from 'react-router-dom';
 import { twMerge } from 'tailwind-merge';
+import { useNavigate } from 'react-router-dom';
 
 const getHeaderclassName = ({ className } = {}) => {
   return twMerge([
@@ -15,11 +16,15 @@ const getHeaderclassName = ({ className } = {}) => {
   ]);
 };
 
-const CtaButton = () => (
-  <Link to="/parking">
-    <Button>Inicia ahora</Button>
-  </Link>
-);
+const CtaButton = () => {
+  const navigate = useNavigate();
+
+  return (
+    <Button onClick={() => navigate('/parking')}>
+      Inicia ahora
+    </Button>
+  );
+};
 
 const Header = () => (
   <header className={getHeaderclassName()}>

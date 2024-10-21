@@ -11,12 +11,6 @@ const Footer = ({ className }) => (
       &copy; 2024 Smart Parking Radar. Todos los derechos reservados.
     </p>
     <div className="flex gap-2 items-center">
-      <a href="#" className="text-gray-200">
-        Política de Privacidad
-      </a>
-      <a href="#" className="text-gray-200">
-        Términos de Servicio
-      </a>
     </div>
   </footer>
 );
