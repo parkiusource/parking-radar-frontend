@@ -5,12 +5,13 @@ import { Link } from 'react-router-dom';
 
 import useSearchPlaces from '@/api/hooks/useSearchPlaces';
 import { Button } from '@/components/common';
-import Logo from '@/components/Logo';
 import Map from '@/components/Map';
 import SearchBox from '@/components/SearchBox';
 import { ParkingContext } from '@/context/ParkingContext';
 import { UserContext } from '@/context/UserContext';
 import { useNearbyParkingSpots } from '@/hooks/useNearbySpots';
+import { getHeaderclassName } from '@/components/Header';
+import Branding from '@/components/Branding';
 
 const DEFAULT_MAX_DISTANCE = 1000;
 const DEFAULT_LIMIT = 10;
@@ -49,22 +50,19 @@ export default function Parking() {
 
   return (
     <div className="min-h-screen bg-secondary-100 flex flex-col">
-      <header className="w-full bg-white shadow-md p-4 fixed md:relative top-0 z-10">
-        <div className="max-w-6xl mx-auto flex items-center justify-between flex-wrap gap-2">
-          <Link
-            to="/"
-            className="flex items-center gap-2 text-2xl font-semibold text-secondary-800 hover:text-sky-500 transition-colors"
-            aria-label="Ir a la página principal"
-          >
-            <Logo variant="secondary" className="-translate-y-1" />
-            <span className="whitespace-nowrap">Parkify</span>
-          </Link>
-          <SearchBox
-            placeholder="Busca cerca a tu destino..."
-            useSearchHook={useSearchPlaces}
-            onResultSelected={handleCustomPlaceSelected}
-          />
-        </div>
+      <header
+        className={getHeaderclassName({
+          className: 'bg-white sticky md:relative top-0 z-10',
+        })}
+      >
+        <Link to="/">
+          <Branding variant="secondary" />
+        </Link>
+        <SearchBox
+          placeholder="Busca cerca a tu destino..."
+          useSearchHook={useSearchPlaces}
+          onResultSelected={handleCustomPlaceSelected}
+        />
       </header>
 
       <main className="flex-grow grid grid-cols-1 md:grid-cols-3 gap-4 p-4 mt-1 max-w-6xl mx-auto">
