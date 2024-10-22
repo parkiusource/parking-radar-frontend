@@ -52,13 +52,14 @@ export default function Parking() {
     <div className="min-h-screen bg-secondary-100 flex flex-col">
       <header
         className={getHeaderclassName({
-          className: 'bg-white sticky md:relative top-0 z-10',
+          className: 'gap-6 bg-white sticky md:relative top-0 z-10',
         })}
       >
         <Link to="/">
           <Branding variant="secondary" />
         </Link>
         <SearchBox
+          className="max-w-xs md:max-w-sm flex-1 translate-y-px"
           placeholder="Busca cerca a tu destino..."
           useSearchHook={useSearchPlaces}
           onResultSelected={handleCustomPlaceSelected}

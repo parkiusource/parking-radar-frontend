@@ -1,3 +1,10 @@
+import { useState } from 'react';
+
+import isEmpty from 'lodash/isEmpty';
+import { LuMapPin, LuSearch } from 'react-icons/lu';
+import { twMerge } from 'tailwind-merge';
+
+import { Button } from '@/components/common/Button';
 import {
   Popover,
   PopoverClose,
@@ -5,13 +12,9 @@ import {
   PopoverPortal,
   PopoverTrigger,
 } from '@/components/common/Popover';
-import { useState } from 'react';
-import { LuMapPin, LuSearch } from 'react-icons/lu';
-
-import isEmpty from 'lodash/isEmpty';
-import { Button } from '@/components/common';
 
 export default function SearchBox({
+  className,
   placeholder = 'Buscar lugar...',
   useSearchHook,
   onResultSelected,
@@ -21,10 +24,10 @@ export default function SearchBox({
   const { results, loading } = useSearchHook(searchTerm);
 
   return (
-    <div>
+    <div className={twMerge('w-full', className)}>
       <Popover>
         <PopoverTrigger asChild>
-          <div className="relative w-full max-w-xs">
+          <div className="relative w-full">
             <input
               type="text"
               placeholder={placeholder}
