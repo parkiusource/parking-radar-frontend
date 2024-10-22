@@ -1,22 +1,19 @@
 // components/LocateUserButton.jsx
-import { useMap } from 'react-leaflet';
 import { getUserLocation } from '../services/geolocationService';
 import PropTypes from 'prop-types';
 import { getButtonClassName } from '@/components/common';
-
 import { BiTargetLock } from 'react-icons/bi';
 import { twMerge } from 'tailwind-merge';
 
 const LocateUserButton = ({ onLocationFound }) => {
-  const map = useMap();
-
   const handleLocateUser = async () => {
     try {
       const { latitude, longitude, accuracy } = await getUserLocation();
-      onLocationFound([latitude, longitude], accuracy); // Actualiza la ubicación
-      map.setView([latitude, longitude], 13); // Centra el mapa en la ubicación del usuario
+      const location = { lat: latitude, lng: longitude };
+
+      onLocationFound(location, accuracy);
     } catch (error) {
-      alert(error);
+      alert('Error al obtener la ubicación: ' + error.message);
     }
   };
 

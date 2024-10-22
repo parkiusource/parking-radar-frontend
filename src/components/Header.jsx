@@ -15,11 +15,13 @@ const getHeaderclassName = ({ className } = {}) => {
   ]);
 };
 
-const CtaButton = () => (
-  <Link to="/parking">
-    <Button>Inicia ahora</Button>
-  </Link>
-);
+const CtaButton = () => {
+  return (
+    <Link to="/parking">
+      <Button>Inicia ahora</Button>
+    </Link>
+  );
+};
 
 const Header = () => (
   <header className={getHeaderclassName()}>
@@ -35,9 +37,7 @@ const Header = () => (
       <Link to="/pqrs" className="hover:text-primary transition-colors">
         PQRS
       </Link>
-      <Link to="/parking">
-        <CtaButton />
-      </Link>
+      <CtaButton />
 
       <div className="text-xl flex items-center gap-4">
         <a

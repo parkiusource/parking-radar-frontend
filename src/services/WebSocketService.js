@@ -1,25 +1,28 @@
-let socket;
-let pingInterval;
+let socket = null;
+let pingInterval = null;
 
 export const connectWebSocket = (url, onMessage) => {
+  if (socket && socket.readyState !== WebSocket.CLOSED) {
+    console.warn('WebSocket ya está conectado.');
+    return;
+  }
+
   socket = new WebSocket(url);
 
   socket.onopen = () => {
-    console.log('Connected to WebSocket server');
-
     pingInterval = setInterval(() => {
-      console.log('Sending ping');
-      socket.send(JSON.stringify({ type: 'ping' }));
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'ping' }));
+      }
     }, 30000);
   };
 
   socket.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data);
-      console.log('Message from server:', data);
       onMessage(data);
     } catch (error) {
-      console.error('Error parsing WebSocket message:', error);
+      console.error('Error parking WebSocket message:', error);
     }
   };
 
@@ -28,11 +31,11 @@ export const connectWebSocket = (url, onMessage) => {
   };
 
   socket.onclose = () => {
-    console.log('WebSocket connection closed');
-
     if (pingInterval) {
       clearInterval(pingInterval);
+      pingInterval = null;
     }
+    socket = null;
   };
 };
 
@@ -43,5 +46,6 @@ export const closeWebSocket = () => {
 
   if (pingInterval) {
     clearInterval(pingInterval);
+    pingInterval = null;
   }
 };

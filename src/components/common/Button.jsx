@@ -1,5 +1,5 @@
-import * as React from 'react';
 import { cva } from 'class-variance-authority';
+import { forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
 
@@ -38,18 +38,18 @@ export const getButtonClassName = (
   );
 };
 
-const Button = React.forwardRef(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
-    return (
-      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-        <button
-          className={getButtonClassName({ className, variant, size })}
-          ref={ref}
-          {...props}
-        />
-      </motion.div>
-    );
-  },
-);
+const Button = forwardRef(({ className, variant, size, ...props }, ref) => {
+  return (
+    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+      <button
+        className={getButtonClassName({ className, variant, size })}
+        ref={ref}
+        {...props}
+      />
+    </motion.div>
+  );
+});
+
+Button.displayName = 'Button';
 
 export { Button, variants };
