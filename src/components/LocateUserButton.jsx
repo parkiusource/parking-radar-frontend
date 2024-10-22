@@ -11,7 +11,7 @@ const LocateUserButton = ({ onLocationFound }) => {
       const { latitude, longitude, accuracy } = await getUserLocation();
       const location = { lat: latitude, lng: longitude };
 
-      onLocationFound(location, accuracy); // Actualiza la ubicación y precisión
+      onLocationFound(location, accuracy);
     } catch (error) {
       alert('Error al obtener la ubicación: ' + error.message);
     }
@@ -22,7 +22,7 @@ const LocateUserButton = ({ onLocationFound }) => {
       onClick={handleLocateUser}
       className={twMerge(
         getButtonClassName(),
-        'absolute z-[1000] top-4 right-4 p-2 rounded-full w-12 h-12 text-2xl'
+        'absolute z-[1000] top-4 right-4 p-2 rounded-full w-12 h-12 text-2xl',
       )}
     >
       <BiTargetLock />

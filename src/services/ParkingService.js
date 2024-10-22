@@ -9,7 +9,7 @@ export const getParkingSpots = async () => {
     const response = await axios.get(`${API_URL}/parking-lots/`);
     return response.data;
   } catch (error) {
-    console.error('Error al obtener los parqueaderos:', error);
+    console.error('Error getting the parking spots:', error);
     throw error;
   }
 };
@@ -19,7 +19,7 @@ export const fetchParkingSpots = async () => {
     const data = await getParkingSpots();
     return data;
   } catch (error) {
-    console.error('Error al obtener los parqueaderos:', error);
+    console.error('Error getting the parking spots:', error);
     return [];
   }
 };
