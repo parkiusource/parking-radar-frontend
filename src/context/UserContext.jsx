@@ -5,10 +5,7 @@ export const UserContext = createContext();
 export const UserProvider = ({ children }) => {
   const [user, setUser] = useState({
     name: '',
-    location: {
-      lat: null,
-      lng: null,
-    },
+    location: null,
   });
 
   const updateUser = (newUserInfo) => {
