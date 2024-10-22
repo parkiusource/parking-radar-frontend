@@ -37,8 +37,8 @@ const Map = memo(({ selectedSpot, setSelectedSpot }) => {
   const { location: userLocation } = user;
 
   const mapCenter = useMemo(
-    () => targetLocation || userLocation || DEFAULT_LOCATION,
-    [targetLocation],
+    () => userLocation || DEFAULT_LOCATION,
+    [userLocation],
   );
 
   const { isLoaded, loadError } = useJsApiLoader({
@@ -46,10 +46,11 @@ const Map = memo(({ selectedSpot, setSelectedSpot }) => {
     libraries: LIBRARIES,
   });
 
-  const zoomToUserLocation = useCallback((location) => {
+  const zoomToLocation = useCallback((location) => {
     if (mapRef.current) {
-      mapRef.current.setCenter(location);
+      mapRef.current.panTo(location);
       mapRef.current.setZoom(DEFAULT_ZOOM);
+      mapRef.current.setCenter(location);
     }
   }, []);
 
@@ -65,31 +66,33 @@ const Map = memo(({ selectedSpot, setSelectedSpot }) => {
   const locateUser = () => {
     navigator.geolocation?.getCurrentPosition(
       ({ coords: { latitude, longitude } }) => {
+        setTargetLocation(null);
         setUserLocation({ lat: latitude, lng: longitude });
-        setTargetLocation({ lat: latitude, lng: longitude });
       },
       (error) => console.error('Error fetching location:', error),
-      { enableHighAccuracy: true },
+      { enableHighAccuracy: false },
     );
   };
 
   useEffect(() => {
-    if (mapCenter && mapRef.current) {
-      mapRef.current.panTo(mapCenter);
-      mapRef.current.setZoom(DEFAULT_ZOOM);
-      zoomToUserLocation(mapCenter);
+    if (targetLocation) zoomToLocation(targetLocation);
+  }, [targetLocation, zoomToLocation]);
+
+  useEffect(() => {
+    if (userLocation) {
+      zoomToLocation(userLocation);
 
       if (userCircleRef.current) userCircleRef.current.setMap(null);
       userCircleRef.current = new window.google.maps.Circle({
         map: mapRef.current,
-        center: mapCenter,
+        center: userLocation,
         radius: DEFAULT_RADIUS,
         strokeColor: '#4285F4',
         fillColor: '#4285F4',
         fillOpacity: 0.35,
       });
     }
-  }, [mapCenter, zoomToUserLocation]);
+  }, [userLocation, zoomToLocation]);
 
   const createMarkerContent = useCallback((spot) => {
     const img = document.createElement('img');
