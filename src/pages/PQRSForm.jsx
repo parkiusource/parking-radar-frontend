@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import iconPQRS from '../assets/Icon-PQRS.png';
+import { useState } from 'react';
 
 const API_URL = 'https://eo5k21qt8rpapp6.m.pipedream.net';
 
@@ -20,7 +20,6 @@ const PQRSForm = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    console.log('Enviando datos del formulario:', formData);
 
     fetch(API_URL, {
       method: 'POST',
@@ -31,7 +30,6 @@ const PQRSForm = () => {
     })
       .then((response) => response.json())
       .then((data) => {
-        console.log('Éxito:', data);
         alert('Tu PQRS ha sido enviado correctamente.');
         setFormData({
           username: '',
@@ -41,7 +39,9 @@ const PQRSForm = () => {
       })
       .catch((error) => {
         console.error('Error:', error);
-        alert('Hubo un error al enviar tu PQRS. Por favor, intenta nuevamente más tarde.');
+        alert(
+          'Hubo un error al enviar tu PQRS. Por favor, intenta nuevamente más tarde.',
+        );
       })
       .finally(() => {
         setIsSubmitting(false);
@@ -61,7 +61,10 @@ const PQRSForm = () => {
 
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
-              <label htmlFor="username" className="block text-gray-700 font-medium mb-2">
+              <label
+                htmlFor="username"
+                className="block text-gray-700 font-medium mb-2"
+              >
                 Nombre de Usuario
               </label>
               <input
@@ -76,7 +79,10 @@ const PQRSForm = () => {
             </div>
 
             <div className="mb-4">
-              <label htmlFor="email" className="block text-gray-700 font-medium mb-2">
+              <label
+                htmlFor="email"
+                className="block text-gray-700 font-medium mb-2"
+              >
                 Correo Electrónico
               </label>
               <input
@@ -91,7 +97,10 @@ const PQRSForm = () => {
             </div>
 
             <div className="mb-4">
-              <label htmlFor="description" className="block text-gray-700 font-medium mb-2">
+              <label
+                htmlFor="description"
+                className="block text-gray-700 font-medium mb-2"
+              >
                 Descripción de tu PQRS
               </label>
               <textarea
