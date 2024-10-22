@@ -3,6 +3,7 @@ import { Card } from '@/components/common';
 import { FaAward, FaCalendarCheck, FaSquareParking } from 'react-icons/fa6';
 import { twMerge } from 'tailwind-merge';
 import Footer from '@/components/Footer';
+import Header from '@/components/Header';
 
 const FeatureCard = ({ children, className }) => {
   return (
@@ -21,6 +22,7 @@ const FeatureCard = ({ children, className }) => {
 const HomePage = () => {
   return (
     <>
+      <Header />
       <main className="mt-24 py-8 flex flex-col gap-12 md:gap-32 justify-center min-h-screen bg-boxes-secondary md:mt-0">
         <section className="w-full text-white text-center space-y-4 flex items-center justify-center">
           <div className="flex flex-col gap-12 sticky top-1/2">

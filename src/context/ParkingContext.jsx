@@ -6,6 +6,7 @@ export const ParkingContext = createContext();
 
 export const ParkingProvider = ({ children }) => {
   const [parkingSpots, setParkingSpots] = useState([]);
+  const [targetLocation, setTargetLocation] = useState(null);
   const webSocketRef = useRef(null);
 
   const fetchSpots = useCallback(async () => {
@@ -17,7 +18,6 @@ export const ParkingProvider = ({ children }) => {
     }
   }, []);
 
-  // **Conectar WebSocket solo una vez**
   useEffect(() => {
     fetchSpots();
     if (!webSocketRef.current) {
@@ -33,7 +33,6 @@ export const ParkingProvider = ({ children }) => {
         );
       }, 5000);
 
-      // Limpiar timeout y WebSocket al desmontar
       return () => {
         clearTimeout(timeoutId);
         if (webSocketRef.current) {
@@ -44,7 +43,14 @@ export const ParkingProvider = ({ children }) => {
     }
   }, [fetchSpots]);
   return (
-    <ParkingContext.Provider value={{ parkingSpots, setParkingSpots }}>
+    <ParkingContext.Provider
+      value={{
+        parkingSpots,
+        setParkingSpots,
+        targetLocation,
+        setTargetLocation,
+      }}
+    >
       {children}
     </ParkingContext.Provider>
   );
