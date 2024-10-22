@@ -10,7 +10,7 @@ import { ParkingContext } from '@/context/ParkingContext';
 import { UserContext } from '@/context/UserContext';
 import { useNearbyParkingSpots } from '@/hooks/useNearbySpots';
 
-const DEFAULT_MAX_DISTANCE = 6000;
+const DEFAULT_MAX_DISTANCE = 1000;
 const DEFAULT_LIMIT = 10;
 
 export default function Parking() {
