@@ -72,7 +72,7 @@ export const useSearchPlaces = (textQuery, options = {}) => {
         setError(err);
         setLoading(false);
       });
-  }, [textQuery, options]);
+  }, [textQuery, JSON.stringify(options)]);
 
   return { places, results: places, loading, error };
 };
