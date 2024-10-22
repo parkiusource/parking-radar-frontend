@@ -50,24 +50,26 @@ export default function SearchBox({
             ) : !isEmpty(results) ? (
               <div className="h-full w-full flex flex-col divide-solid divide-y-[1px] divide-neutral-200 p-0 items-center justify-center">
                 {results.map((result, index) => (
-                  <PopoverClose key={index} asChild>
-                    <Button
-                      variant="flat"
-                      className="flex-col items-start py-2 w-full h-full text-left gap-1"
-                      onClick={() => {
-                        setSearchTerm('');
-                        onResultSelected(result);
-                      }}
-                    >
-                      <h3 className="flex items-center gap-2 w-full text-sm text-ellipsis overflow-hidden font-light">
-                        <LuMapPin className="text-primary text-xs" />
-                        {result.displayName.text}
-                      </h3>
-                      <p className="w-full text-xs text-ellipsis overflow-hidden">
-                        {result.formattedAddress}
-                      </p>
-                    </Button>
-                  </PopoverClose>
+                  <div className="w-full" key={index}>
+                    <PopoverClose asChild>
+                      <Button
+                        variant="flat"
+                        className="flex-col items-start py-2 w-full h-full text-left gap-1"
+                        onClick={() => {
+                          setSearchTerm('');
+                          onResultSelected(result);
+                        }}
+                      >
+                        <h3 className="flex items-center gap-2 w-full text-sm text-ellipsis overflow-hidden font-light">
+                          <LuMapPin className="text-primary text-xs" />
+                          {result.displayName.text}
+                        </h3>
+                        <p className="w-full text-xs text-ellipsis overflow-hidden">
+                          {result.formattedAddress}
+                        </p>
+                      </Button>
+                    </PopoverClose>
+                  </div>
                 ))}
               </div>
             ) : !isEmpty(searchTerm) ? (
