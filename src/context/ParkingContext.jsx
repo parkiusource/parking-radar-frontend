@@ -13,7 +13,7 @@ export const ParkingProvider = ({ children }) => {
       const data = await fetchParkingSpots();
       setParkingSpots(data);
     } catch (error) {
-      console.error('Error al obtener los parqueaderos:', error);
+      console.error('Error fetching the parking spots:', error);
     }
   }, []);
 
