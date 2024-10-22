@@ -9,7 +9,6 @@ export const UserProvider = ({ children }) => {
   });
 
   const updateUser = (newUserInfo) => {
-    console.log('updateUser', { newUserInfo });
     setUser((prevUser) => ({
       ...prevUser,
       ...newUserInfo,

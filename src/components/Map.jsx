@@ -39,7 +39,6 @@ const Map = memo(({ selectedSpot, setSelectedSpot }) => {
 
   // Ubicar al usuario y centrar el mapa en su posición
   const zoomToUserLocation = useCallback((location) => {
-    console.log({ location });
     if (mapRef.current) {
       mapRef.current.setCenter(location);
       mapRef.current.setZoom(16); // Nivel de zoom al usuario
@@ -48,7 +47,6 @@ const Map = memo(({ selectedSpot, setSelectedSpot }) => {
 
   const setUserLocation = useCallback(
     (location) => {
-      console.log('setUserLocation', { location });
       updateUser({
         location,
       });
