@@ -1,25 +1,37 @@
-import { useCallback, useEffect, useRef, memo, useState } from 'react';
 import { GoogleMap, InfoWindowF, useJsApiLoader } from '@react-google-maps/api';
-import { debounce } from 'lodash';
+import {
+  memo,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
+
 import { BiTargetLock } from 'react-icons/bi';
-import availableIcon from '@/assets/available-parking.png';
-import fullIcon from '@/assets/full-parking.png';
 import { Button } from '@/components/common';
 import { LuNavigation } from 'react-icons/lu';
+import { ParkingContext } from '@/context/ParkingContext';
+import { UserContext } from '@/context/UserContext';
+import availableIcon from '@/assets/available-parking.png';
+import { debounce } from 'lodash';
+import fullIcon from '@/assets/full-parking.png';
 
 const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 // Define the libraries required for Google Maps
 const LIBRARIES = ['marker'];
 
 // Component for rendering the map with parking spots
-const Map = memo(({ parkingSpots, selectedSpot, setSelectedSpot }) => {
-  const [userLocation, setUserLocation] = useState(null);
+const Map = memo(({ selectedSpot, setSelectedSpot }) => {
+  const { parkingSpots } = useContext(ParkingContext);
   const [infoWindowOpen, setInfoWindowOpen] = useState(false);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
   const userCircleRef = useRef(null);
 
-  // Load the Google Maps API
+  const { user, updateUser } = useContext(UserContext);
+  const { location: userLocation } = user;
+
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: apiKey,
     libraries: LIBRARIES,
@@ -27,35 +39,52 @@ const Map = memo(({ parkingSpots, selectedSpot, setSelectedSpot }) => {
 
   // Ubicar al usuario y centrar el mapa en su posición
   const zoomToUserLocation = useCallback((location) => {
+    console.log({ location });
     if (mapRef.current) {
       mapRef.current.setCenter(location);
       mapRef.current.setZoom(16); // Nivel de zoom al usuario
     }
   }, []);
 
-  // Locate the user and center the map on their position
+  const setUserLocation = useCallback(
+    (location) => {
+      console.log('setUserLocation', { location });
+      updateUser({
+        location,
+      });
+    },
+    [updateUser],
+  );
+
   const locateUser = useCallback(() => {
     navigator.geolocation?.getCurrentPosition(
       ({ coords: { latitude, longitude } }) => {
-        const newLocation = { lat: latitude, lng: longitude };
-        setUserLocation(newLocation);
-        zoomToUserLocation(newLocation);
-        mapRef.current?.panTo(newLocation);
-
-        if (userCircleRef.current) userCircleRef.current.setMap(null);
-        userCircleRef.current = new window.google.maps.Circle({
-          map: mapRef.current,
-          center: newLocation,
-          radius: 30,
-          strokeColor: '#4285F4',
-          fillColor: '#4285F4',
-          fillOpacity: 0.35,
-        });
+        setUserLocation({ lat: latitude, lng: longitude });
       },
       (error) => console.error('Error fetching location:', error),
       { enableHighAccuracy: true },
     );
-  }, [zoomToUserLocation]);
+  }, [setUserLocation]);
+
+  // Locate the user and center the map on their position
+  // Centrar el mapa en la ubicación del usuario cada vez que cambie
+  useEffect(() => {
+    if (userLocation && mapRef.current) {
+      mapRef.current.panTo(userLocation);
+      mapRef.current.setZoom(16);
+      zoomToUserLocation();
+
+      if (userCircleRef.current) userCircleRef.current.setMap(null);
+      userCircleRef.current = new window.google.maps.Circle({
+        map: mapRef.current,
+        center: userLocation,
+        radius: 30,
+        strokeColor: '#4285F4',
+        fillColor: '#4285F4',
+        fillOpacity: 0.35,
+      });
+    }
+  }, [userLocation, zoomToUserLocation]);
 
   // Create marker content based on the spot's availability
   const createMarkerContent = useCallback((spot) => {

@@ -1,75 +1,40 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Link } from 'react-router-dom';
-import { LuCar, LuDollarSign, LuSearch, LuNavigation } from 'react-icons/lu';
+import { AnimatePresence, motion } from 'framer-motion';
+import { LuCar, LuDollarSign, LuNavigation, LuSearch } from 'react-icons/lu';
+import { useCallback, useContext, useState } from 'react';
+
 import { Button } from '@/components/common';
-import Map from '@/components/Map';
+import { Link } from 'react-router-dom';
 import Logo from '@/components/Logo';
-import { fetchParkingSpots } from '@/services/ParkingService';
-import { connectWebSocket, closeWebSocket } from '@/services/WebSocketService';
+import Map from '@/components/Map';
+import { ParkingContext } from '@/context/ParkingContext';
+import { UserContext } from '@/context/UserContext';
+import { useNearbyParkingSpots } from '@/hooks/useNearbySpots';
+
+const DEFAULT_MAX_DISTANCE = 6000;
+const DEFAULT_LIMIT = 10;
 
 export default function Parking() {
-  const [parkingSpots, setParkingSpots] = useState([]);
+  const { parkingSpots } = useContext(ParkingContext);
+  const { user } = useContext(UserContext);
+
   const [selectedSpot, setSelectedSpot] = useState(null);
-  const [selectedParking, setSelectedParking] = useState(null);
   const [spotNavigation, setSpotNavigation] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const webSocketRef = useRef(null); // WebSocket persistente
 
-  const fetchSpots = useCallback(async () => {
-    try {
-      const data = await fetchParkingSpots();
-      setParkingSpots(data);
-    } catch (error) {
-      console.error('Error al obtener los parqueaderos:', error);
-    }
-  }, []);
+  const { location: userLocation } = user;
 
-  // **Conectar WebSocket solo una vez**
-  useEffect(() => {
-    fetchSpots();
-    if (!webSocketRef.current) {
-      const timeoutId = setTimeout(() => {
-        webSocketRef.current = connectWebSocket(
-          import.meta.env.VITE_API_BASE_URL,
-          (data) => {
-            if (data.type === 'new-change-in-parking') {
-              console.log('New change detected:', data.payload);
-              fetchSpots();
-            }
-          }
-        );
-      }, 5000);
+  const { nearbySpots } = useNearbyParkingSpots({
+    spots: parkingSpots,
+    center: userLocation,
+    limit: DEFAULT_LIMIT,
+    maxRadius: DEFAULT_MAX_DISTANCE,
+  });
 
-      // Limpiar timeout y WebSocket al desmontar
-      return () => {
-        clearTimeout(timeoutId);
-        if (webSocketRef.current) {
-          closeWebSocket();
-          webSocketRef.current = null;
-        }
-      };
-    }
-  }, [fetchSpots]);
-
-  // **Actualizar parqueo seleccionado al cambiar el spot**
-  useEffect(() => {
-    const foundParking = parkingSpots.find((p) => p.id === selectedSpot?.id) || null;
-    setSelectedParking(foundParking);
-  }, [selectedSpot, parkingSpots]);
-
+  // **Manejar selección de parqueadero**
   const handleParkingSpotSelected = useCallback(({ spot, navigate }) => {
-    if (!spot || !spot.id) {
-      console.error('El spot seleccionado es inválido:', spot);
-      return;
-    }
     setSelectedSpot(spot);
     setSpotNavigation(() => navigate);
   }, []);
-
-  const filteredParkings = parkingSpots.filter((parking) =>
-    parking.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   return (
     <div className="min-h-screen bg-secondary-100 flex flex-col">
@@ -90,7 +55,6 @@ export default function Parking() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 pr-4 py-2 w-full border border-secondary-300 rounded-full focus:ring-2 focus:ring-sky-500 focus:outline-none transition-shadow"
-              aria-label="Buscar parqueadero"
             />
             <LuSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary-400 w-5 h-5" />
           </div>
@@ -101,7 +65,6 @@ export default function Parking() {
         <section className="col-span-2 bg-white rounded-lg shadow-sm overflow-hidden">
           <div className="h-full min-h-[400px] bg-secondary-100 flex items-center justify-center">
             <Map
-              parkingSpots={parkingSpots}
               onParkingSpotSelected={handleParkingSpotSelected}
               selectedSpot={selectedSpot}
               setSelectedSpot={setSelectedSpot}
@@ -114,10 +77,11 @@ export default function Parking() {
             Spots cercanos
           </h2>
           <small className="text-secondary-600 text-base font-light mb-4 block">
-            Selecciona un parqueadero en el mapa para ver sus spots disponibles...
+            Selecciona un parqueadero en el mapa para ver sus spots
+            disponibles...
           </small>
           <AnimatePresence>
-            {(selectedParking ? [selectedParking] : filteredParkings).map((parking) => (
+            {nearbySpots.map((parking) => (
               <motion.div
                 key={parking.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -131,8 +95,12 @@ export default function Parking() {
                 onClick={() => setSelectedSpot(parking)}
               >
                 <div className="flex justify-between items-center mb-2">
-                  <h3 className="font-medium text-secondary-800">{parking.name}</h3>
-                  <span className="text-sm text-secondary-500">{parking.address}</span>
+                  <h3 className="font-medium text-secondary-800">
+                    {parking.name}
+                  </h3>
+                  <span className="text-sm text-secondary-500">
+                    {parking.address}
+                  </span>
                 </div>
 
                 <div className="flex justify-between items-center mb-4">
@@ -144,7 +112,9 @@ export default function Parking() {
                   </div>
                   <div className="flex items-center gap-1">
                     <LuDollarSign className="w-5 h-5 text-green-500" />
-                    <span className="text-sm text-secondary-600">60 a 100/min</span>
+                    <span className="text-sm text-secondary-600">
+                      60 a 100/min
+                    </span>
                   </div>
                 </div>
 
