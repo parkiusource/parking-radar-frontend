@@ -79,9 +79,7 @@ export default function Login() {
             </form>
           </div>
           <div className="text-center">
-            <p className="text-sm text-gray-600">
-              No tienes cuenta aún?{' '}
-            </p>
+            <p className="text-sm text-gray-600">No tienes cuenta aún? </p>
           </div>
         </Card>
       </motion.div>

@@ -1,10 +1,10 @@
 import { GoogleMap, InfoWindowF, useJsApiLoader } from '@react-google-maps/api';
-import { debounce } from 'lodash';
 import {
   memo,
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -26,7 +26,8 @@ const DEFAULT_LOCATION = { lat: 4.711, lng: -74.0721 };
 const MAP_ID = import.meta.env.VITE_GOOGLE_MAP_ID;
 
 const Map = memo(({ selectedSpot, setSelectedSpot }) => {
-  const { parkingSpots } = useContext(ParkingContext);
+  const { parkingSpots, targetLocation, setTargetLocation } =
+    useContext(ParkingContext);
   const [infoWindowOpen, setInfoWindowOpen] = useState(false);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
@@ -35,15 +36,21 @@ const Map = memo(({ selectedSpot, setSelectedSpot }) => {
   const { user, updateUser } = useContext(UserContext);
   const { location: userLocation } = user;
 
+  const mapCenter = useMemo(
+    () => userLocation || DEFAULT_LOCATION,
+    [userLocation],
+  );
+
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: apiKey,
     libraries: LIBRARIES,
   });
 
-  const zoomToUserLocation = useCallback((location) => {
+  const zoomToLocation = useCallback((location) => {
     if (mapRef.current) {
-      mapRef.current.setCenter(location);
+      mapRef.current.panTo(location);
       mapRef.current.setZoom(DEFAULT_ZOOM);
+      mapRef.current.setCenter(location);
     }
   }, []);
 
@@ -56,21 +63,24 @@ const Map = memo(({ selectedSpot, setSelectedSpot }) => {
     [updateUser],
   );
 
-  const locateUser = useCallback(() => {
+  const locateUser = () => {
     navigator.geolocation?.getCurrentPosition(
       ({ coords: { latitude, longitude } }) => {
+        setTargetLocation(null);
         setUserLocation({ lat: latitude, lng: longitude });
       },
       (error) => console.error('Error fetching location:', error),
-      { enableHighAccuracy: true },
+      { enableHighAccuracy: false },
     );
-  }, [setUserLocation]);
+  };
 
   useEffect(() => {
-    if (userLocation && mapRef.current) {
-      mapRef.current.panTo(userLocation);
-      mapRef.current.setZoom(DEFAULT_ZOOM);
-      zoomToUserLocation();
+    if (targetLocation) zoomToLocation(targetLocation);
+  }, [targetLocation, zoomToLocation]);
+
+  useEffect(() => {
+    if (userLocation) {
+      zoomToLocation(userLocation);
 
       if (userCircleRef.current) userCircleRef.current.setMap(null);
       userCircleRef.current = new window.google.maps.Circle({
@@ -82,7 +92,7 @@ const Map = memo(({ selectedSpot, setSelectedSpot }) => {
         fillOpacity: 0.35,
       });
     }
-  }, [userLocation, zoomToUserLocation]);
+  }, [userLocation, zoomToLocation]);
 
   const createMarkerContent = useCallback((spot) => {
     const img = document.createElement('img');
@@ -154,14 +164,12 @@ const Map = memo(({ selectedSpot, setSelectedSpot }) => {
   if (loadError) return <div>Error loading map.</div>;
   if (!isLoaded) return <div>Loading map...</div>;
 
-  const mapCenter = userLocation || DEFAULT_LOCATION;
-
   return (
-    <div className="w-full h-full relative">
+    <div className="w-full h-full">
       <GoogleMap
         mapContainerClassName="w-full h-full"
         center={mapCenter}
-        zoom={userLocation ? 15 : 12}
+        zoom={targetLocation ? 15 : 12}
         onLoad={handleMapLoad}
         options={{
           mapId: MAP_ID,
@@ -176,7 +184,7 @@ const Map = memo(({ selectedSpot, setSelectedSpot }) => {
         }}
       >
         <button
-          onClick={debounce(locateUser, 300)}
+          onClick={locateUser}
           className="absolute top-4 right-4 p-3 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600"
         >
           <BiTargetLock size={24} />

@@ -22,7 +22,7 @@ const LocateUserButton = ({ onLocationFound }) => {
       onClick={handleLocateUser}
       className={twMerge(
         getButtonClassName(),
-        'absolute z-[1000] top-4 right-4 p-2 rounded-full w-12 h-12 text-2xl',
+        'absolute top-4 right-4 p-2 rounded-full w-12 h-12 text-2xl',
       )}
     >
       <BiTargetLock />

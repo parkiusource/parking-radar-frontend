@@ -6,6 +6,7 @@ import { LuCar, LuClock, LuMapPin, LuUsers } from 'react-icons/lu';
 import { Button, Card } from '@/components/common';
 import Footer from '@/components/Footer';
 import { Link } from 'react-router-dom';
+import Header from '@/components/Header';
 
 export default function About() {
   const [hoveredFeature, setHoveredFeature] = useState(null);
@@ -24,7 +25,8 @@ export default function About() {
     {
       icon: LuMapPin,
       title: 'Gana Tiempo para Ti',
-      description: 'Encuentra estacionamiento rápidamente y dedica más tiempo a lo que importa.',
+      description:
+        'Encuentra estacionamiento rápidamente y dedica más tiempo a lo que importa.',
     },
     {
       icon: LuUsers,
@@ -36,6 +38,7 @@ export default function About() {
 
   return (
     <>
+      <Header />
       <main className="min-h-screen bg-gradient-to-br from-primary-100 to-secondary-100 mt-12">
         <section className="container mx-auto px-4 py-20 text-center">
           <motion.h1
@@ -55,7 +58,8 @@ export default function About() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
           >
-            Encuentra parqueaderos disponibles en tiempo real, donde y cuando lo necesites.
+            Encuentra parqueaderos disponibles en tiempo real, donde y cuando lo
+            necesites.
           </motion.p>
         </section>
 
@@ -65,7 +69,8 @@ export default function About() {
               Nuestra Misión
             </h2>
             <blockquote className="text-2xl italic text-gray-700 border-l-4 border-sky-500 pl-4">
-              "Revolucionar la experiencia de estacionamiento, haciéndola más sencilla, eficiente y libre de estrés para cada conductor."
+              "Revolucionar la experiencia de estacionamiento, haciéndola más
+              sencilla, eficiente y libre de estrés para cada conductor."
             </blockquote>
           </div>
         </section>
@@ -110,7 +115,8 @@ export default function About() {
               ¿Listo para Olvidarte del Estrés al Estacionar?
             </h2>
             <p className="text-xl text-gray-700 mb-8">
-              Únete a miles de usuarios que ya disfrutan de estacionar fácil y rápido.
+              Únete a miles de usuarios que ya disfrutan de estacionar fácil y
+              rápido.
             </p>
             <Link to="/parking">
               <Button className="bg-sky-500 hover:bg-sky-600 text-white font-semibold py-3 px-8 rounded-full text-lg shadow-lg hover:shadow-xl transition-all duration-300">

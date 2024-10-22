@@ -12,6 +12,7 @@ const variants = cva(
           'bg-sky-500 text-white hover:bg-sky-600 shadow-lg hover:shadow-xl',
         outline: 'border-2 border-sky-500 text-sky-500 hover:bg-sky-50',
         ghost: 'text-sky-500 hover:bg-sky-50',
+        flat: 'rounded-none bg-transparent text-secondary hover:bg-sky-50 shadow-none',
       },
       size: {
         default: 'h-10 py-2 px-4',
@@ -40,7 +41,10 @@ export const getButtonClassName = (
 
 const Button = forwardRef(({ className, variant, size, ...props }, ref) => {
   return (
-    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+    <motion.div
+      whileHover={{ scale: variant === 'flat' ? 1.01 : 1.05 }}
+      whileTap={{ scale: variant === 'flat' ? 1 : 0.95 }}
+    >
       <button
         className={getButtonClassName({ className, variant, size })}
         ref={ref}
