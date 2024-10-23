@@ -44,7 +44,7 @@ export default function Login() {
                 <input
                   id="email"
                   type="email"
-                  placeholder="email@parkify.com"
+                  placeholder="email@parkiu.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required

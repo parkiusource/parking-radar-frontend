@@ -17,7 +17,7 @@ export function Branding({ className = 'primary', variant }) {
       )}
     >
       <Logo variant={variant} />
-      <span className="translate-y-1">Parkify</span>
+      <span className="translate-y-1">Parkiu</span>
     </div>
   );
 }

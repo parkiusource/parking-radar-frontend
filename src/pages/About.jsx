@@ -49,7 +49,7 @@ export default function About() {
           >
             <span>Sobre</span>
             <span className="text-primary-50 text-shadow-primary translate-y-[2px] scale-[95%]">
-              Parkify
+              Parkiu
             </span>
           </motion.h1>
           <motion.p

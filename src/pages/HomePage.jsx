@@ -27,7 +27,7 @@ const HomePage = () => {
         <section className="w-full text-white text-center space-y-4 flex items-center justify-center">
           <div className="flex flex-col gap-12 sticky top-1/2">
             <h1 className="card-title text-7xl font-bold text-primary-50 text-shadow-primary">
-              Parkify
+              Parkiu
             </h1>
             <h2 className="text-2xl md:text-3xl font-light px-8 md:max-w-4xl">
               Disponibilidad en tiempo real de parqueaderos en tu ciudad
