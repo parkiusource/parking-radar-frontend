@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { createContext, useState, useEffect, useCallback, useRef } from 'react';
 import { fetchParkingSpots } from '@/services/ParkingService';
 import { connectWebSocket, closeWebSocket } from '@/services/WebSocketService';
@@ -54,4 +55,8 @@ export const ParkingProvider = ({ children }) => {
       {children}
     </ParkingContext.Provider>
   );
+};
+
+ParkingProvider.propTypes = {
+  children: PropTypes.node.isRequired,
 };
