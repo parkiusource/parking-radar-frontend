@@ -7,7 +7,7 @@ export const useParkingSpots = ({ queryClient }) => {
   const query = useQuery({
     queryKey: [Queries.ParkingSpots],
     queryFn: fetchQuery({
-      url: `${API_BACKEND_URL}/parking-lots`,
+      url: `${API_BACKEND_URL}/parking-lots/`,
       method: 'GET',
     }),
     staleTime: Infinity,
