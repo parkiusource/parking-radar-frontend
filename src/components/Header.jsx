@@ -1,13 +1,13 @@
+import { Branding } from '@/components/Branding';
 import { Button } from '@/components/common';
-import Logo from '@/components/Logo';
 import { FaInstagram, FaSquareFacebook } from 'react-icons/fa6';
 import { Link } from 'react-router-dom';
 import { twMerge } from 'tailwind-merge';
 
-const getHeaderclassName = ({ className } = {}) => {
+export const getHeaderclassName = ({ className }) => {
   return twMerge([
     'fixed top-0 z-10',
-    'w-full h-16 p-4',
+    'w-full min-h-20 p-4',
     'bg-secondary shadow-md',
     'flex justify-between items-center',
     'text-white',
@@ -23,11 +23,10 @@ const CtaButton = () => {
   );
 };
 
-const Header = () => (
-  <header className={getHeaderclassName()}>
-    <Link className="font-medium text-2xl flex items-center gap-2" to="/">
-      <Logo />
-      <span className="translate-y-1">Parkify</span>
+const Header = ({ className }) => (
+  <header className={getHeaderclassName({ className })}>
+    <Link to="/">
+      <Branding />
     </Link>
 
     <nav className="hidden md:flex items-center gap-8">

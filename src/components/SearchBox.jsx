@@ -1,3 +1,10 @@
+import { useState } from 'react';
+
+import isEmpty from 'lodash/isEmpty';
+import { LuMapPin, LuSearch } from 'react-icons/lu';
+import { twMerge } from 'tailwind-merge';
+
+import { Button } from '@/components/common/Button';
 import {
   Popover,
   PopoverClose,
@@ -5,13 +12,9 @@ import {
   PopoverPortal,
   PopoverTrigger,
 } from '@/components/common/Popover';
-import { useState } from 'react';
-import { LuMapPin, LuSearch } from 'react-icons/lu';
-
-import isEmpty from 'lodash/isEmpty';
-import { Button } from '@/components/common';
 
 export default function SearchBox({
+  className,
   placeholder = 'Buscar lugar...',
   useSearchHook,
   onResultSelected,
@@ -21,16 +24,16 @@ export default function SearchBox({
   const { results, loading } = useSearchHook(searchTerm);
 
   return (
-    <div>
+    <div className={twMerge('w-full', className)}>
       <Popover>
         <PopoverTrigger asChild>
-          <div className="relative w-full max-w-xs">
+          <div className="relative w-full">
             <input
               type="text"
               placeholder={placeholder}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 w-full border border-secondary-300 rounded-full focus:ring-2 focus:ring-sky-500 focus:outline-none transition-shadow"
+              className="text-secondary-600 pl-10 pr-4 py-2 w-full border border-secondary-300 rounded-full focus:ring-2 focus:ring-sky-500 focus:outline-none transition-shadow"
             />
             <LuSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary-400 w-5 h-5" />
           </div>
