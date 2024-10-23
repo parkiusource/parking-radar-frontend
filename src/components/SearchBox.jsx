@@ -13,6 +13,12 @@ import {
   PopoverTrigger,
 } from '@/components/common/Popover';
 
+const getStatusMessage = ({ loading, searchTerm, results }) => {
+  if (!searchTerm) return 'Escribe el nombre de un lugar para buscar';
+  if (loading) return 'Cargando...';
+  if (isEmpty(results)) return 'No se encontraron resultados';
+};
+
 export default function SearchBox({
   className,
   placeholder = 'Buscar lugar...',
@@ -21,7 +27,7 @@ export default function SearchBox({
 }) {
   const [searchTerm, setSearchTerm] = useState('');
 
-  const { results, loading } = useSearchHook(searchTerm);
+  const { results, isPending: loading } = useSearchHook(searchTerm);
 
   return (
     <div className={twMerge('w-full', className)}>
@@ -48,9 +54,7 @@ export default function SearchBox({
               e.preventDefault();
             }}
           >
-            {loading ? (
-              <p className="text-secondary-600 p-4">Cargando...</p>
-            ) : !isEmpty(results) ? (
+            {!isEmpty(results) ? (
               <div className="h-full w-full flex flex-col divide-solid divide-y-[1px] divide-neutral-200 p-0 items-center justify-center">
                 {results.map((result, index) => (
                   <div className="w-full" key={index}>
@@ -75,12 +79,10 @@ export default function SearchBox({
                   </div>
                 ))}
               </div>
-            ) : !isEmpty(searchTerm) ? (
-              <p className="text-secondary-500 p-4 h-full w-full">
-                No se encontraron resultados
-              </p>
             ) : (
-              <p className="text-secondary-500 p-4">Escribe algo para buscar</p>
+              <p className="text-secondary-500 p-4">
+                {getStatusMessage({ loading, searchTerm, results })}
+              </p>
             )}
           </PopoverContent>
         </PopoverPortal>

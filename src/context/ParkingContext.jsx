@@ -1,26 +1,22 @@
+import { createContext, useEffect, useRef, useState } from 'react';
+
 import PropTypes from 'prop-types';
-import { createContext, useState, useEffect, useCallback, useRef } from 'react';
-import { fetchParkingSpots } from '@/services/ParkingService';
-import { connectWebSocket, closeWebSocket } from '@/services/WebSocketService';
+
+import { useParkingSpots } from '@/api/hooks/useParkingSpots';
+import { closeWebSocket, connectWebSocket } from '@/services/WebSocketService';
 
 export const ParkingContext = createContext();
 
-export const ParkingProvider = ({ children }) => {
-  const [parkingSpots, setParkingSpots] = useState([]);
-  const [targetLocation, setTargetLocation] = useState(null);
+export const ParkingProvider = ({ children, queryClient }) => {
   const webSocketRef = useRef(null);
 
-  const fetchSpots = useCallback(async () => {
-    try {
-      const data = await fetchParkingSpots();
-      setParkingSpots(data);
-    } catch (error) {
-      console.error('Error fetching the parking spots:', error);
-    }
-  }, []);
+  const [targetLocation, setTargetLocation] = useState(null);
+
+  const { parkingSpots, invalidate, refetch } = useParkingSpots({
+    queryClient,
+  });
 
   useEffect(() => {
-    fetchSpots();
     if (!webSocketRef.current) {
       const timeoutId = setTimeout(() => {
         webSocketRef.current = connectWebSocket(
@@ -28,11 +24,12 @@ export const ParkingProvider = ({ children }) => {
           (data) => {
             if (data.type === 'new-change-in-parking') {
               console.log('New change detected:', data.payload);
-              fetchSpots();
+              invalidate();
+              refetch();
             }
           },
         );
-      }, 5000);
+      }, 0);
 
       return () => {
         clearTimeout(timeoutId);
@@ -42,12 +39,11 @@ export const ParkingProvider = ({ children }) => {
         }
       };
     }
-  }, [fetchSpots]);
+  }, [invalidate, refetch]);
   return (
     <ParkingContext.Provider
       value={{
         parkingSpots,
-        setParkingSpots,
         targetLocation,
         setTargetLocation,
       }}
@@ -59,4 +55,5 @@ export const ParkingProvider = ({ children }) => {
 
 ParkingProvider.propTypes = {
   children: PropTypes.node.isRequired,
+  queryClient: PropTypes.object.isRequired,
 };
