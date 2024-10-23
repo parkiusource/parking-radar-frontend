@@ -1,4 +1,5 @@
 import { GoogleMap, InfoWindowF, useJsApiLoader } from '@react-google-maps/api';
+import PropTypes from 'prop-types';
 import {
   memo,
   useCallback,
@@ -25,7 +26,7 @@ const DEFAULT_RADIUS = 30;
 const DEFAULT_LOCATION = { lat: 4.711, lng: -74.0721 };
 const MAP_ID = import.meta.env.VITE_GOOGLE_MAP_ID;
 
-const Map = memo(({ selectedSpot, setSelectedSpot }) => {
+const ParkingMap = memo(({ selectedSpot, setSelectedSpot }) => {
   const { parkingSpots, targetLocation, setTargetLocation } =
     useContext(ParkingContext);
   const [infoWindowOpen, setInfoWindowOpen] = useState(false);
@@ -156,6 +157,13 @@ const Map = memo(({ selectedSpot, setSelectedSpot }) => {
     [initializeMarkers],
   );
 
+  const handleMapClick = useCallback(() => {
+    setSelectedSpot(null);
+    setInfoWindowOpen(false);
+  }, [setSelectedSpot, setInfoWindowOpen]);
+
+
+
   const openNavigation = (lat, lng) => {
     const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
     window.open(url, '_blank');
@@ -171,6 +179,7 @@ const Map = memo(({ selectedSpot, setSelectedSpot }) => {
         center={mapCenter}
         zoom={targetLocation ? 15 : 12}
         onLoad={handleMapLoad}
+        onClick={handleMapClick}
         options={{
           mapId: MAP_ID,
           zoomControlOptions: {
@@ -229,5 +238,18 @@ const Map = memo(({ selectedSpot, setSelectedSpot }) => {
   );
 });
 
-Map.displayName = 'Map';
-export default Map;
+
+ParkingMap.propTypes = {
+  selectedSpot: PropTypes.shape({
+    id: PropTypes.number.isRequired,
+    name: PropTypes.string.isRequired,
+    latitude: PropTypes.number.isRequired,
+    longitude: PropTypes.number.isRequired,
+    address: PropTypes.string,
+    available_spaces: PropTypes.number,
+  }),
+  setSelectedSpot: PropTypes.func.isRequired,
+};
+
+ParkingMap.displayName = 'ParkingMap';
+export default ParkingMap;
