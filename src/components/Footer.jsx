@@ -7,11 +7,8 @@ const Footer = ({ className }) => (
       className,
     )}
   >
-    <p className="mb-0">
-      &copy; 2024 Smart Parking Radar. Todos los derechos reservados.
-    </p>
-    <div className="flex gap-2 items-center">
-    </div>
+    <p className="mb-0">&copy; 2024 ParkiÜ. Todos los derechos reservados.</p>
+    <div className="flex gap-2 items-center"></div>
   </footer>
 );
 

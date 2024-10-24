@@ -13,7 +13,10 @@ export function Logo({ className, variant = 'primary' }) {
     <img
       src={logos[variant]}
       alt="Logo"
-      className={twMerge(['w-10 h-auto app-logo', className])}
+      className={twMerge([
+        'w-auto h-12 md:h-16 translate-x-3 sm:translate-x-5 md:translate-x-6',
+        className,
+      ])}
     />
   );
 }

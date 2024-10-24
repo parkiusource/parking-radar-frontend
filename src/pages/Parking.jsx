@@ -11,7 +11,7 @@ import { ParkingContext } from '@/context/ParkingContext';
 import { UserContext } from '@/context/UserContext';
 import { useNearbyParkingSpots } from '@/hooks/useNearbySpots';
 import { getHeaderclassName } from '@/components/Header';
-import Branding from '@/components/Branding';
+import { Logo } from '@/components/Logo';
 
 const DEFAULT_MAX_DISTANCE = 1000;
 const DEFAULT_LIMIT = 10;
@@ -56,7 +56,7 @@ export default function Parking() {
         })}
       >
         <Link to="/">
-          <Branding variant="secondary" />
+          <Logo variant="secondary" />
         </Link>
         <SearchBox
           className="max-w-xs md:max-w-sm flex-1 translate-y-px"
