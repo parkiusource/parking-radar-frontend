@@ -4,7 +4,7 @@ import isEmpty from 'lodash/isEmpty';
 import { LuMapPin, LuSearch } from 'react-icons/lu';
 import { twMerge } from 'tailwind-merge';
 
-import { Button } from '@/components/common/Button';
+import { Button } from '@/components/common/Button/Button';
 import {
   Popover,
   PopoverClose,

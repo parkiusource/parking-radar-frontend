@@ -5,17 +5,19 @@ import { twMerge } from 'tailwind-merge';
 import Footer from '@/components/Footer';
 import Header from '@/components/Header';
 import Logo from '@/components/Logo';
+import { CardContent } from '@/components/common/Card';
 
 const FeatureCard = ({ children, className }) => {
   return (
-    <Card
-      className={twMerge(
-        'flex flex-col justify-start items-center gap-4 text-center text-lg h-full text-primary-100 bg-secondary',
-        className,
-      )}
-      size="sm"
-    >
-      {children}
+    <Card size="sm" variant="secondary">
+      <CardContent
+        className={twMerge(
+          'flex flex-col justify-start items-center gap-4 text-center text-lg h-full text-primary-100',
+          className,
+        )}
+      >
+        {children}
+      </CardContent>
     </Card>
   );
 };

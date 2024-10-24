@@ -67,7 +67,7 @@ export default function Parking() {
       </header>
 
       <main className="flex-grow grid grid-cols-1 md:grid-cols-3 gap-4 p-4 mt-1 max-w-6xl mx-auto">
-        <section className="col-span-2 bg-white rounded-lg shadow-sm overflow-hidden">
+        <section className="col-span-2 bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="h-full min-h-[400px] bg-secondary-100 flex items-center justify-center">
             <Map
               onParkingSpotSelected={handleParkingSpotSelected}
@@ -94,7 +94,7 @@ export default function Parking() {
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3 }}
                 layout
-                className={`mb-4 p-4 bg-white rounded-lg shadow-md border border-transparent hover:border-sky-500 transition-all ${
+                className={`mb-4 p-4 bg-white rounded-xl shadow-md border border-transparent hover:border-sky-500 transition-all ${
                   selectedSpot?.id === parking.id ? 'border-sky-500' : ''
                 }`}
                 onClick={() => setSelectedSpot(parking)}

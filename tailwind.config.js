@@ -14,6 +14,7 @@ export default {
         ...colors,
         primary: { ...colors.sky, DEFAULT: colors.sky[500] },
         secondary: { ...colors.gray, DEFAULT: colors.gray[800] },
+        background: { ...colors.gray, DEFAULT: colors.gray[50] },
       },
     },
   },
