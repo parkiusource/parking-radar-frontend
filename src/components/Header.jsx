@@ -1,5 +1,5 @@
-import { Branding } from '@/components/Branding';
 import { Button } from '@/components/common';
+import { Logo } from '@/components/Logo';
 import { FaInstagram, FaSquareFacebook } from 'react-icons/fa6';
 import { Link } from 'react-router-dom';
 import { twMerge } from 'tailwind-merge';
@@ -26,7 +26,7 @@ const CtaButton = () => {
 const Header = ({ className }) => (
   <header className={getHeaderclassName({ className })}>
     <Link to="/">
-      <Branding />
+      <Logo />
     </Link>
 
     <nav className="hidden md:flex items-center gap-8">

@@ -42,15 +42,12 @@ export default function About() {
       <main className="min-h-screen bg-gradient-to-br from-primary-100 to-secondary-100 mt-12">
         <section className="container mx-auto px-4 py-20 text-center">
           <motion.h1
-            className="text-5xl md:text-7xl font-bold mb-6 text-gray-800 flex gap-2 items-center justify-center"
+            className="text-5xl md:text-7xl font-semibold my-6 text-gray-800 flex gap-2 items-center justify-center"
             initial={{ opacity: 0, y: -50 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
           >
-            <span>Sobre</span>
-            <span className="text-primary-50 text-shadow-primary translate-y-[2px] scale-[95%]">
-              Parkiu
-            </span>
+            <span>Sobre ParkiÜ</span>
           </motion.h1>
           <motion.p
             className="text-xl text-gray-600 mb-8"

@@ -4,6 +4,7 @@ import { FaAward, FaCalendarCheck, FaSquareParking } from 'react-icons/fa6';
 import { twMerge } from 'tailwind-merge';
 import Footer from '@/components/Footer';
 import Header from '@/components/Header';
+import Logo from '@/components/Logo';
 
 const FeatureCard = ({ children, className }) => {
   return (
@@ -26,9 +27,7 @@ const HomePage = () => {
       <main className="mt-24 py-8 flex flex-col gap-12 md:gap-32 justify-center min-h-screen bg-boxes-secondary md:mt-0">
         <section className="w-full text-white text-center space-y-4 flex items-center justify-center">
           <div className="flex flex-col gap-12 sticky top-1/2">
-            <h1 className="card-title text-7xl font-bold text-primary-50 text-shadow-primary">
-              Parkiu
-            </h1>
+            <Logo className="w-full h-full px-8 md:h-48" />
             <h2 className="text-2xl md:text-3xl font-light px-8 md:max-w-4xl">
               Disponibilidad en tiempo real de parqueaderos en tu ciudad
             </h2>
