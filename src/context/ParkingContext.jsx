@@ -4,14 +4,16 @@ import PropTypes from 'prop-types';
 
 import { useParkingSpots } from '@/api/hooks/useParkingSpots';
 import { closeWebSocket, connectWebSocket } from '@/services/WebSocketService';
+import { useQueryClient } from '@/context/QueryClientContext';
 
 export const ParkingContext = createContext();
 
-export const ParkingProvider = ({ children, queryClient }) => {
+export const ParkingProvider = ({ children }) => {
   const webSocketRef = useRef(null);
 
   const [targetLocation, setTargetLocation] = useState(null);
 
+  const queryClient = useQueryClient();
   const { parkingSpots, invalidate, refetch } = useParkingSpots({
     queryClient,
   });
@@ -55,5 +57,4 @@ export const ParkingProvider = ({ children, queryClient }) => {
 
 ParkingProvider.propTypes = {
   children: PropTypes.node.isRequired,
-  queryClient: PropTypes.object.isRequired,
 };

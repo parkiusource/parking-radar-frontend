@@ -1,24 +1,23 @@
-import AppRoutes from '@/routes/AppRoutes';
-import { ParkingProvider } from '@/context/ParkingContext';
-import ScrollToTop from '@/services/ScrollToTop';
-import { UserProvider } from '@/context/UserContext';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
-const queryClient = new QueryClient();
+import { ParkingProvider } from '@/context/ParkingContext';
+import { QueryClientContextProvider } from '@/context/QueryClientContext';
+import { UserProvider } from '@/context/UserContext';
+import AppRoutes from '@/routes/AppRoutes';
+import ScrollToTop from '@/services/ScrollToTop';
 
 const App = () => (
   <div className="bg-secondary-950 overflow-scroll relative h-screen no-scrollbar">
     <div className="w-full min-w-screen min-h-screen">
-      <QueryClientProvider client={queryClient}>
+      <QueryClientContextProvider>
         <UserProvider>
-          <ParkingProvider queryClient={queryClient}>
+          <ParkingProvider>
             <ScrollToTop />
             <AppRoutes />
           </ParkingProvider>
         </UserProvider>
         <ReactQueryDevtools initialIsOpen={false} />
-      </QueryClientProvider>
+      </QueryClientContextProvider>
     </div>
   </div>
 );

@@ -11,6 +11,13 @@ export const useParkingSpots = ({ queryClient }) => {
       method: 'GET',
     }),
     staleTime: Infinity,
+    select: (data) => {
+      return data.map((parking) => ({
+        ...parking,
+        totalSpots: parking.available_spaces,
+        availableSpots: parking.available_spaces,
+      }));
+    },
   });
 
   const invalidate = () =>
