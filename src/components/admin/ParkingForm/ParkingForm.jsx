@@ -2,19 +2,28 @@ import PropTypes from 'prop-types';
 import { useForm } from 'react-hook-form';
 import { twMerge } from 'tailwind-merge';
 
+import { useSearchPlaces } from '@/api/hooks/useSearchPlaces';
 import { Input } from '@/components/common/Input';
 import { Label } from '@/components/common/Label';
 import { Button } from '@/components/common';
+import { SearchBox } from '@/components/SearchBox';
+import { LuNavigation, LuX } from 'react-icons/lu';
+
+const MAX_ADDRESS_LENGTH = 40;
 
 export const ParkingForm = ({ className, onSubmit, initialValues }) => {
-  const { register, handleSubmit } = useForm({
+  const { register, handleSubmit, setValue, watch } = useForm({
     defaultValues: {
       name: '',
       address: '',
+      latitude: '',
+      longitude: '',
       totalSpots: null,
       ...initialValues,
     },
   });
+
+  const address = watch('address');
 
   return (
     <form
@@ -32,12 +41,31 @@ export const ParkingForm = ({ className, onSubmit, initialValues }) => {
       </div>
       <div className="grid grid-cols-4 items-center gap-4 w-full">
         <Label htmlFor="address">Dirección</Label>
-        <Input
-          id="address"
-          placeholder="Calle 123 # 45-67"
-          {...register('address')}
+        <SearchBox
           className="col-span-3"
-        />
+          placeholder="Calle 123 # 45-67"
+          useSearchHook={useSearchPlaces}
+          value={address}
+          onResultSelected={({ formattedAddress, location }) => {
+            const { latitude, longitude } = location;
+
+            setValue('address', formattedAddress.slice(0, MAX_ADDRESS_LENGTH));
+            setValue('latitude', latitude);
+            setValue('longitude', longitude);
+          }}
+        >
+          <LuNavigation className="text-xs absolute left-3 top-1/2 -translate-y-1/2 text-secondary-400 w-4 h-4" />
+          {address && (
+            <LuX
+              className="text-xs absolute right-3 top-1/2 -translate-y-1/2 text-secondary-400 w-4 h-4"
+              onClick={() => {
+                setValue('address', '');
+                setValue('latitude', '');
+                setValue('longitude', '');
+              }}
+            />
+          )}
+        </SearchBox>
       </div>
       <div className="flex flex-col gap-4 mt-4">
         <Label htmlFor="totalSpots">

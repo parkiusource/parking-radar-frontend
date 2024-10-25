@@ -16,6 +16,9 @@ export default {
         secondary: { ...colors.gray, DEFAULT: colors.gray[800] },
         background: { ...colors.gray, DEFAULT: colors.gray[50] },
       },
+      zIndex: {
+        60: '60',
+      },
     },
   },
   plugins: [
