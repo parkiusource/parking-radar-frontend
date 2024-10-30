@@ -9,11 +9,11 @@ import {
   useRef,
   useState,
 } from 'react';
+import { createRoot } from 'react-dom/client';
 import { BiTargetLock } from 'react-icons/bi';
 import { LuNavigation } from 'react-icons/lu';
 
-import availableIcon from '@/assets/available-parking.png';
-import fullIcon from '@/assets/full-parking.png';
+import SvgParking from '@/assets/ComponentIcons/SvgParking';
 import { Button } from '@/components/common';
 import { ParkingContext } from '@/context/ParkingContext';
 import { UserContext } from '@/context/UserContext';
@@ -96,14 +96,17 @@ const ParkingMap = memo(({ selectedSpot, setSelectedSpot }) => {
   }, [userLocation, zoomToLocation]);
 
   const createMarkerContent = useCallback((spot) => {
-    const img = document.createElement('img');
-    img.src = spot.available_spaces > 0 ? availableIcon : fullIcon;
-    img.style.width = '35px';
-    img.style.height = '45px';
-    img.style.margin = '0';
-    img.style.padding = '0';
-    img.alt = spot.name;
-    return img;
+    const markerContent = document.createElement('div');
+    const color = spot.available_spaces > 0 ? '#B5F44A' : '#C81D25';
+
+    // Crea el root de React para renderizar el SVG en el contenedor del marcador
+    const root = createRoot(markerContent);
+
+    root.render(
+      <SvgParking style={{ width: '35px', height: '45px' }} fill={color} />
+    );
+
+    return markerContent;
   }, []);
 
   const initializeMarkers = useCallback(async () => {
@@ -170,6 +173,30 @@ const ParkingMap = memo(({ selectedSpot, setSelectedSpot }) => {
   if (loadError) return <div>Error loading map.</div>;
   if (!isLoaded) return <div>Loading map...</div>;
 
+  const customMapStyles = [
+    {
+      "featureType": "all",
+      "elementType": "all",
+      "stylers": [
+        {
+          "invert_lightness": true
+        },
+        {
+          "saturation": 10
+        },
+        {
+          "lightness": 30
+        },
+        {
+          "gamma": 0.5
+        },
+        {
+          "hue": "#435158"
+        }
+      ]
+    }
+  ];
+
   return (
     <div className="w-full h-full">
       <GoogleMap
@@ -179,6 +206,7 @@ const ParkingMap = memo(({ selectedSpot, setSelectedSpot }) => {
         onLoad={handleMapLoad}
         onClick={handleMapClick}
         options={{
+          styles: customMapStyles,
           mapId: MAP_ID,
           zoomControlOptions: {
             position: window.google.maps.ControlPosition.LEFT_BOTTOM,
@@ -188,6 +216,7 @@ const ParkingMap = memo(({ selectedSpot, setSelectedSpot }) => {
             position: window.google.maps.ControlPosition.RIGHT_BOTTOM,
           },
           streetViewControl: false,
+          disableDefaultUI: true,
         }}
       >
         <button
