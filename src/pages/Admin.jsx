@@ -10,11 +10,15 @@ import { ParkingFormDialog } from '@/components/admin/ParkingForm';
 import { getHeaderclassName } from '@/components/Header';
 import { Logo } from '@/components/Logo';
 import { useQueryClient } from '@/context/QueryClientContext';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function Admin() {
+  const { loginWithLocale, isAuthenticated, isLoading } = useAuth();
+
   const queryClient = useQueryClient();
   const { parkingSpots, invalidate, refetch } = useParkingSpots({
     queryClient,
+    enabled: isAuthenticated && !isLoading,
   });
   const { createParking } = useCreateParking({
     onSuccess: () => {
@@ -22,6 +26,13 @@ export default function Admin() {
       refetch();
     },
   });
+
+  if (isLoading) {
+    return <></>;
+  } else if (!isAuthenticated) {
+    loginWithLocale();
+    return <></>;
+  }
 
   return (
     <div className="min-h-screen bg-secondary-100 flex flex-col">

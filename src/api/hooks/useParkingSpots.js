@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 
 const API_BACKEND_URL = import.meta.env.VITE_API_BACKEND_URL;
 
-export const useParkingSpots = ({ queryClient }) => {
+export const useParkingSpots = ({ queryClient, ...options }) => {
   const query = useQuery({
     queryKey: [Queries.ParkingSpots],
     queryFn: fetchQuery({
@@ -18,6 +18,7 @@ export const useParkingSpots = ({ queryClient }) => {
         availableSpots: parking.available_spaces,
       }));
     },
+    ...options,
   });
 
   const invalidate = () =>

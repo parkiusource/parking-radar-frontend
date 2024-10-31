@@ -39,7 +39,7 @@ export const Card = ({
 Card.propTypes = {
   children: PropTypes.node.isRequired,
   className: PropTypes.string,
-  variant: PropTypes.oneOf(['inherit', 'primary']),
+  variant: PropTypes.oneOf(['inherit', 'primary', 'secondary']),
   size: PropTypes.oneOf(['sm', 'md', 'lg']),
 };
 
