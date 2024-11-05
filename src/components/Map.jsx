@@ -25,6 +25,8 @@ const DEFAULT_ZOOM = 15;
 const DEFAULT_RADIUS = 30;
 const DEFAULT_LOCATION = { lat: 4.711, lng: -74.0721 };
 const MAP_ID = import.meta.env.VITE_GOOGLE_MAP_ID;
+const COLOR_NO_AVAILABLE = '#8B0000';
+const COLOR_AVAILABLE = '#1B5E20';
 
 const ParkingMap = memo(({ selectedSpot, setSelectedSpot }) => {
   const { parkingSpots, targetLocation, setTargetLocation } =
@@ -97,9 +99,8 @@ const ParkingMap = memo(({ selectedSpot, setSelectedSpot }) => {
 
   const createMarkerContent = useCallback((spot) => {
     const markerContent = document.createElement('div');
-    const color = spot.available_spaces > 0 ? '#B5F44A' : '#C81D25';
+    const color = spot.available_spaces > 0 ? COLOR_AVAILABLE : COLOR_NO_AVAILABLE;
 
-    // Crea el root de React para renderizar el SVG en el contenedor del marcador
     const root = createRoot(markerContent);
 
     root.render(
@@ -173,30 +174,6 @@ const ParkingMap = memo(({ selectedSpot, setSelectedSpot }) => {
   if (loadError) return <div>Error loading map.</div>;
   if (!isLoaded) return <div>Loading map...</div>;
 
-  const customMapStyles = [
-    {
-      "featureType": "all",
-      "elementType": "all",
-      "stylers": [
-        {
-          "invert_lightness": true
-        },
-        {
-          "saturation": 10
-        },
-        {
-          "lightness": 30
-        },
-        {
-          "gamma": 0.5
-        },
-        {
-          "hue": "#435158"
-        }
-      ]
-    }
-  ];
-
   return (
     <div className="w-full h-full">
       <GoogleMap
@@ -206,7 +183,6 @@ const ParkingMap = memo(({ selectedSpot, setSelectedSpot }) => {
         onLoad={handleMapLoad}
         onClick={handleMapClick}
         options={{
-          styles: customMapStyles,
           mapId: MAP_ID,
           zoomControlOptions: {
             position: window.google.maps.ControlPosition.LEFT_BOTTOM,
@@ -236,11 +212,11 @@ const ParkingMap = memo(({ selectedSpot, setSelectedSpot }) => {
             onCloseClick={() => setInfoWindowOpen(false)}
             options={{ pixelOffset: new window.google.maps.Size(0, -40) }}
           >
-            <div className="p-2 text-center space-y-1">
+            <div className="p-2 text-center space-y-1 flex flex-col gap-y-2">
               <h3 className="text-lg font-semibold">{selectedSpot.name}</h3>
-              <p>{`Address: ${selectedSpot.address}`}</p>
+              <p className='mt-0'>{`Address: ${selectedSpot.address}`}</p>
               <p
-                className={`font-medium ${selectedSpot.available_spaces > 0 ? 'text-green-500' : 'text-red-500'}`}
+                className={`mt-0 font-medium ${selectedSpot.available_spaces > 0 ? 'text-dark-green-emerald' : 'text-dark-red-garnet'}`}
               >
                 {`Available spaces: ${selectedSpot.available_spaces}`}
               </p>

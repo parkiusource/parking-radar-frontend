@@ -1,4 +1,4 @@
-const SvgParking = ({ fill = "#82699b", ...props }) => (
+const SvgParking = ({ fill = "#0EA5E9", ...props }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     xmlSpace="preserve"
@@ -9,7 +9,7 @@ const SvgParking = ({ fill = "#82699b", ...props }) => (
     viewBox="-62.8 -62.8 753.61 753.61"
     {...props}
   >
-    <circle cx="314.008" cy="197.836" r="153.05" fill="white" />
+    <circle cx="314.008" cy="197.836" r="153.05" fill="#f6f6f6" />
     <path
       strokeLinecap="round"
       strokeLinejoin="round"

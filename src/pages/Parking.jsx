@@ -118,7 +118,7 @@ export default function Parking() {
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <LuDollarSign className="w-5 h-5 text-green-500" />
+                    <LuDollarSign className="w-5 h-5 text-dark-green-emerald" />
                     <span className="text-sm text-secondary-600">
                       60 a 100/min
                     </span>
