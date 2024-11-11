@@ -1,18 +1,19 @@
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useMemo } from 'react';
 
+import PropTypes from 'prop-types';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const QueryClientContext = createContext();
 
-export const QueryClientContextProvider = ({ children }) => {
-  const queryClient = new QueryClient({
+const QueryClientContextProvider = ({ children }) => {
+  const queryClient = useMemo(() => new QueryClient({
     defaultOptions: {
       queries: {
         refetchOnWindowFocus: false,
         retry: 3,
       },
     },
-  });
+  }), []);
 
   return (
     <QueryClientContext.Provider value={queryClient}>
@@ -20,6 +21,14 @@ export const QueryClientContextProvider = ({ children }) => {
     </QueryClientContext.Provider>
   );
 };
+
+QueryClientContextProvider.displayName = 'QueryClientContextProvider';
+
+QueryClientContextProvider.propTypes = {
+  children: PropTypes.node.isRequired,
+};
+
+export { QueryClientContextProvider };
 
 export const useQueryClient = () => {
   const context = useContext(QueryClientContext);

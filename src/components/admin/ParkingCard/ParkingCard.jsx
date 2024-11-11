@@ -1,3 +1,6 @@
+import PropTypes from 'prop-types';
+import { LuMinus, LuPencil, LuPlus, LuTrash2 } from 'react-icons/lu';
+
 import { ParkingFormDialog } from '@/components/admin/ParkingForm';
 import { Button } from '@/components/common/Button';
 import {
@@ -8,7 +11,6 @@ import {
 } from '@/components/common/Card';
 import { Input } from '@/components/common/Input';
 import { Label } from '@/components/common/Label';
-import { LuMinus, LuPencil, LuPlus, LuTrash2 } from 'react-icons/lu';
 
 export const ParkingCard = ({ parking }) => {
   return (
@@ -83,6 +85,18 @@ export const ParkingCard = ({ parking }) => {
       </CardFooter>
     </Card>
   );
+};
+
+ParkingCard.displayName = 'ParkingCard';
+
+ParkingCard.propTypes = {
+  parking: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    name: PropTypes.string.isRequired,
+    address: PropTypes.string.isRequired,
+    totalSpots: PropTypes.number.isRequired,
+    availableSpots: PropTypes.number.isRequired,
+  }).isRequired,
 };
 
 export default ParkingCard;

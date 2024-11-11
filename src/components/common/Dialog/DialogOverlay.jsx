@@ -1,7 +1,8 @@
 import { forwardRef } from 'react';
 
-import { Overlay } from '@radix-ui/react-dialog';
+import PropTypes from 'prop-types';
 import { twMerge } from 'tailwind-merge';
+import { Overlay } from '@radix-ui/react-dialog';
 
 export const DialogOverlay = forwardRef(({ className, ...props }, ref) => (
   <Overlay
@@ -15,5 +16,9 @@ export const DialogOverlay = forwardRef(({ className, ...props }, ref) => (
 ));
 
 DialogOverlay.displayName = Overlay.displayName;
+
+DialogOverlay.propTypes = {
+  className: PropTypes.string,
+};
 
 export default DialogOverlay;

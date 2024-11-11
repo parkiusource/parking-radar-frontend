@@ -1,7 +1,8 @@
 import { forwardRef } from 'react';
 
-import { Description } from '@radix-ui/react-dialog';
+import PropTypes from 'prop-types';
 import { twMerge } from 'tailwind-merge';
+import { Description } from '@radix-ui/react-dialog';
 
 export const DialogDescription = forwardRef(({ className, ...props }, ref) => (
   <Description
@@ -12,5 +13,9 @@ export const DialogDescription = forwardRef(({ className, ...props }, ref) => (
 ));
 
 DialogDescription.displayName = Description.displayName;
+
+DialogDescription.propTypes = {
+  className: PropTypes.string,
+};
 
 export default DialogDescription;

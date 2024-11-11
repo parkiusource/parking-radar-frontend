@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { twMerge } from 'tailwind-merge';
 
 export const DialogHeader = ({ className, ...props }) => (
@@ -11,5 +12,9 @@ export const DialogHeader = ({ className, ...props }) => (
 );
 
 DialogHeader.displayName = 'DialogHeader';
+
+DialogHeader.propTypes = {
+  className: PropTypes.string,
+};
 
 export default DialogHeader;

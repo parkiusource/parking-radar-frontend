@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import PropTypes from 'prop-types';
 import { DialogTitle } from '@radix-ui/react-dialog';
 
 import {
@@ -9,7 +11,6 @@ import {
 } from '@/components/common/Dialog';
 
 import { ParkingForm } from './ParkingForm';
-import { useState } from 'react';
 
 const wait = () => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -41,6 +42,16 @@ export const ParkingFormDialog = ({
       </DialogContent>
     </Dialog>
   );
+};
+
+ParkingFormDialog.displayName = 'ParkingFormDialog';
+
+ParkingFormDialog.propTypes = {
+  children: PropTypes.node.isRequired,
+  onSubmit: PropTypes.func.isRequired,
+  title: PropTypes.string.isRequired,
+  description: PropTypes.string.isRequired,
+  initialValues: PropTypes.object,
 };
 
 export default ParkingFormDialog;

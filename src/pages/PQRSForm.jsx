@@ -1,4 +1,4 @@
-import Header from '@/components/Header';
+import { Header } from '@/components/Header';
 import iconPQRS from '../assets/Icon-PQRS.png';
 import { useState } from 'react';
 

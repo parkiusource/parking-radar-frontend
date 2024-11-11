@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { twMerge } from 'tailwind-merge';
 
 export const DialogFooter = ({ className, ...props }) => (
@@ -11,5 +12,9 @@ export const DialogFooter = ({ className, ...props }) => (
 );
 
 DialogFooter.displayName = 'DialogFooter';
+
+DialogFooter.propTypes = {
+  className: PropTypes.string,
+};
 
 export default DialogFooter;

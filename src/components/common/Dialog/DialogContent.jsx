@@ -1,13 +1,14 @@
 import { forwardRef } from 'react';
 
+import PropTypes from 'prop-types';
+import { LuX } from 'react-icons/lu';
+import { twMerge } from 'tailwind-merge';
 import {
   Close,
   Content,
   DialogOverlay,
   DialogPortal,
 } from '@radix-ui/react-dialog';
-import { LuX } from 'react-icons/lu';
-import { twMerge } from 'tailwind-merge';
 
 export const DialogContent = forwardRef(
   ({ className, children, ...props }, ref) => (
@@ -32,5 +33,10 @@ export const DialogContent = forwardRef(
 );
 
 DialogContent.displayName = Content.displayName;
+
+DialogContent.propTypes = {
+  children: PropTypes.node.isRequired,
+  className: PropTypes.string,
+};
 
 export default DialogContent;

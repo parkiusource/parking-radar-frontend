@@ -1,4 +1,6 @@
 import { forwardRef } from 'react';
+
+import PropTypes from 'prop-types';
 import { twMerge } from 'tailwind-merge';
 
 export const Input = forwardRef(({ className, type, ...props }, ref) => {
@@ -17,5 +19,10 @@ export const Input = forwardRef(({ className, type, ...props }, ref) => {
 });
 
 Input.displayName = 'Input';
+
+Input.propTypes = {
+  className: PropTypes.string,
+  type: PropTypes.string,
+};
 
 export default Input;

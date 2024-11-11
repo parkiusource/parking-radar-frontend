@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import { useForm } from 'react-hook-form';
+import { LuNavigation, LuX } from 'react-icons/lu';
 import { twMerge } from 'tailwind-merge';
 
 import { useSearchPlaces } from '@/api/hooks/useSearchPlaces';
@@ -7,7 +8,6 @@ import { Input } from '@/components/common/Input';
 import { Label } from '@/components/common/Label';
 import { Button } from '@/components/common';
 import { SearchBox } from '@/components/SearchBox';
-import { LuNavigation, LuX } from 'react-icons/lu';
 
 const MAX_ADDRESS_LENGTH = 40;
 
@@ -91,6 +91,7 @@ export const ParkingForm = ({ className, onSubmit, initialValues }) => {
 ParkingForm.propTypes = {
   className: PropTypes.string,
   children: PropTypes.node,
+  initialValues: PropTypes.object,
   onChange: PropTypes.func,
   onSubmit: PropTypes.func,
 };

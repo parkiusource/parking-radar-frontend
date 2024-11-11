@@ -10,7 +10,7 @@ import { SearchBox } from '@/components/SearchBox';
 import { ParkingContext } from '@/context/ParkingContext';
 import { UserContext } from '@/context/UserContext';
 import { useNearbyParkingSpots } from '@/hooks/useNearbySpots';
-import { getHeaderclassName } from '@/components/Header';
+import { getHeaderClassName } from '@/components/Header';
 import { Logo } from '@/components/Logo';
 
 const DEFAULT_MAX_DISTANCE = 1000;
@@ -51,7 +51,7 @@ export default function Parking() {
   return (
     <div className="min-h-screen bg-secondary-100 flex flex-col">
       <header
-        className={getHeaderclassName({
+        className={getHeaderClassName({
           className: 'gap-6 bg-white sticky md:relative top-0 z-10',
         })}
       >

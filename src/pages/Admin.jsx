@@ -7,7 +7,7 @@ import { useParkingSpots } from '@/api/hooks/useParkingSpots';
 import { useCreateParking } from '@/api/hooks/useCreateParking';
 import { ParkingCard } from '@/components/admin/ParkingCard';
 import { ParkingFormDialog } from '@/components/admin/ParkingForm';
-import { getHeaderclassName } from '@/components/Header';
+import { getHeaderClassName } from '@/components/Header';
 import { Logo } from '@/components/Logo';
 import { useQueryClient } from '@/context/QueryClientContext';
 import { useAuth } from '@/hooks/useAuth';
@@ -37,7 +37,7 @@ export default function Admin() {
   return (
     <div className="min-h-screen bg-secondary-100 flex flex-col">
       <header
-        className={getHeaderclassName({
+        className={getHeaderClassName({
           className: 'gap-6 bg-white sticky md:relative top-0 z-10',
         })}
       >

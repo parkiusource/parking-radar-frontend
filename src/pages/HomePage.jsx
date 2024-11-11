@@ -3,7 +3,7 @@ import { Card } from '@/components/common';
 import { FaAward, FaCalendarCheck, FaSquareParking } from 'react-icons/fa6';
 import { twMerge } from 'tailwind-merge';
 import Footer from '@/components/Footer';
-import Header from '@/components/Header';
+import { Header } from '@/components/Header';
 import Logo from '@/components/Logo';
 import { CardContent } from '@/components/common/Card';
 

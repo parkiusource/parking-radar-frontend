@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import isEmpty from 'lodash/isEmpty';
+import PropTypes from 'prop-types';
 import { LuMapPin } from 'react-icons/lu';
 import { twMerge } from 'tailwind-merge';
 
@@ -91,6 +92,17 @@ const SearchBox = ({
       </Popover>
     </div>
   );
+};
+
+SearchBox.displayName = 'SearchBox';
+
+SearchBox.propTypes = {
+  children: PropTypes.node,
+  className: PropTypes.string,
+  placeholder: PropTypes.string,
+  onResultSelected: PropTypes.func.isRequired,
+  useSearchHook: PropTypes.func.isRequired,
+  value: PropTypes.string,
 };
 
 export { SearchBox };
