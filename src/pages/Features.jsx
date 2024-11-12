@@ -5,14 +5,15 @@ import iconGuide from '../assets/Icon-Guide.png';
 import iconSmartCar from '../assets/Icon-SmartCar.png';
 import iconInteresting from '../assets/Icon-Interesting.png';
 import iconLogo from '../assets/smart-parking-logo3.png';
-import Header from '@/components/Header';
+
+import { Header } from '@/components/Header';
 
 const Features = () => {
   return (
     <div className="home-page">
       <Header />
       <main className="container mx-auto mt-24 px-4">
-        <section className="bg-white p-6 shadow-lg rounded-lg">
+        <section className="bg-white p-6 shadow-lg rounded-xl">
           <div className="text-center">
             <h1 className="text-3xl font-bold mb-8">SOBRE NOSOTROS</h1>
 

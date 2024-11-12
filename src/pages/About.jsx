@@ -1,12 +1,15 @@
 /* eslint-disable react/no-unescaped-entities */
 import { useState } from 'react';
+
 import { motion } from 'framer-motion';
 import { LuCar, LuClock, LuMapPin, LuUsers } from 'react-icons/lu';
+import { Link } from 'react-router-dom';
+
 
 import { Button, Card } from '@/components/common';
 import Footer from '@/components/Footer';
-import { Link } from 'react-router-dom';
-import Header from '@/components/Header';
+import { Header } from '@/components/Header';
+import { CardContent } from '@/components/common/Card';
 
 export default function About() {
   const [hoveredFeature, setHoveredFeature] = useState(null);
@@ -84,18 +87,18 @@ export default function About() {
                 onHoverStart={() => setHoveredFeature(index)}
                 onHoverEnd={() => setHoveredFeature(null)}
               >
-                <Card className="h-full bg-white rounded-lg bg-opacity-70 backdrop-filter backdrop-blur-sm hover:shadow-xl transition-shadow duration-300">
-                  <div className="py-4 flex flex-col items-center text-center">
+                <Card className="h-full bg-white bg-opacity-70 backdrop-filter backdrop-blur-sm hover:shadow-xl transition-shadow duration-300">
+                  <CardContent className="py-4 flex flex-col items-center text-center">
                     <feature.icon className="w-12 h-12 text-sky-500 mb-4" />
                     <h3 className="text-xl font-semibold mb-2 text-gray-800">
                       {feature.title}
                     </h3>
                     <p className="text-gray-600">{feature.description}</p>
-                  </div>
+                  </CardContent>
                 </Card>
                 {hoveredFeature === index && (
                   <motion.div
-                    className="absolute inset-0 bg-sky-500 opacity-10 rounded-lg"
+                    className="absolute inset-0 bg-sky-500 opacity-10 rounded-xl"
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ duration: 0.2 }}

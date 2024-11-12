@@ -21,7 +21,7 @@ import { UserContext } from '@/context/UserContext';
 const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 const LIBRARIES = ['marker'];
-const DEFAULT_ZOOM = 16;
+const DEFAULT_ZOOM = 15;
 const DEFAULT_RADIUS = 30;
 const DEFAULT_LOCATION = { lat: 4.711, lng: -74.0721 };
 const MAP_ID = import.meta.env.VITE_GOOGLE_MAP_ID;
@@ -162,8 +162,6 @@ const ParkingMap = memo(({ selectedSpot, setSelectedSpot }) => {
     setInfoWindowOpen(false);
   }, [setSelectedSpot, setInfoWindowOpen]);
 
-
-
   const openNavigation = (lat, lng) => {
     const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
     window.open(url, '_blank');
@@ -177,7 +175,7 @@ const ParkingMap = memo(({ selectedSpot, setSelectedSpot }) => {
       <GoogleMap
         mapContainerClassName="w-full h-full"
         center={mapCenter}
-        zoom={targetLocation ? 15 : 12}
+        zoom={targetLocation ? 20 : DEFAULT_ZOOM}
         onLoad={handleMapLoad}
         onClick={handleMapClick}
         options={{
@@ -237,7 +235,6 @@ const ParkingMap = memo(({ selectedSpot, setSelectedSpot }) => {
     </div>
   );
 });
-
 
 ParkingMap.propTypes = {
   selectedSpot: PropTypes.shape({

@@ -1,10 +1,11 @@
 import { useState } from 'react';
 
 import isEmpty from 'lodash/isEmpty';
-import { LuMapPin, LuSearch } from 'react-icons/lu';
+import PropTypes from 'prop-types';
+import { LuMapPin } from 'react-icons/lu';
 import { twMerge } from 'tailwind-merge';
 
-import { Button } from '@/components/common/Button';
+import { Button } from '@/components/common/Button/Button';
 import {
   Popover,
   PopoverClose,
@@ -12,41 +13,43 @@ import {
   PopoverPortal,
   PopoverTrigger,
 } from '@/components/common/Popover';
+import { Input } from '@/components/common/Input';
 
-const getStatusMessage = ({ loading, searchTerm, results }) => {
-  if (!searchTerm) return 'Escribe el nombre de un lugar para buscar';
+const getStatusMessage = ({ loading, results }) => {
   if (loading) return 'Cargando...';
   if (isEmpty(results)) return 'No se encontraron resultados';
 };
 
-export default function SearchBox({
+const SearchBox = ({
+  children,
   className,
   placeholder = 'Buscar lugar...',
-  useSearchHook,
   onResultSelected,
-}) {
+  useSearchHook,
+  value,
+}) => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const { results, isPending: loading } = useSearchHook(searchTerm);
 
   return (
     <div className={twMerge('w-full', className)}>
-      <Popover>
+      <Popover open={!isEmpty(searchTerm)}>
         <PopoverTrigger asChild>
           <div className="relative w-full">
-            <input
+            <Input
               type="text"
               placeholder={placeholder}
-              value={searchTerm}
+              value={value || searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="text-secondary-600 pl-10 pr-4 py-2 w-full border border-secondary-300 rounded-full focus:ring-2 focus:ring-sky-500 focus:outline-none transition-shadow"
+              className="px-8 text-ellipsis"
             />
-            <LuSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary-400 w-5 h-5" />
+            {children}
           </div>
         </PopoverTrigger>
         <PopoverPortal>
           <PopoverContent
-            className="mt-2 max-h-[50vh] z-20 shadow shadow-secondary/20 overflow-y-scroll p-0"
+            className="mt-2 max-h-[50vh] z-60 shadow shadow-secondary/20 overflow-y-scroll p-0"
             style={{
               width: 'var(--radix-popover-trigger-width)',
             }}
@@ -89,4 +92,17 @@ export default function SearchBox({
       </Popover>
     </div>
   );
-}
+};
+
+SearchBox.displayName = 'SearchBox';
+
+SearchBox.propTypes = {
+  children: PropTypes.node,
+  className: PropTypes.string,
+  placeholder: PropTypes.string,
+  onResultSelected: PropTypes.func.isRequired,
+  useSearchHook: PropTypes.func.isRequired,
+  value: PropTypes.string,
+};
+
+export { SearchBox };

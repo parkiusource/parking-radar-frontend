@@ -1,4 +1,4 @@
-import Header from '@/components/Header';
+import { Header } from '@/components/Header';
 import iconPQRS from '../assets/Icon-PQRS.png';
 import { useState } from 'react';
 
@@ -53,7 +53,7 @@ const PQRSForm = () => {
     <>
       <Header />
       <div className="container mx-auto mt-32 px-4">
-        <section className="bg-white p-6 shadow-lg rounded-lg">
+        <section className="bg-white p-6 shadow-lg rounded-xl">
           <div className="text-left">
             <div className="flex justify-center items-center mb-6">
               <h2 className="text-2xl font-bold mr-4">
@@ -77,7 +77,7 @@ const PQRSForm = () => {
                   value={formData.username}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  className="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600"
                 />
               </div>
 
@@ -95,7 +95,7 @@ const PQRSForm = () => {
                   value={formData.email}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  className="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600"
                 />
               </div>
 
@@ -113,13 +113,13 @@ const PQRSForm = () => {
                   onChange={handleChange}
                   required
                   rows="5"
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  className="w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600"
                 />
               </div>
 
               <button
                 type="submit"
-                className={`w-full px-4 py-2 text-white rounded-lg bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 ${
+                className={`w-full px-4 py-2 text-white rounded-xl bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 ${
                   isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
                 disabled={isSubmitting}
