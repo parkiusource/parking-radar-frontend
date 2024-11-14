@@ -15,6 +15,16 @@ export default {
         primary: { ...colors.sky, DEFAULT: colors.sky[500] },
         secondary: { ...colors.gray, DEFAULT: colors.gray[800] },
         background: { ...colors.gray, DEFAULT: colors.gray[50] },
+        'dark-green': {
+          pine: '#2E7D32',
+          emerald: '#1B5E20',
+          moss: '#33691E',
+        },
+        'dark-red': {
+          crimson: '#B71C1C',
+          garnet: '#8B0000',
+          wine: '#7B1F1F',
+        },
       },
       zIndex: {
         60: '60',
