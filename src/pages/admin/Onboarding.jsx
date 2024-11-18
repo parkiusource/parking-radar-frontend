@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/common';
 import { FirstStep, itemVariants } from '@/components/admin/Onboarding';
+import { twMerge } from 'tailwind-merge';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -18,47 +19,63 @@ const containerVariants = {
   },
 };
 
-const steps = [
-  {
-    title: 'Información Básica',
-    description: 'Cuéntanos un poco sobre tu negocio',
-    buttonLabel: 'Empezar',
-  },
-  {
-    title: 'Preferences',
-    description: 'Customize your experience',
-    buttonLabel: 'Guardar y Continuar',
-  },
-  {
-    title: 'Finish',
-    description: 'Review and complete',
-    buttonLabel: 'Finalizar',
-  },
-];
-
 export default function AdminOnboarding() {
   const { loginWithLocale, isAuthenticated, isLoading } = useAuth();
 
-  const [step, setStep] = useState(0);
   const firstStepRef = useRef();
-  const currentStep = useMemo(() => steps[step], [step]);
+
+  const steps = useMemo(() => {
+    return [
+      {
+        id: 0,
+        buttonLabel: 'Comenzar',
+      },
+      {
+        id: 1,
+        title: 'Información Básica',
+        description: 'Cuéntanos un poco sobre tu negocio',
+        buttonLabel: 'Guardar y Continuar',
+        ref: firstStepRef,
+        StepComponent: FirstStep,
+        beforeNext: async () => {
+          if (firstStepRef?.current) {
+            await firstStepRef.current.submitForm();
+          }
+        },
+      },
+      {
+        id: 2,
+        title: 'Parqueadero',
+        description: 'Registra tu primer parqueadero',
+        buttonLabel: 'Guardar y Continuar',
+      },
+      {
+        id: 3,
+        title: 'Finalizar',
+        description: 'Revisa nuestras recomendaciones y finaliza',
+        buttonLabel: 'Finalizar',
+      },
+    ];
+  }, [firstStepRef]);
+
   const [loading, setLoading] = useState(false);
 
-  const nextStep = useCallback(async () => {
-    switch (step) {
-      case 1:
-        if (firstStepRef?.current) {
-          setLoading(true);
-          await firstStepRef.current.submitForm();
-          setLoading(false);
-        }
-        break;
-      default:
-        break;
-    }
+  const [step, setStep] = useState(0);
+  const currentStep = useMemo(
+    () => steps.find((s) => s.id === step),
+    [steps, step],
+  );
 
-    setStep(step + 1);
-  }, [step]);
+  console.log({ step, currentStep });
+
+  const nextStep = useCallback(async () => {
+    if (currentStep.beforeNext) {
+      setLoading(true);
+      await currentStep.beforeNext();
+      setLoading(false);
+    }
+    setStep(currentStep.id + 1);
+  }, [currentStep]);
 
   if (isLoading) {
     return <></>;
@@ -93,50 +110,31 @@ export default function AdminOnboarding() {
             Vamos a configurar tu cuenta en solo unos pasos.
           </motion.p>
           <motion.div className="space-y-4" variants={itemVariants}>
-            <div className="flex flex-col">
-              <div className="w-full flex items-center">
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 1 ? 'bg-primary' : 'bg-primary/20'} text-white font-bold`}
-                >
-                  1
+            {steps
+              .slice(1)
+              .map(({ id, title, description, ref, StepComponent }) => (
+                <div className="flex flex-col" key={`step_${id}`}>
+                  <div className="w-full flex items-center">
+                    <div
+                      className={twMerge(
+                        'w-8 h-8 rounded-full flex items-center justify-center text-white font-bold',
+                        step >= id ? 'bg-primary' : 'bg-primary/20',
+                      )}
+                    >
+                      {id}
+                    </div>
+                    <div className="ml-4">
+                      <h2 className="text-lg font-semibold text-primary-100">
+                        {title}
+                      </h2>
+                      <p className="text-primary-200 text-sm">{description}</p>
+                    </div>
+                  </div>
+                  {currentStep.id === id && StepComponent && (
+                    <StepComponent ref={ref} setLoading={setLoading} />
+                  )}
                 </div>
-                <div className="ml-4">
-                  <h2 className="text-lg font-semibold text-primary-100">
-                    Información Básica
-                  </h2>
-                  <p className="text-primary-200 text-sm">
-                    Cuéntanos un poco sobre tu negocio
-                  </p>
-                </div>
-              </div>
-              {step === 1 && <FirstStep ref={firstStepRef} />}
-            </div>
-            <div className="flex items-center opacity-50">
-              <div className="w-8 h-8 rounded-full bg-primary-300 flex items-center justify-center text-white font-bold">
-                2
-              </div>
-              <div className="ml-4">
-                <h2 className="text-lg font-semibold text-primary-100">
-                  Parqueadero
-                </h2>
-                <p className="text-primary-200 text-sm">
-                  Registra tu primer parqueadero
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center opacity-50">
-              <div className="w-8 h-8 rounded-full bg-primary-300 flex items-center justify-center text-white font-bold">
-                3
-              </div>
-              <div className="ml-4">
-                <h2 className="text-lg font-semibold text-primary-100">
-                  Finalizar
-                </h2>
-                <p className="text-primary-200 text-sm">
-                  Revisa nuestras recomendaciones y finaliza
-                </p>
-              </div>
-            </div>
+              ))}
           </motion.div>
           <motion.div
             className="mt-8 w-full flex justify-center items-center py-3 px-4 transition duration-300 ease-in-out"
