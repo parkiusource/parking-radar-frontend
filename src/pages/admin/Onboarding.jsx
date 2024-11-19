@@ -1,12 +1,20 @@
-import { getHeaderClassName } from '@/components/Header';
-import { Logo } from '@/components/Logo';
-import { useCallback, useMemo, useRef, useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { motion } from 'framer-motion';
-import { Button } from '@/components/common';
-import { FirstStep, itemVariants } from '@/components/admin/Onboarding';
+
 import { twMerge } from 'tailwind-merge';
+
+import { Button } from '@/components/common';
+import {
+  FirstStep,
+  itemVariants,
+  SecondStep,
+  ThirdStep,
+} from '@/components/admin/Onboarding';
+import { getHeaderClassName } from '@/components/Header';
+import { Logo } from '@/components/Logo';
+
+import { useAuth } from '@/hooks/useAuth';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -20,9 +28,26 @@ const containerVariants = {
 };
 
 export default function AdminOnboarding() {
-  const { loginWithLocale, isAuthenticated, isLoading } = useAuth();
-
   const firstStepRef = useRef();
+  const secondStepRef = useRef();
+
+  const {
+    loginWithLocale,
+    isAuthenticated,
+    isLoading: userAuthLoading,
+    user,
+  } = useAuth();
+
+  // @TODO: Remove this mock
+  const [userDetails, userDetailsLoading] = [
+    {
+      email: 'peter@parkiu.com',
+      name: 'Peter Castiblanco',
+      id: '123456789',
+      onboardingStep: '2',
+    },
+    false,
+  ];
 
   const steps = useMemo(() => {
     return [
@@ -48,12 +73,19 @@ export default function AdminOnboarding() {
         title: 'Parqueadero',
         description: 'Registra tu primer parqueadero',
         buttonLabel: 'Guardar y Continuar',
+        ref: secondStepRef,
+        StepComponent: SecondStep,
+        beforeNext: async () => {
+          if (secondStepRef?.current) {
+            await secondStepRef.current.submitForm();
+          }
+        },
       },
       {
         id: 3,
-        title: 'Finalizar',
-        description: 'Revisa nuestras recomendaciones y finaliza',
-        buttonLabel: 'Finalizar',
+        title: 'Verificación',
+        description: 'Verificaremos tu identidad para continuar',
+        StepComponent: ThirdStep,
       },
     ];
   }, [firstStepRef]);
@@ -61,6 +93,7 @@ export default function AdminOnboarding() {
   const [loading, setLoading] = useState(false);
 
   const [step, setStep] = useState(0);
+
   const currentStep = useMemo(
     () => steps.find((s) => s.id === step),
     [steps, step],
@@ -71,15 +104,26 @@ export default function AdminOnboarding() {
   const nextStep = useCallback(async () => {
     if (currentStep.beforeNext) {
       setLoading(true);
-      await currentStep.beforeNext();
-      setLoading(false);
+      try {
+        await currentStep.beforeNext();
+      } catch {
+        return;
+      } finally {
+        setLoading(false);
+      }
     }
     setStep(currentStep.id + 1);
   }, [currentStep]);
 
-  if (isLoading) {
+  useEffect(() => {
+    if (userDetails?.onboardingStep) {
+      setStep(parseInt(userDetails.onboardingStep) + 1);
+    }
+  }, [userDetails]);
+
+  if (userAuthLoading || userDetailsLoading) {
     return <></>;
-  } else if (!isAuthenticated) {
+  } else if (!isAuthenticated || !user) {
     loginWithLocale();
     return <></>;
   }
@@ -118,7 +162,7 @@ export default function AdminOnboarding() {
                     <div
                       className={twMerge(
                         'w-8 h-8 rounded-full flex items-center justify-center text-white font-bold',
-                        step >= id ? 'bg-primary' : 'bg-primary/20',
+                        step > id ? 'bg-primary' : 'bg-primary/20',
                       )}
                     >
                       {id}
@@ -131,19 +175,29 @@ export default function AdminOnboarding() {
                     </div>
                   </div>
                   {currentStep.id === id && StepComponent && (
-                    <StepComponent ref={ref} setLoading={setLoading} />
+                    <StepComponent
+                      ref={ref}
+                      setLoading={setLoading}
+                      user={user}
+                    />
                   )}
                 </div>
               ))}
           </motion.div>
-          <motion.div
-            className="mt-8 w-full flex justify-center items-center py-3 px-4 transition duration-300 ease-in-out"
-            variants={itemVariants}
-          >
-            <Button className="min-w-60" onClick={nextStep} disabled={loading}>
-              {currentStep.buttonLabel}
-            </Button>
-          </motion.div>
+          {currentStep.buttonLabel && (
+            <motion.div
+              className="mt-8 w-full flex justify-center items-center py-3 px-4 transition duration-300 ease-in-out"
+              variants={itemVariants}
+            >
+              <Button
+                className="min-w-60"
+                onClick={nextStep}
+                disabled={loading}
+              >
+                {currentStep.buttonLabel}
+              </Button>
+            </motion.div>
+          )}
         </motion.div>
       </main>
     </div>
