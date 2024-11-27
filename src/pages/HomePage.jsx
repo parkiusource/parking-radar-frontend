@@ -8,8 +8,8 @@ import { Card } from '@/components/common';
 import { Button } from '@/components/common';
 import { LuSearch } from "react-icons/lu";
 import { LuParkingSquare } from "react-icons/lu";
-import img_parkiu from '@/images/img_parkiu.webp';
-import bg_map_hero from '@/images/bg_map_hero.webp';
+import imgParkiu from '@/images/img_parkiu.webp';
+import bgMapHero from '@/images/bg_map_hero.webp';
 
 const FeatureCard = ({ children, className, size = "sm", variant = "secondary" }) => {
   return (
@@ -36,7 +36,7 @@ const HomePage = () => {
         <section 
           className="min-h-[50vh] flex flex-col items-center justify-center text-center space-y-6 py-12"
           style={{
-            backgroundImage: `url(${bg_map_hero})`,
+            backgroundImage: `url(${bgMapHero})`,
           }}
         >
           <h2 className="text-3xl md:text-5xl font-bold text-balance mt-36 mb-8 px-8">
@@ -60,9 +60,9 @@ const HomePage = () => {
             </div>
 
             <Button
-                variant="dark"
-                className="flex items-center gap-x-2 border-white hover:bg-white hover:text-blue-500 hover:border-blue-500"
-              >
+              variant="dark"
+              className="flex items-center gap-x-2 border-white hover:bg-white hover:text-blue-500 hover:border-blue-500"
+            >
               <span><LuParkingSquare /></span>
               Encontrar parqueadero cerca de mí
             </Button>
@@ -71,9 +71,9 @@ const HomePage = () => {
 
         {/* Admin */}
         <section className="py-20 text-gray-800 bg-white flex justify-center">
-          <div className="flex flex-row justify-between w-full max-w-6xl gap-x-12">
+          <div className="flex flex-col md:flex-row justify-between w-full max-w-6xl gap-x-12">
 
-            <div className="flex flex-col justify-center max-w-xl gap-y-6">
+            <div className="flex flex-col justify-center max-w-xl gap-y-6 mb-4 md:mb-0">
               <h2 className="text-4xl font-bold mb-4 text-center md:text-left">
                 ¡Administra tu parqueadero fácilmente!
               </h2>
@@ -83,9 +83,12 @@ const HomePage = () => {
               </p>
               <div className="flex flex-col md:flex-row justify-start items-center gap-6 mt-4">
                 <Link to="/admin-landing">
-                  <button className="bg-primary text-white px-8 py-4 rounded-lg font-semibold text-lg shadow-lg transition hover:bg-primary-400 hover:scale-105">
+                  <Button
+                    variant="default"
+                    className="px-8 py-4 font-semibold text-lg shadow-lg transition hover:bg-primary-400 hover:scale-105"
+                  >
                     Únete como Administrador
-                  </button>
+                  </Button>
                 </Link>
                 <p className="text-gray-600">
                   ¿Ya tienes una cuenta?{' '}
@@ -97,11 +100,11 @@ const HomePage = () => {
             </div>
 
             {/* Columna de la imagen */}
-            <div className="w-full max-w-md aspect-[1/1] overflow-hidden flex items-center justify-center">
+            <div className="w-full md:max-w-md aspect-[1/1] overflow-hidden flex items-center justify-center">
               <img 
-                src={img_parkiu} 
+                src={imgParkiu} 
                 alt="Administrador de parqueaderos" 
-                className="h-full object-cover rounded-3xl shadow-md" 
+                className="h-full object-cover md:rounded-3xl shadow-md" 
               />
             </div>
           </div>
