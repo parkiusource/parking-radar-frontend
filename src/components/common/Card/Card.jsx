@@ -5,12 +5,15 @@ const variants = {
   inherit: 'bg-inherit border-gray-200',
   primary: 'bg-primary border-primary-200',
   secondary: 'bg-secondary border-secondary-700',
+  white: 'bg-white border-primary-200',
 };
 
 const sizes = {
   sm: 'max-w-sm',
   md: 'max-w-md',
   lg: 'max-w-lg',
+  xl: 'max-w-xl',
+  xxl: 'max-w-2xl',
 };
 
 const getCardClassName = ({ className, variant, size }) => {
@@ -39,8 +42,8 @@ export const Card = ({
 Card.propTypes = {
   children: PropTypes.node.isRequired,
   className: PropTypes.string,
-  variant: PropTypes.oneOf(['inherit', 'primary', 'secondary']),
-  size: PropTypes.oneOf(['sm', 'md', 'lg']),
+  variant: PropTypes.oneOf(['inherit', 'primary', 'secondary','white']),
+  size: PropTypes.oneOf(['sm', 'md', 'lg','xl','xxl']),
 };
 
 Card.displayName = 'Card';
