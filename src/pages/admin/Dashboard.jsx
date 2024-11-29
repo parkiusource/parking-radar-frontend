@@ -12,7 +12,7 @@ import { Logo } from '@/components/Logo';
 import { useQueryClient } from '@/context/QueryClientContext';
 import { useAuth } from '@/hooks/useAuth';
 
-export default function Admin() {
+export default function AdminDashboard() {
   const { loginWithLocale, isAuthenticated, isLoading } = useAuth();
 
   const queryClient = useQueryClient();
