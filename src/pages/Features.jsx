@@ -7,10 +7,11 @@ import iconInteresting from '../assets/Icon-Interesting.png';
 import iconLogo from '../assets/smart-parking-logo3.png';
 
 import { Header } from '@/components/Header';
+import Footer from '@/components/Footer';
 
 const Features = () => {
   return (
-    <div className="home-page">
+    <>
       <Header />
       <main className="container mx-auto mt-24 px-4">
         <section className="bg-white p-6 shadow-lg rounded-xl">
@@ -110,7 +111,8 @@ const Features = () => {
           </div>
         </section>
       </main>
-    </div>
+      <Footer />
+    </>
   );
 };
 
