@@ -5,11 +5,10 @@ import { motion } from 'framer-motion';
 import { LuCar, LuClock, LuMapPin, LuUsers } from 'react-icons/lu';
 import { Link } from 'react-router-dom';
 
-
 import { Button, Card } from '@/components/common';
+import { CardContent } from '@/components/common/Card';
 import Footer from '@/components/Footer';
 import { Header } from '@/components/Header';
-import { CardContent } from '@/components/common/Card';
 
 export default function About() {
   const [hoveredFeature, setHoveredFeature] = useState(null);

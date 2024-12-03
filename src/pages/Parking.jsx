@@ -12,6 +12,7 @@ import { UserContext } from '@/context/UserContext';
 import { useNearbyParkingSpots } from '@/hooks/useNearbySpots';
 import { getHeaderClassName } from '@/components/Header';
 import { Logo } from '@/components/Logo';
+import Footer from '@/components/Footer';
 
 const DEFAULT_MAX_DISTANCE = 1000;
 const DEFAULT_LIMIT = 10;
@@ -143,6 +144,7 @@ export default function Parking() {
           </AnimatePresence>
         </section>
       </main>
+      <Footer />
     </div>
   );
 }
