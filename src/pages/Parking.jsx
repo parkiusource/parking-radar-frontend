@@ -50,10 +50,10 @@ export default function Parking() {
   );
 
   return (
-    <div className="min-h-screen bg-secondary-100 flex flex-col">
+    <>
       <header
         className={getHeaderClassName({
-          className: 'gap-6 bg-white sticky md:relative top-0 z-10',
+          className: 'gap-6 bg-white absolute top-0 z-10',
         })}
       >
         <Link to="/">
@@ -69,9 +69,9 @@ export default function Parking() {
         </SearchBox>
       </header>
 
-      <main className="flex-grow grid grid-cols-1 md:grid-cols-3 gap-4 p-4 mt-1 max-w-6xl mx-auto">
-        <section className="col-span-2 bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="h-full min-h-[400px] bg-secondary-100 flex items-center justify-center">
+      <main className="flex-grow grid grid-cols-1 md:grid-cols-3 gap-4 p-4 min-h-screen bg-secondary-100">
+        <section className="col-span-2 bg-white rounded-xl shadow-sm overflow-hidden mt-20 md:mt-24 ">
+          <div className="h-full min-h-96 bg-secondary-100 flex items-center justify-center ">
             <Map
               onParkingSpotSelected={handleParkingSpotSelected}
               selectedSpot={selectedSpot}
@@ -80,7 +80,7 @@ export default function Parking() {
           </div>
         </section>
 
-        <section className="overflow-y-auto h-[calc(100vh-200px)]">
+        <section className="overflow-y-auto min-h-96 mt-4 md:mt-24 ">
           <h2 className="text-2xl font-medium text-secondary-800 mb-2">
             Spots cercanos
           </h2>
@@ -145,6 +145,6 @@ export default function Parking() {
         </section>
       </main>
       <Footer />
-    </div>
+    </>
   );
 }
