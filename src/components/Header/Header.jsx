@@ -22,7 +22,7 @@ const Header = ({ className }) => {
     <header className={getHeaderClassName({ className })}>
       <div className="w-full flex justify-between items-center">
         <Link to="/" className="flex-shrink-0">
-          <Logo className="h-7 md:h-8 w-auto" />
+          <Logo className="h-10 md:h-8 w-auto" />
         </Link>
 
         {/* Botón para mostrar menú en móvil */}
