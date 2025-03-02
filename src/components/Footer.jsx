@@ -94,7 +94,7 @@ const Footer = ({ className }) => (
           <FooterLink to="/terms">Términos y condiciones</FooterLink>
           <FooterLink to="/privacy">Política de privacidad</FooterLink>
           <FooterLink to="/cookies">Política de cookies</FooterLink>
-          <FooterLink to="/pqrs">PQRS</FooterLink>
+          <FooterLink to="/support">support</FooterLink>
         </FooterSection>
 
         <FooterSection title="Contacto">

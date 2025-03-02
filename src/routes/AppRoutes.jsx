@@ -5,7 +5,7 @@ import Admin from '@/pages/Admin';
 import Features from '@/pages/Features';
 import HomePage from '@/pages/HomePage';
 import Parking from '@/pages/Parking';
-import PQRSForm from '@/pages/PQRSForm';
+import SupportForm from '@/pages/SupportForm';
 import AdminLandingPage from '@/pages/AdminLandingPage';
 
 const AppRoutes = () => (
@@ -16,7 +16,7 @@ const AppRoutes = () => (
       <Route path="/admin" element={<Admin />} />
       <Route path="/features" element={<Features />} />
       <Route path="/parking" element={<Parking />} />
-      <Route path="/pqrs" element={<PQRSForm />} />
+      <Route path="/support" element={<SupportForm />} />
       <Route path="/admin-landing" element={<AdminLandingPage />} />
     </Routes>
   </>

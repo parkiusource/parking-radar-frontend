@@ -197,20 +197,20 @@ export default function About() {
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
               <div>
-                <p className="text-2xl md:text-3xl font-bold mb-1">50K+</p>
+                <p className="text-2xl md:text-3xl font-bold mb-1">5K+</p>
                 <p className="text-xs md:text-sm opacity-90">Usuarios</p>
               </div>
               <div>
-                <p className="text-2xl md:text-3xl font-bold mb-1">1200+</p>
+                <p className="text-2xl md:text-3xl font-bold mb-1">120+</p>
                 <p className="text-xs md:text-sm opacity-90">Parqueaderos</p>
               </div>
               <div>
-                <p className="text-2xl md:text-3xl font-bold mb-1">15</p>
+                <p className="text-2xl md:text-3xl font-bold mb-1">5</p>
                 <p className="text-xs md:text-sm opacity-90">Ciudades</p>
               </div>
               <div>
                 <p className="text-2xl md:text-3xl font-bold mb-1">30%</p>
-                <p className="text-xs md:text-sm opacity-90">Ahorro</p>
+                <p className="text-xs md:text-sm opacity-90">Ahorra tiempo</p>
               </div>
             </div>
           </div>

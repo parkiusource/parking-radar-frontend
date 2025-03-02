@@ -22,7 +22,7 @@ const Header = ({ className }) => {
     <header className={getHeaderClassName({ className })}>
       <div className="w-full flex justify-between items-center">
         <Link to="/" className="flex-shrink-0">
-          <Logo className="h-10 md:h-8 w-auto" />
+          <Logo className="h-10 md:h-12 w-auto" />
         </Link>
 
         {/* Botón para mostrar menú en móvil */}
@@ -39,8 +39,8 @@ const Header = ({ className }) => {
           <Link to="/about" className="text-sm hover:text-primary transition-colors">
             Nosotros
           </Link>
-          <Link to="/pqrs" className="text-sm hover:text-primary transition-colors">
-            PQRS
+          <Link to="/support" className="text-sm hover:text-primary transition-colors">
+            Soporte
           </Link>
           <CtaButtons
             auth={{ isAuthenticated, isLoading }}
@@ -69,11 +69,11 @@ const Header = ({ className }) => {
                 Nosotros
               </Link>
               <Link
-                to="/pqrs"
+                to="/support"
                 className="text-sm hover:text-primary transition-colors py-2 px-2 rounded-md hover:bg-white/10"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                PQRS
+                support
               </Link>
             </div>
             <div className="flex justify-center pt-2">
