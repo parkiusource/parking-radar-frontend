@@ -267,16 +267,21 @@ export default function Parking() {
                   }`}
                   onClick={() => setSelectedSpot(parking)}
                 >
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-medium text-gray-800">
-                      {parking.name}
-                    </h3>
-                    <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">
+                  <div className="flex justify-between items-center mb-3">
+                    <div className="flex items-center">
+                      <div className="bg-primary/10 p-1.5 rounded-full text-primary mr-2">
+                        <LuCar className="w-4 h-4" />
+                      </div>
+                      <h3 className="font-medium text-gray-800 text-base">
+                        {parking.name}
+                      </h3>
+                    </div>
+                    <span className="text-xs px-2 py-0.5 bg-green-100 text-green-800 rounded-full font-medium">
                       Abierto
                     </span>
                   </div>
 
-                  <div className="flex items-center text-gray-600 text-xs mb-3">
+                  <div className="flex items-center text-gray-600 text-xs mb-4">
                     <LuMapPin className="mr-1 flex-shrink-0 text-gray-400" />
                     <span className="line-clamp-1">{parking.address}</span>
                   </div>
@@ -302,11 +307,11 @@ export default function Parking() {
                         e.stopPropagation();
                         spotNavigation();
                       }}
-                      className="w-full bg-primary hover:bg-primary-600 text-white transition-colors flex items-center justify-center gap-2 px-4 py-2 rounded-lg"
+                      className="w-full bg-amber-500 hover:bg-amber-600 text-white transition-all flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg shadow-md hover:shadow-lg hover:scale-[1.02]"
                       aria-label="Navegar al parqueadero seleccionado"
                     >
-                      <LuNavigation className="w-5 h-5" />
-                      Navegar
+                      <LuNavigation className="w-5 h-5 animate-pulse" />
+                      <span className="font-medium">Navegar</span>
                     </Button>
                   )}
                 </motion.div>
