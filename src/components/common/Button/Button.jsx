@@ -23,7 +23,7 @@ export const Button = forwardRef(
 
 Button.propTypes = {
   className: PropTypes.string,
-  variant: PropTypes.oneOf(['default', 'outline', 'ghost', 'flat', 'dark']),
+  variant: PropTypes.oneOf(['default', 'outline', 'ghost', 'flat', 'dark', 'light']),
   size: PropTypes.oneOf(['default', 'sm', 'lg', 'icon']),
   squared: PropTypes.bool,
 };

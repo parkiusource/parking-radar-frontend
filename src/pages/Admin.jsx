@@ -9,7 +9,7 @@ import { ParkingCard } from '@/components/admin/ParkingCard';
 import { ParkingFormDialog } from '@/components/admin/ParkingForm';
 import { getHeaderClassName } from '@/components/Header';
 import { Logo } from '@/components/Logo';
-import { useQueryClient } from '@/context/QueryClientContext';
+import { useQueryClient } from '@/context/queryClientUtils';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function Admin() {

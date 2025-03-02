@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 
 import { useParkingSpots } from '@/api/hooks/useParkingSpots';
 import { closeWebSocket, connectWebSocket } from '@/services/WebSocketService';
-import { useQueryClient } from '@/context/QueryClientContext';
+import { useQueryClient } from '@/context/queryClientUtils';
 
 export const ParkingContext = createContext();
 

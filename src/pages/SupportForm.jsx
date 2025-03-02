@@ -3,12 +3,12 @@ import Footer from '@/components/Footer';
 import { Button, Card } from '@/components/common';
 import { CardContent } from '@/components/common/Card';
 
-import iconPQRS from '../assets/Icon-PQRS.png';
+import iconsupport from '../assets/Icon-support.png';
 import { useState } from 'react';
 
 const API_URL = 'https://eo5k21qt8rpapp6.m.pipedream.net';
 
-const PQRSForm = () => {
+const SupportForm = () => {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -34,8 +34,8 @@ const PQRSForm = () => {
       body: JSON.stringify(formData),
     })
       .then((response) => response.json())
-      .then((data) => {
-        alert('Tu PQRS ha sido enviado correctamente.');
+      .then(() => {
+        alert('Tu support ha sido enviado correctamente.');
         setFormData({
           username: '',
           email: '',
@@ -45,7 +45,7 @@ const PQRSForm = () => {
       .catch((error) => {
         console.error('Error:', error);
         alert(
-          'Hubo un error al enviar tu PQRS. Por favor, intenta nuevamente más tarde.',
+          'Hubo un error al enviar tu support. Por favor, intenta nuevamente más tarde.',
         );
       })
       .finally(() => {
@@ -68,7 +68,7 @@ const PQRSForm = () => {
                   <h2 className="text-2xl font-bold mr-4">
                     Envía tu Petición, Queja, Sugerencia o Reclamo
                   </h2>
-                  <img src={iconPQRS} alt="Icono PQRS" className="w-16 h-16" />
+                  <img src={iconsupport} alt="Icono support" className="w-16 h-16" />
                 </div>
 
                 <form onSubmit={handleSubmit}>
@@ -113,7 +113,7 @@ const PQRSForm = () => {
                       htmlFor="description"
                       className="block text-gray-700 font-medium mb-2"
                     >
-                      Descripción de tu PQRS
+                      Descripción de tu support
                     </label>
                     <textarea
                       id="description"
@@ -132,7 +132,7 @@ const PQRSForm = () => {
                     className="w-full "
                     disabled={isSubmitting}
                   >
-                    {isSubmitting ? 'Enviando...' : 'Enviar PQRS'}
+                    {isSubmitting ? 'Enviando...' : 'Enviar support'}
                   </Button>
                 </form>
               </div>
@@ -145,4 +145,4 @@ const PQRSForm = () => {
   );
 };
 
-export default PQRSForm;
+export default SupportForm;

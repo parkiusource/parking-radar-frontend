@@ -12,6 +12,7 @@ const variants = cva(
         ghost: 'text-sky-500',
         flat: 'rounded-none bg-transparent text-secondary hover:bg-sky-50 shadow-none',
         dark: 'px-6 py-2 bg-secondary border-2 border-white text-white font-semibold rounded-full hover:bg-secondary-600',
+        light: 'bg-gray-100 text-gray-700 hover:bg-gray-200 shadow-sm hover:shadow-md',
       },
       size: {
         default: 'min-h-10 py-2 px-4',

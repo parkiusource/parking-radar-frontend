@@ -1,9 +1,9 @@
-import { createContext, useContext, useMemo } from 'react';
-
+import { createContext, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { CACHE_CONFIG } from './queryClientUtils';
 
-const QueryClientContext = createContext();
+export const QueryClientContext = createContext();
 
 const QueryClientContextProvider = ({ children }) => {
   const queryClient = useMemo(() => new QueryClient({
@@ -11,6 +11,11 @@ const QueryClientContextProvider = ({ children }) => {
       queries: {
         refetchOnWindowFocus: false,
         retry: 3,
+        // Configuración por defecto
+        staleTime: CACHE_CONFIG.default.staleTime,
+        cacheTime: CACHE_CONFIG.default.cacheTime,
+        // Usar políticas de caché específicas basadas en queryKey
+        gcTime: CACHE_CONFIG.default.cacheTime,
       },
     },
   }), []);
@@ -29,13 +34,3 @@ QueryClientContextProvider.propTypes = {
 };
 
 export { QueryClientContextProvider };
-
-export const useQueryClient = () => {
-  const context = useContext(QueryClientContext);
-  if (!context) {
-    throw new Error(
-      'useCustomQueryClient must be used within a CustomQueryClientProvider',
-    );
-  }
-  return context;
-};
