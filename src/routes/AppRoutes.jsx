@@ -6,6 +6,7 @@ import Features from '@/pages/Features';
 import HomePage from '@/pages/HomePage';
 import Parking from '@/pages/Parking';
 import PQRSForm from '@/pages/PQRSForm';
+import AdminLandingPage from '@/pages/AdminLandingPage';
 
 const AppRoutes = () => (
   <>
@@ -16,6 +17,7 @@ const AppRoutes = () => (
       <Route path="/features" element={<Features />} />
       <Route path="/parking" element={<Parking />} />
       <Route path="/pqrs" element={<PQRSForm />} />
+      <Route path="/admin-landing" element={<AdminLandingPage />} />
     </Routes>
   </>
 );
