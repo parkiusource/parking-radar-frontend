@@ -22,16 +22,16 @@ const Header = ({ className }) => {
     <header className={getHeaderClassName({ className })}>
       <div className="w-full flex justify-between items-center">
         <Link to="/" className="flex-shrink-0">
-          <Logo className="h-8 w-auto" />
+          <Logo className="h-7 md:h-8 w-auto" />
         </Link>
 
         {/* Botón para mostrar menú en móvil */}
         <button
           onClick={toggleMobileMenu}
-          className="md:hidden text-white p-1 rounded-md hover:bg-white/10 transition-colors"
+          className="md:hidden flex items-center justify-center w-10 h-10 text-white rounded-md hover:bg-white/10 transition-colors"
           aria-label={mobileMenuOpen ? "Cerrar menú" : "Abrir menú"}
         >
-          {mobileMenuOpen ? <LuX size={24} /> : <LuMenu size={24} />}
+          {mobileMenuOpen ? <LuX size={28} /> : <LuMenu size={28} />}
         </button>
 
         {/* Navegación de escritorio */}
