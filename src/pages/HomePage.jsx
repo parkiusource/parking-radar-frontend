@@ -5,7 +5,7 @@ import { FaAward, FaCalendarCheck, FaMoneyBillWave, FaComments, FaShieldAlt, FaC
 import { FaSquareParking } from 'react-icons/fa6';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/common';
-import { LuSearch, LuParkingSquare, LuLoader2, LuArrowRight } from "react-icons/lu";
+import { LuSearch, LuParkingSquare, LuLoader2, LuArrowRight, LuCompass } from "react-icons/lu";
 import { motion, AnimatePresence } from "framer-motion";
 import imgParkiu from '@/images/img_parkiu.webp';
 import bgMapHero from '@/images/bg_map_hero.webp';
@@ -375,21 +375,21 @@ const HomePage = () => {
                   variant="outline"
                   onClick={handleNearbySearch}
                   disabled={isSearching}
-                  className="relative overflow-hidden max-w-[400px] w-full flex items-center justify-center gap-x-3 bg-primary text-white hover:bg-primary-600 px-6 py-3.5 text-base font-medium transition-all duration-300 transform hover:scale-102 group rounded-full shadow-md"
+                  className="relative overflow-hidden max-w-[440px] w-full flex items-center justify-center gap-x-3 bg-amber-500 text-white hover:bg-amber-600 px-7 py-4 text-lg font-semibold transition-all duration-300 transform hover:scale-105 group rounded-full shadow-lg hover:shadow-xl"
                   title="Utiliza tu ubicación actual para encontrar parqueaderos cercanos"
                   aria-label="Buscar parqueaderos cercanos utilizando tu ubicación actual"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary-500/50 to-primary-700/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-amber-400/50 to-amber-600/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   <div className="relative z-10 flex items-center justify-center gap-x-3">
                     {isSearching ? (
                       <>
-                        <LuLoader2 className="animate-spin text-xl" />
+                        <LuLoader2 className="animate-spin text-2xl" />
                         <span>Obteniendo ubicación...</span>
                       </>
                     ) : (
                       <>
-                        <LuParkingSquare className="text-xl group-hover:animate-pulse" />
-                        <span className="whitespace-nowrap">Encontrar parqueaderos cercanos</span>
+                        <LuCompass className="text-2xl group-hover:animate-pulse" />
+                        <span className="whitespace-nowrap tracking-wide uppercase">Encontrar cerca de mí</span>
                       </>
                     )}
                   </div>
