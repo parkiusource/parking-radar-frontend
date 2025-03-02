@@ -14,7 +14,6 @@ import {
   PopoverTrigger,
 } from '@/components/common/Popover';
 import { Input } from '@/components/common/Input';
-import { Search } from 'lucide-react';
 
 const getStatusMessage = ({ loading, results }) => {
   if (loading) return 'Cargando...';
@@ -66,16 +65,13 @@ const SearchBox = forwardRef(({
       <Popover open={popoverOpen && !isEmpty(searchTerm)}>
         <PopoverTrigger asChild>
           <div className="relative w-full">
-            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400" />
-            </div>
             <Input
               ref={ref}
               type="text"
               placeholder={placeholder}
               value={searchTerm}
               onChange={handleInputChange}
-              className="w-full py-2 pl-10 pr-4 text-base"
+              className="w-full py-2 pl-8 pr-4 text-base"
             />
             {children}
             {!isEmpty(searchTerm) && (
