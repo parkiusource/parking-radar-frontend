@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 import isEmpty from 'lodash/isEmpty';
 import PropTypes from 'prop-types';
-import { LuMapPin } from 'react-icons/lu';
+import { LuMapPin, LuX } from 'react-icons/lu';
 import { twMerge } from 'tailwind-merge';
 
 import { Button } from '@/components/common/Button/Button';
@@ -28,23 +28,60 @@ const SearchBox = ({
   useSearchHook,
   value,
 }) => {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(value || '');
+  const [popoverOpen, setPopoverOpen] = useState(false);
+
+  // Actualizar searchTerm cuando cambia el valor externo
+  useEffect(() => {
+    if (value !== undefined) {
+      setSearchTerm(value);
+    }
+  }, [value]);
 
   const { results, isPending: loading } = useSearchHook(searchTerm);
 
+  // Función optimizada para manejar cambios en el input
+  const handleInputChange = useCallback((e) => {
+    const newValue = e.target.value;
+    setSearchTerm(newValue);
+
+    // Solo mostramos el popover si hay texto
+    if (!isEmpty(newValue)) {
+      setPopoverOpen(true);
+    } else {
+      setPopoverOpen(false);
+    }
+  }, []);
+
+  // Función para limpiar la búsqueda
+  const handleClearSearch = useCallback(() => {
+    setSearchTerm('');
+    setPopoverOpen(false);
+  }, []);
+
   return (
     <div className={twMerge('w-full', className)}>
-      <Popover open={!isEmpty(searchTerm)}>
+      <Popover open={popoverOpen && !isEmpty(searchTerm)}>
         <PopoverTrigger asChild>
           <div className="relative w-full">
             <Input
               type="text"
               placeholder={placeholder}
-              value={value || searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              value={searchTerm}
+              onChange={handleInputChange}
               className="px-8 text-ellipsis"
             />
             {children}
+            {!isEmpty(searchTerm) && (
+              <button
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary-400"
+                onClick={handleClearSearch}
+                type="button"
+                aria-label="Limpiar búsqueda"
+              >
+                <LuX className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </PopoverTrigger>
         <PopoverPortal>
@@ -56,8 +93,15 @@ const SearchBox = ({
             onOpenAutoFocus={(e) => {
               e.preventDefault();
             }}
+            onInteractOutside={() => {
+              setPopoverOpen(false);
+            }}
           >
-            {!isEmpty(results) ? (
+            {loading && (
+              <p className="text-secondary-500 p-4">Cargando...</p>
+            )}
+
+            {!loading && !isEmpty(results) ? (
               <div className="h-full w-full flex flex-col divide-solid divide-y-[1px] divide-neutral-200 p-0 items-center justify-center">
                 {results.map((result, index) => (
                   <div className="w-full" key={index}>
@@ -66,7 +110,8 @@ const SearchBox = ({
                         variant="flat"
                         className="flex-col items-start py-2 w-full h-full text-left gap-1"
                         onClick={() => {
-                          setSearchTerm('');
+                          // Cerramos el popover y limpiamos la búsqueda
+                          setPopoverOpen(false);
                           onResultSelected(result);
                         }}
                       >
@@ -82,7 +127,7 @@ const SearchBox = ({
                   </div>
                 ))}
               </div>
-            ) : (
+            ) : !loading && (
               <p className="text-secondary-500 p-4">
                 {getStatusMessage({ loading, searchTerm, results })}
               </p>

@@ -21,15 +21,14 @@ import { UserContext } from '@/context/UserContext';
 const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 const LIBRARIES = ['marker'];
-const DEFAULT_ZOOM = 15;
 const DEFAULT_RADIUS = 30;
 const DEFAULT_LOCATION = { lat: 4.711, lng: -74.0721 };
 const MAP_ID = import.meta.env.VITE_GOOGLE_MAP_ID;
 const COLOR_NO_AVAILABLE = '#8B0000';
 const COLOR_AVAILABLE = '#1B5E20';
 
-const ParkingMap = memo(({ selectedSpot, setSelectedSpot }) => {
-  const { parkingSpots, targetLocation, setTargetLocation } =
+const ParkingMap = memo(({ selectedSpot, setSelectedSpot, targetLocation: targetLocationProp }) => {
+  const { parkingSpots, targetLocation: contextTargetLocation, setTargetLocation } =
     useContext(ParkingContext);
   const [infoWindowOpen, setInfoWindowOpen] = useState(false);
   const mapRef = useRef(null);
@@ -39,21 +38,55 @@ const ParkingMap = memo(({ selectedSpot, setSelectedSpot }) => {
   const { user, updateUser } = useContext(UserContext);
   const { location: userLocation } = user;
 
-  const mapCenter = useMemo(
-    () => userLocation || DEFAULT_LOCATION,
-    [userLocation],
-  );
+  // Forzar la recarga del mapa para reforzar que use la ubicación adecuada
+  const [mapKey, setMapKey] = useState(0);
+
+  // Actualizar el mapKey cada vez que cambia la ubicación objetivo
+  useEffect(() => {
+    if (targetLocationProp) {
+      setMapKey(prev => prev + 1);
+    }
+  }, [targetLocationProp]);
+
+  // Ignorar completamente el contextTargetLocation cuando se proporciona targetLocationProp
+  const effectiveTargetLocation = useMemo(() => {
+    // Si hay una prop de ubicación objetivo, usarla directamente ignorando el contexto
+    if (targetLocationProp) {
+      return targetLocationProp;
+    }
+    // De lo contrario, usar el valor del contexto
+    return contextTargetLocation;
+  }, [targetLocationProp, contextTargetLocation]);
+
+  const mapCenter = useMemo(() => {
+    return effectiveTargetLocation || userLocation || DEFAULT_LOCATION;
+  }, [effectiveTargetLocation, userLocation]);
 
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: apiKey,
     libraries: LIBRARIES,
   });
 
-  const zoomToLocation = useCallback((location) => {
-    if (mapRef.current) {
+  // Función simplificada para centrar el mapa en una ubicación
+  const centerMapOnLocation = useCallback((location) => {
+    if (!mapRef.current || !location) return;
+
+    // Validar que la ubicación tiene coordenadas numéricas
+    if (typeof location.lat !== 'number' || typeof location.lng !== 'number') {
+      return;
+    }
+
+    // Centrar mapa usando múltiples métodos para garantizar que funcione
+    try {
       mapRef.current.panTo(location);
-      mapRef.current.setZoom(DEFAULT_ZOOM);
       mapRef.current.setCenter(location);
+
+      // Ajustar zoom a un valor óptimo
+      setTimeout(() => {
+        mapRef.current.setZoom(16);
+      }, 100);
+    } catch {
+      // Manejo silencioso de errores en producción
     }
   }, []);
 
@@ -70,21 +103,31 @@ const ParkingMap = memo(({ selectedSpot, setSelectedSpot }) => {
     navigator.geolocation?.getCurrentPosition(
       ({ coords: { latitude, longitude } }) => {
         setTargetLocation(null);
-        setUserLocation({ lat: latitude, lng: longitude });
+        const userLoc = { lat: latitude, lng: longitude };
+        setUserLocation(userLoc);
+        centerMapOnLocation(userLoc);
       },
       (error) => console.error('Error fetching location:', error),
       { enableHighAccuracy: false },
     );
   };
 
+  // Efecto unificado para centrar el mapa cuando cambia la ubicación objetivo
   useEffect(() => {
-    if (targetLocation) zoomToLocation(targetLocation);
-  }, [targetLocation, zoomToLocation]);
+    if (effectiveTargetLocation && mapRef.current) {
+      centerMapOnLocation(effectiveTargetLocation);
+    }
+  }, [effectiveTargetLocation, centerMapOnLocation]);
 
+  // Efecto para mostrar la ubicación del usuario
   useEffect(() => {
-    if (userLocation) {
-      zoomToLocation(userLocation);
+    if (userLocation && mapRef.current && window.google) {
+      // Solo centramos en la ubicación del usuario si no hay una ubicación objetivo
+      if (!effectiveTargetLocation) {
+        centerMapOnLocation(userLocation);
+      }
 
+      // Actualizar el círculo de la ubicación del usuario
       if (userCircleRef.current) userCircleRef.current.setMap(null);
       userCircleRef.current = new window.google.maps.Circle({
         map: mapRef.current,
@@ -95,7 +138,7 @@ const ParkingMap = memo(({ selectedSpot, setSelectedSpot }) => {
         fillOpacity: 0.35,
       });
     }
-  }, [userLocation, zoomToLocation]);
+  }, [userLocation, centerMapOnLocation, effectiveTargetLocation]);
 
   const createMarkerContent = useCallback((spot) => {
     const markerContent = document.createElement('div');
@@ -156,9 +199,18 @@ const ParkingMap = memo(({ selectedSpot, setSelectedSpot }) => {
   const handleMapLoad = useCallback(
     (map) => {
       mapRef.current = map;
+
+      // Centrar inmediatamente cuando el mapa se carga
+      if (effectiveTargetLocation) {
+        // Usar un breve retraso para asegurar que el mapa está listo
+        setTimeout(() => {
+          centerMapOnLocation(effectiveTargetLocation);
+        }, 200);
+      }
+
       initializeMarkers();
     },
-    [initializeMarkers],
+    [initializeMarkers, effectiveTargetLocation, centerMapOnLocation],
   );
 
   const handleMapClick = useCallback(() => {
@@ -171,15 +223,23 @@ const ParkingMap = memo(({ selectedSpot, setSelectedSpot }) => {
     window.open(url, '_blank');
   };
 
+  // Efecto específico para forzar el centrado cuando cambia el mapKey
+  useEffect(() => {
+    if (mapRef.current && effectiveTargetLocation) {
+      setTimeout(() => centerMapOnLocation(effectiveTargetLocation), 200);
+    }
+  }, [mapKey, effectiveTargetLocation, centerMapOnLocation]);
+
   if (loadError) return <div>Error loading map.</div>;
   if (!isLoaded) return <div>Loading map...</div>;
 
   return (
     <div className="w-full h-full">
       <GoogleMap
+        key={`google-map-${mapKey}`}
         mapContainerClassName="w-full h-full"
-        center={mapCenter}
-        zoom={targetLocation ? 20 : DEFAULT_ZOOM}
+        center={effectiveTargetLocation || mapCenter}
+        zoom={15}
         onLoad={handleMapLoad}
         onClick={handleMapClick}
         options={{
@@ -193,6 +253,7 @@ const ParkingMap = memo(({ selectedSpot, setSelectedSpot }) => {
           },
           streetViewControl: false,
           disableDefaultUI: true,
+          gestureHandling: 'greedy',
         }}
       >
         <button
@@ -242,15 +303,18 @@ const ParkingMap = memo(({ selectedSpot, setSelectedSpot }) => {
 });
 
 ParkingMap.propTypes = {
-  selectedSpot: PropTypes.shape({
-    id: PropTypes.number.isRequired,
-    name: PropTypes.string.isRequired,
-    latitude: PropTypes.number.isRequired,
-    longitude: PropTypes.number.isRequired,
-    address: PropTypes.string,
-    available_spaces: PropTypes.number,
-  }),
+  selectedSpot: PropTypes.object,
+  onParkingSpotSelected: PropTypes.func.isRequired,
   setSelectedSpot: PropTypes.func.isRequired,
+  targetLocation: PropTypes.shape({
+    lat: PropTypes.number.isRequired,
+    lng: PropTypes.number.isRequired,
+  }),
+};
+
+ParkingMap.defaultProps = {
+  selectedSpot: null,
+  targetLocation: null,
 };
 
 ParkingMap.displayName = 'ParkingMap';

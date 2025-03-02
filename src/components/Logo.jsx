@@ -14,7 +14,7 @@ export function Logo({ className, variant = 'primary' }) {
       src={logos[variant]}
       alt="Logo"
       className={twMerge([
-        'w-auto h-12 md:h-16 translate-x-3 sm:translate-x-5 md:translate-x-6',
+        'w-auto h-8 md:h-10 translate-x-2 sm:translate-x-3 md:translate-x-4',
         className,
       ])}
     />

@@ -1,5 +1,8 @@
 import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { LuMenu, LuX } from 'react-icons/lu';
 
 import { Logo } from '@/components/Logo';
 import { useAuth } from '@/hooks/useAuth';
@@ -9,33 +12,83 @@ import { getHeaderClassName } from './getHeaderClassName';
 
 const Header = ({ className }) => {
   const { loginWithLocale, isAuthenticated, isLoading } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const toggleMobileMenu = () => {
+    setMobileMenuOpen(prev => !prev);
+  };
 
   return (
     <header className={getHeaderClassName({ className })}>
-      <div className="flex gap-6">
-        <Link to="/">
-          <Logo />
+      <div className="w-full flex justify-between items-center">
+        <Link to="/" className="flex-shrink-0">
+          <Logo className="h-8 w-auto" />
         </Link>
+
+        {/* Botón para mostrar menú en móvil */}
+        <button
+          onClick={toggleMobileMenu}
+          className="md:hidden text-white p-1 rounded-md hover:bg-white/10 transition-colors"
+          aria-label={mobileMenuOpen ? "Cerrar menú" : "Abrir menú"}
+        >
+          {mobileMenuOpen ? <LuX size={24} /> : <LuMenu size={24} />}
+        </button>
+
+        {/* Navegación de escritorio */}
+        <nav className="hidden md:flex items-center gap-6">
+          <Link to="/about" className="text-sm hover:text-primary transition-colors">
+            Nosotros
+          </Link>
+          <Link to="/pqrs" className="text-sm hover:text-primary transition-colors">
+            PQRS
+          </Link>
+          <CtaButtons
+            auth={{ isAuthenticated, isLoading }}
+            onLogin={loginWithLocale}
+            className="scale-95 origin-right"
+          />
+        </nav>
       </div>
 
-      <nav className="hidden md:flex items-center gap-8">
-        <Link to="/about" className="hover:text-primary transition-colors">
-          Nosotros
-        </Link>
-        <Link to="/pqrs" className="hover:text-primary transition-colors">
-          PQRS
-        </Link>
-        <CtaButtons
-          auth={{ isAuthenticated, isLoading }}
-          onLogin={loginWithLocale}
-        />
-      </nav>
-      <nav className="flex md:hidden items-center gap-8">
-        <CtaButtons
-          auth={{ isAuthenticated, isLoading }}
-          onLogin={loginWithLocale}
-        />
-      </nav>
+      {/* Menú móvil con animación */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.nav
+            className="md:hidden w-full flex flex-col gap-4 pt-4 pb-2"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="flex flex-col gap-2">
+              <Link
+                to="/about"
+                className="text-sm hover:text-primary transition-colors py-2 px-2 rounded-md hover:bg-white/10"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Nosotros
+              </Link>
+              <Link
+                to="/pqrs"
+                className="text-sm hover:text-primary transition-colors py-2 px-2 rounded-md hover:bg-white/10"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                PQRS
+              </Link>
+            </div>
+            <div className="flex justify-center pt-2">
+              <CtaButtons
+                auth={{ isAuthenticated, isLoading }}
+                onLogin={() => {
+                  setMobileMenuOpen(false);
+                  loginWithLocale();
+                }}
+                className="w-full justify-center"
+              />
+            </div>
+          </motion.nav>
+        )}
+      </AnimatePresence>
     </header>
   );
 };
