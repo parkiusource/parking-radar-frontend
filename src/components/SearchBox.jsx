@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, forwardRef } from 'react';
 
 import isEmpty from 'lodash/isEmpty';
 import PropTypes from 'prop-types';
@@ -20,14 +20,15 @@ const getStatusMessage = ({ loading, results }) => {
   if (isEmpty(results)) return 'No se encontraron resultados';
 };
 
-const SearchBox = ({
+// Convertir a forwardRef para poder recibir referencias desde el componente padre
+const SearchBox = forwardRef(({
   children,
   className,
   placeholder = 'Buscar lugar...',
   onResultSelected,
   useSearchHook,
   value,
-}) => {
+}, ref) => {
   const [searchTerm, setSearchTerm] = useState(value || '');
   const [popoverOpen, setPopoverOpen] = useState(false);
 
@@ -65,6 +66,7 @@ const SearchBox = ({
         <PopoverTrigger asChild>
           <div className="relative w-full">
             <Input
+              ref={ref}
               type="text"
               placeholder={placeholder}
               value={searchTerm}
@@ -137,7 +139,7 @@ const SearchBox = ({
       </Popover>
     </div>
   );
-};
+});
 
 SearchBox.displayName = 'SearchBox';
 

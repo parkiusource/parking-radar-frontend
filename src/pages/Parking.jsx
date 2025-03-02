@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useCallback, useContext, useState, useEffect, memo, useRef } from 'react';
+import React, { useCallback, useContext, useState, useEffect, useRef } from 'react';
 import { LuCar, LuDollarSign, LuNavigation, LuSearch, LuArrowLeft, LuInfo, LuMapPin } from 'react-icons/lu';
 import { Link, useSearchParams } from 'react-router-dom';
 
@@ -17,7 +17,7 @@ const DEFAULT_MAX_DISTANCE = 1000;
 const DEFAULT_LIMIT = 10;
 
 // Componente optimizado del SearchBox para evitar re-renderizados innecesarios
-const MemoizedSearchBox = memo(SearchBox);
+const MemoizedSearchBox = React.memo(SearchBox);
 
 export default function Parking() {
   const { parkingSpots, targetLocation, setTargetLocation } =
@@ -30,6 +30,9 @@ export default function Parking() {
   const searchRef = useRef(null);
   const [selectedSpot, setSelectedSpot] = useState(null);
   const [spotNavigation, setSpotNavigation] = useState(null);
+
+  // Añadir una referencia al componente Map para poder acceder a sus métodos
+  const mapRef = useRef(null);
 
   const { location: userLocation } = user;
 
@@ -154,6 +157,22 @@ export default function Parking() {
     [setTargetLocation, setInitialLocation],
   );
 
+  // Función mejorada para manejar el clic en la tarjeta de parqueadero
+  const handleParkingCardClick = useCallback((parking) => {
+    console.log(`Seleccionando parqueadero desde tarjeta: ${parking.name}`);
+
+    // Establecer el parqueadero seleccionado
+    setSelectedSpot(parking);
+
+    // Utilizar la referencia al mapa para centrar en el parqueadero seleccionado
+    if (mapRef.current && mapRef.current.handleCardClick) {
+      console.log(`Llamando a handleCardClick para ${parking.name}`);
+      mapRef.current.handleCardClick(parking);
+    } else {
+      console.log('No se encontró la referencia al mapa o handleCardClick');
+    }
+  }, [setSelectedSpot]);
+
   return (
     <div className="flex flex-col min-h-screen relative bg-gray-50">
       <header className={getHeaderClassName({
@@ -210,15 +229,16 @@ export default function Parking() {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.2, duration: 0.4 }}
-          className="col-span-2 bg-white rounded-xl shadow-sm overflow-hidden"
+          className="col-span-2 bg-white rounded-xl shadow-sm overflow-hidden h-full"
         >
-          <div className="h-full min-h-[500px] bg-gray-100 flex items-center justify-center">
+          <div className="h-full w-full bg-gray-100">
             <Map
+              ref={mapRef}
               onParkingSpotSelected={handleParkingSpotSelected}
               selectedSpot={selectedSpot}
               setSelectedSpot={setSelectedSpot}
               targetLocation={initialLocation || targetLocation}
-              key={`map-${initialLocation?.lat}-${initialLocation?.lng}`}
+              className="w-full h-full"
             />
           </div>
         </motion.section>
@@ -265,7 +285,7 @@ export default function Parking() {
                   className={`mb-4 p-4 bg-white rounded-xl shadow-sm border border-transparent hover:border-primary/30 hover:shadow-md transition-all ${
                     selectedSpot?.id === parking.id ? 'border-primary border-opacity-70' : ''
                   }`}
-                  onClick={() => setSelectedSpot(parking)}
+                  onClick={() => handleParkingCardClick(parking)}
                 >
                   <div className="flex justify-between items-center mb-3">
                     <div className="flex items-center">
