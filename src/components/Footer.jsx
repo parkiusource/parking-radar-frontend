@@ -8,7 +8,7 @@ const Footer = ({ className }) => (
       className,
     )}
   >
-    <p className="mb-0">&copy; 2024 ParkiÜ. Todos los derechos reservados.</p>
+    <p className="mb-0">&copy; 2025 ParkiÜ. Todos los derechos reservados.</p>
     <div className="text-xl flex items-center gap-4">
       <a
         href="https://www.facebook.com/"
