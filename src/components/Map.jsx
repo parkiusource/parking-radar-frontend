@@ -11,7 +11,7 @@ import {
 } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BiTargetLock } from 'react-icons/bi';
-import { LuNavigation } from 'react-icons/lu';
+import { LuNavigation, LuMapPin, LuCar, LuDollarSign } from 'react-icons/lu';
 
 import SvgParking from '@/assets/ComponentIcons/SvgParking';
 import { Button } from '@/components/common';
@@ -147,7 +147,16 @@ const ParkingMap = memo(({ selectedSpot, setSelectedSpot, targetLocation: target
     const root = createRoot(markerContent);
 
     root.render(
-      <SvgParking style={{ width: '35px', height: '45px' }} fill={color} />
+      <SvgParking
+        style={{
+          width: '35px',
+          height: '45px',
+          filter: 'drop-shadow(0px 3px 3px rgba(0,0,0,0.2))',
+          transition: 'all 0.3s ease'
+        }}
+        fill={color}
+        className="parking-marker"
+      />
     );
 
     return markerContent;
@@ -168,9 +177,43 @@ const ParkingMap = memo(({ selectedSpot, setSelectedSpot, targetLocation: target
         content: createMarkerContent(spot),
       });
 
+      // Añadir effect hover/active con JavaScript
+      let isActive = false;
+
       marker.addListener('click', () => {
+        // Reset all markers to normal
+        markersRef.current.forEach(m => {
+          if (m !== marker) {
+            const markerDiv = m.content;
+            if (markerDiv) {
+              markerDiv.style.transform = 'scale(1)';
+              markerDiv.style.zIndex = '1';
+            }
+          }
+        });
+
+        // Highlight selected marker
+        const markerDiv = marker.content;
+        if (markerDiv) {
+          markerDiv.style.transform = 'scale(1.1)';
+          markerDiv.style.zIndex = '10';
+        }
+
+        isActive = true;
         setSelectedSpot(spot);
         setInfoWindowOpen(true);
+      });
+
+      // Restaurar al hacer clic en el mapa
+      window.google.maps.event.addListener(mapRef.current, 'click', () => {
+        if (isActive) {
+          const markerDiv = marker.content;
+          if (markerDiv) {
+            markerDiv.style.transform = 'scale(1)';
+            markerDiv.style.zIndex = '1';
+          }
+          isActive = false;
+        }
       });
 
       markersRef.current.push(marker);
@@ -258,41 +301,73 @@ const ParkingMap = memo(({ selectedSpot, setSelectedSpot, targetLocation: target
       >
         <button
           onClick={locateUser}
-          className="absolute top-4 right-4 p-3 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600"
+          className="absolute top-4 right-4 p-3 bg-primary text-white rounded-full shadow-lg hover:bg-primary-600 transition-all duration-300 hover:scale-105"
+          aria-label="Localizar mi ubicación"
         >
           <BiTargetLock size={24} />
         </button>
 
         {selectedSpot && infoWindowOpen && (
           <InfoWindowF
-            className="gm-ui-hover-effect"
             position={{
               lat: selectedSpot.latitude,
               lng: selectedSpot.longitude,
             }}
             onCloseClick={() => setInfoWindowOpen(false)}
-            options={{ pixelOffset: new window.google.maps.Size(0, -40) }}
+            options={{
+              pixelOffset: new window.google.maps.Size(0, -40),
+              maxWidth: 320,
+              disableAutoPan: false
+            }}
           >
-            <div className="p-2 text-center space-y-1 flex flex-col gap-y-2">
-              <h3 className="text-lg font-semibold">{selectedSpot.name}</h3>
-              <p className='mt-0'>{`Address: ${selectedSpot.address}`}</p>
-              <p
-                className={`mt-0 font-medium ${selectedSpot.available_spaces > 0 ? 'text-dark-green-emerald' : 'text-dark-red-garnet'}`}
-              >
-                {`Available spaces: ${selectedSpot.available_spaces}`}
-              </p>
-              {selectedSpot.available_spaces > 0 && (
+            <div className="p-4 font-sans rounded-lg overflow-hidden animate-fadeIn">
+              <h3 className="text-lg font-bold text-gray-800 border-b border-gray-100 pb-2 mb-3">{selectedSpot.name}</h3>
+
+              <div className="flex items-start gap-2 mb-3">
+                <LuMapPin className="text-primary mt-1 flex-shrink-0" />
+                <p className="text-gray-700 text-sm">{selectedSpot.address}</p>
+              </div>
+
+              <div className={`mb-3 flex items-center gap-2 px-3 py-2 rounded-lg ${
+                selectedSpot.available_spaces > 0
+                  ? 'bg-green-50 text-green-800'
+                  : 'bg-red-50 text-red-800'
+              }`}>
+                <LuCar className={`${
+                  selectedSpot.available_spaces > 0 ? 'text-green-600' : 'text-red-600'
+                }`} />
+                <p className="text-sm font-medium">
+                  {selectedSpot.available_spaces > 0
+                    ? `${selectedSpot.available_spaces} espacios disponibles`
+                    : 'Sin espacios disponibles'}
+                </p>
+              </div>
+
+              {/* Información de precio - Se muestra siempre */}
+              <div className="mb-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 text-blue-800">
+                <LuDollarSign className="text-blue-600" />
+                <p className="text-sm font-medium">
+                  $60 a $100/min
+                </p>
+              </div>
+
+              {selectedSpot.available_spaces > 0 ? (
                 <Button
-                  className="mt-4 bg-blue-500 hover:bg-blue-600 text-white flex gap-2 items-center mx-auto"
-                  onClick={() =>
-                    openNavigation(
-                      selectedSpot.latitude,
-                      selectedSpot.longitude,
-                    )
-                  }
+                  className="w-full bg-primary hover:bg-primary-600 text-white flex gap-2 items-center justify-center py-2.5 transition-all shadow-md hover:shadow-lg rounded-lg"
+                  onClick={() => openNavigation(selectedSpot.latitude, selectedSpot.longitude)}
                 >
-                  <LuNavigation /> Navigate
+                  <LuNavigation className="animate-pulse" />
+                  <span className="font-medium">Navegar</span>
                 </Button>
+              ) : (
+                <div className="bg-gray-100 rounded-lg p-3 text-center">
+                  <p className="text-sm text-gray-700 font-medium mb-1">
+                    Este parqueadero está lleno
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Intenta buscar otro parqueadero cercano
+                  </p>
+                </div>
               )}
             </div>
           </InfoWindowF>
