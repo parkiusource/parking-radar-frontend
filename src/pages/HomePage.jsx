@@ -136,6 +136,7 @@ const HomePage = () => {
   const [recentSearches, setRecentSearches] = useState([]);
   const [showRecentSearches, setShowRecentSearches] = useState(false);
   const searchBoxRef = useRef(null);
+  const [showLocationDialog, setShowLocationDialog] = useState(false);
 
   // Efecto para manejar clics fuera del campo de búsqueda
   useEffect(() => {
@@ -201,9 +202,15 @@ const HomePage = () => {
   };
 
   const handleNearbySearch = () => {
+    // Mostrar diálogo de confirmación en lugar de solicitar directamente la ubicación
+    setShowLocationDialog(true);
+  };
+
+  const confirmLocationAccess = () => {
     if (navigator.geolocation) {
       // Mostrar estado de carga
       setIsSearching(true);
+      setShowLocationDialog(false);
 
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -236,8 +243,8 @@ const HomePage = () => {
           alert(errorMessage);
         },
         {
-          enableHighAccuracy: true,
-          timeout: 8000,  // Reducir tiempo de espera a 8 segundos
+          enableHighAccuracy: false, // Cambiado a false para usar ubicación aproximada
+          timeout: 8000,
           maximumAge: 0
         }
       );
@@ -388,6 +395,56 @@ const HomePage = () => {
                   </div>
                 </Button>
               </motion.div>
+
+              {/* Diálogo de confirmación de ubicación */}
+              <AnimatePresence>
+                {showLocationDialog && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+                    onClick={() => setShowLocationDialog(false)}
+                  >
+                    <motion.div
+                      initial={{ scale: 0.9, y: 20 }}
+                      animate={{ scale: 1, y: 0 }}
+                      exit={{ scale: 0.9, y: 20 }}
+                      className="bg-white rounded-xl p-6 max-w-md mx-4 shadow-2xl"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="text-center mb-4">
+                        <div className="mx-auto w-12 h-12 bg-primary-50 rounded-full flex items-center justify-center mb-4">
+                          <LuParkingSquare className="text-primary text-2xl" />
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">¿Por qué necesitamos tu ubicación?</h3>
+                        <p className="text-gray-600 mb-4">
+                          Utilizaremos tu ubicación aproximada para mostrarte los parqueaderos más cercanos a ti.
+                          Esto nos permite ofrecerte resultados relevantes sin tener que buscar manualmente.
+                        </p>
+                        <p className="text-sm text-gray-500 mb-5">
+                          No almacenamos tu ubicación de forma permanente y solo la usamos para esta búsqueda.
+                        </p>
+                      </div>
+                      <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                        <Button
+                          onClick={() => setShowLocationDialog(false)}
+                          className="px-5 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          variant="light"
+                        >
+                          Cancelar
+                        </Button>
+                        <Button
+                          onClick={confirmLocationAccess}
+                          className="px-5 py-2 bg-primary text-white hover:bg-primary-600"
+                        >
+                          Permitir acceso a ubicación
+                        </Button>
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               <div className="flex flex-wrap justify-center items-center gap-4 mt-12 md:mt-14">
                 {HERO_FEATURES.map((feature, index) => (

@@ -1,4 +1,3 @@
-/* eslint-disable react/display-name */
 import { forwardRef, useRef, useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import { LuSearch, LuMapPin, LuX, LuLoader, LuChevronRight, LuTarget } from 'react-icons/lu';
@@ -71,7 +70,7 @@ export const SearchBox = forwardRef(function SearchBox(props, ref) {
         (error) => {
           console.error("Error getting location: ", error);
         },
-        { enableHighAccuracy: true }
+        { enableHighAccuracy: false }
       );
     }
   };

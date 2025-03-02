@@ -34,7 +34,7 @@ const PQRSForm = () => {
       body: JSON.stringify(formData),
     })
       .then((response) => response.json())
-      .then((data) => {
+      .then(() => {
         alert('Tu PQRS ha sido enviado correctamente.');
         setFormData({
           username: '',
