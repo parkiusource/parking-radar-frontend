@@ -232,14 +232,16 @@ export default function Parking() {
           className="col-span-2 bg-white rounded-xl shadow-sm overflow-hidden h-full"
         >
           <div className="h-full w-full bg-gray-100">
-            <Map
-              ref={mapRef}
-              onParkingSpotSelected={handleParkingSpotSelected}
-              selectedSpot={selectedSpot}
-              setSelectedSpot={setSelectedSpot}
-              targetLocation={initialLocation || targetLocation}
-              className="w-full h-full"
-            />
+            <section className="w-full h-[60vh] md:h-[70vh] lg:h-[80vh] xl:h-[85vh]">
+              <Map
+                ref={mapRef}
+                onParkingSpotSelected={handleParkingSpotSelected}
+                selectedSpot={selectedSpot}
+                setSelectedSpot={setSelectedSpot}
+                targetLocation={initialLocation || targetLocation}
+                className="w-full h-full"
+              />
+            </section>
           </div>
         </motion.section>
 

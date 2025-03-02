@@ -589,7 +589,7 @@ const ParkingMap = forwardRef(({
   if (!isLoaded) return <div className="w-full h-full flex items-center justify-center bg-gray-100">Cargando mapa...</div>;
 
   return (
-    <div className="w-full h-full overflow-hidden relative">
+    <div className="w-full h-[60vh] md:h-[70vh] lg:h-[80vh] xl:h-[85vh] overflow-hidden relative">
       <div className="w-full h-full md:rounded-md overflow-hidden">
         <GoogleMap
           key={`google-map-${mapKey}`}
