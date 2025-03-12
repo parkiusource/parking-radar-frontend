@@ -92,11 +92,11 @@ const MemoizedSearchBox = memo(function MemoizedSearchBox(props) {
           className={`pl-12 pr-12 py-4 w-full bg-white/95 backdrop-blur-md transition-all duration-300 group-hover:bg-white/98 border-0 font-medium ${props.className || ''}`}
         />
         <div className="absolute left-0 top-0 bottom-0 bg-primary rounded-l-full w-10 flex items-center justify-center">
-          <span className="text-white text-xl pl-3">
+          <span className="text-white text-xl pl-2">
             <LuSearch />
           </span>
         </div>
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-1">
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center space-x-1">
           <div className="text-xs text-gray-400 bg-gray-100/80 rounded-full px-2 py-0.5 hidden sm:flex items-center">
             <span className="font-bold mr-1">⌘</span>K
           </div>
@@ -273,9 +273,9 @@ const HomePage = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
-          className="min-h-[90vh] md:min-h-screen flex flex-col items-center justify-center relative pt-20 pb-12 md:py-12 bg-primary text-white overflow-hidden"
+          className="min-h-[90vh] md:min-h-screen flex flex-col items-center justify-center relative pt-20 pb-12 md:py-12 bg-primary-700 text-white overflow-hidden"
           style={{
-            backgroundImage: `linear-gradient(rgba(6, 28, 61, 0.6), rgba(6, 28, 61, 0.7)), url(${bgMapHero})`,
+            backgroundImage: `linear-gradient(to bottom ,rgba(7, 89, 133, 0.6), rgba(7, 89, 133, 0.7)), url(${bgMapHero})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           }}
@@ -461,7 +461,7 @@ const HomePage = () => {
         </motion.section>
 
         {/* Admin Section */}
-        <section className="py-16 md:py-20 bg-gradient-to-b from-primary via-primary-700 to-white">
+        <section className="py-16 md:py-20 bg-gradient-to-b from-primary-600 via-primary-800 to-white">
           <div className="container mx-auto px-4 md:px-6">
             <motion.div
               initial={{ y: 50, opacity: 0 }}
@@ -470,7 +470,7 @@ const HomePage = () => {
               transition={{ duration: 0.5 }}
               className="flex flex-col md:flex-row justify-between items-center max-w-6xl mx-auto gap-10 md:gap-12"
             >
-              <div className="flex flex-col justify-center max-w-xl gap-y-6">
+              <div className="flex flex-col justify-center items-center max-w-xl gap-y-6">
                 <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 text-white text-center md:text-left drop-shadow-md">
                   Potencia tu negocio con ParkiÜ
                 </h2>
@@ -496,18 +496,24 @@ const HomePage = () => {
                   ))}
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-4 mt-4 justify-center md:justify-start">
+                <div className="flex flex-col sm:flex-row gap-6 items-center justify-center md:justify-start">
                   <Link to="/admin-landing">
                     <Button
                       variant="light"
-                      className="px-6 md:px-8 py-3 md:py-4 font-semibold text-base md:text-lg shadow-xl transition-all duration-200 hover:scale-105 hover:shadow-2xl rounded-full"
+                      className="px-4 md:px-6 py-3 md:py-4 font-semibold text-base md:text-lg shadow-xl transition-all duration-200 hover:scale-105 hover:shadow-2xl rounded-full"
                       aria-label="Registra tu parqueadero en nuestra plataforma"
                     >
                       Registrar mi parqueadero
                     </Button>
                   </Link>
-                  <Link to="/login" className="text-white hover:text-white/80 transition-colors flex items-center justify-center sm:justify-start bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 shadow-md">
-                    ¿Ya tienes cuenta? <span className="underline ml-2 font-medium">Iniciar sesión</span>
+                  <Link to="/login" >
+                    <Button
+                      variant="dark"
+                      className="flex-wrap px-4 md:px-6 py-3 md:py-4 font-semibold text-base md:text-lg shadow-xl transition-all duration-200 hover:scale-105 hover:shadow-2xl rounded-full"
+                      aria-label="Iniciar sesión"
+                    >
+                      ¿Ya tienes cuenta? <span className="underline ml-2 font-medium">Iniciar sesión</span>
+                    </Button>
                   </Link>
                 </div>
               </div>
@@ -577,7 +583,7 @@ const HomePage = () => {
               Lo que dicen nuestros usuarios
             </motion.h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 max-w-6xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto">
               {TESTIMONIALS.map((testimonial, index) => (
                 <motion.div
                   key={testimonial.name}
@@ -585,7 +591,7 @@ const HomePage = () => {
                   whileInView={{ y: 0, opacity: 1 }}
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.2 }}
-                  className="bg-white p-5 md:p-6 rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition-shadow"
+                  className="bg-white p-5 md:p-6 rounded-xl shadow-md border border-gray-100 "
                 >
                   <p className="text-gray-700 mb-4 italic text-base md:text-lg">&ldquo;{testimonial.testimonial}&rdquo;</p>
                   <div className="flex items-center gap-3">

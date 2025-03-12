@@ -76,7 +76,12 @@ const Header = ({ className }) => {
                 support
               </Link>
             </div>
-            <div className="flex justify-center pt-2">
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className='flex justify-center pt-2'
+              >
               <CtaButtons
                 auth={{ isAuthenticated, isLoading }}
                 onLogin={() => {
@@ -85,7 +90,7 @@ const Header = ({ className }) => {
                 }}
                 className="w-full justify-center"
               />
-            </div>
+              </motion.div>
           </motion.nav>
         )}
       </AnimatePresence>
