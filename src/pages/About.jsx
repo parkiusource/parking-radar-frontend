@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { LuCar, LuClock, LuMapPin, LuUsers, LuShield, LuTrendingUp } from 'react-icons/lu';
 import { FaSquareParking } from 'react-icons/fa6';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 import { Button, Card } from '@/components/common';
 import { CardContent } from '@/components/common/Card';
@@ -11,23 +12,24 @@ import DarkFooter from '@/components/Footer';
 import { Header } from '@/components/Header';
 
 export default function About() {
+  const { t } = useTranslation();
   const [hoveredFeature, setHoveredFeature] = useState(null);
 
   const features = [
     {
       icon: LuCar,
-      title: 'Localización Inteligente',
-      description: 'Algoritmos que encuentran parqueaderos según tu ubicación y preferencias.',
+      title: t('about.features.locationAlgorithm.title', 'Localización Inteligente'),
+      description: t('about.features.locationAlgorithm.description', 'Algoritmos que encuentran parqueaderos según tu ubicación y preferencias.'),
     },
     {
       icon: LuClock,
-      title: 'Tiempo Real',
-      description: 'Datos actualizados de disponibilidad, tarifas y horarios.',
+      title: t('about.features.realTime.title', 'Tiempo Real'),
+      description: t('about.features.realTime.description', 'Datos actualizados de disponibilidad, tarifas y horarios.'),
     },
     {
       icon: LuMapPin,
-      title: 'Ahorro de Tiempo',
-      description: 'Reduce hasta un 70% el tiempo de búsqueda.',
+      title: t('about.features.timeSaving.title', 'Ahorro de Tiempo'),
+      description: t('about.features.timeSaving.description', 'Reduce hasta un 70% el tiempo de búsqueda.'),
     },
     {
       icon: LuUsers,

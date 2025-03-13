@@ -6,6 +6,7 @@ import { LuMenu, LuX } from 'react-icons/lu';
 
 import { Logo } from '@/components/Logo';
 import { useAuth } from '@/hooks/useAuth';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 import { CtaButtons } from './CtaButtons';
 import { getHeaderClassName } from './getHeaderClassName';
@@ -42,6 +43,7 @@ const Header = ({ className }) => {
           <Link to="/support" className="text-sm hover:text-primary transition-colors">
             Soporte
           </Link>
+          <LanguageSwitcher className="mr-2" />
           <CtaButtons
             auth={{ isAuthenticated, isLoading }}
             onLogin={loginWithLocale}
@@ -73,8 +75,11 @@ const Header = ({ className }) => {
                 className="text-sm hover:text-primary transition-colors py-2 px-2 rounded-md hover:bg-white/10"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                support
+                Soporte
               </Link>
+              <div className="flex justify-center my-2">
+                <LanguageSwitcher />
+              </div>
             </div>
             <motion.div
                 initial={{ opacity: 0 }}

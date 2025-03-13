@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import React, { useCallback, useContext, useState, useEffect, useRef } from 'react';
 import { LuCar, LuDollarSign, LuNavigation, LuSearch, LuArrowLeft, LuInfo, LuMapPin } from 'react-icons/lu';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 import { useSearchPlaces } from '@/api/hooks/useSearchPlaces';
 import { Button } from '@/components/common';
@@ -20,6 +21,7 @@ const DEFAULT_LIMIT = 10;
 const MemoizedSearchBox = React.memo(SearchBox);
 
 export default function Parking() {
+  const { t } = useTranslation();
   const { parkingSpots, targetLocation, setTargetLocation } =
     useContext(ParkingContext);
   const { user } = useContext(UserContext);
@@ -89,24 +91,30 @@ export default function Parking() {
 
   // Determinar el título según el tipo de búsqueda
   const getSectionTitle = () => {
-    if (searchTerm === 'Tu ubicación actual') {
-      return "Parqueaderos cercanos a tu ubicación";
-    } else if (searchTerm) {
-      return `Parqueaderos cercanos a ${searchTerm}`;
-    } else {
-      return "Spots cercanos";
+    if (isLoadingLocation) {
+      return t('parking.loading', 'Buscando parqueaderos cercanos...');
     }
+
+    if (!parkingSpots?.length) {
+      return searchTerm
+        ? t('parking.noResults', 'No se encontraron parqueaderos cerca de {{location}}', { location: searchTerm })
+        : t('parking.noResultsDefault', 'No se encontraron parqueaderos cercanos');
+    }
+
+    return searchTerm
+      ? t('parking.resultsFound', 'Parqueaderos cerca de {{location}}', { location: searchTerm })
+      : t('parking.resultsFoundDefault', 'Parqueaderos cercanos');
   };
 
   // Determinar el mensaje descriptivo según el contexto
   const getDescriptiveMessage = () => {
-    if (nearbySpots.length === 0) {
-      return "No encontramos parqueaderos en esta zona. Intenta buscar en otra ubicación.";
-    } else if (selectedSpot) {
-      return "Haz clic en 'Navegar' para obtener direcciones.";
-    } else {
-      return "Selecciona un parqueadero en el mapa para ver más detalles.";
+    if (!parkingSpots?.length) {
+      return t('parking.tryDifferentLocation', 'Intenta con otra ubicación o amplía tu área de búsqueda');
     }
+
+    return parkingSpots.length === 1
+      ? t('parking.oneSpotFound', 'Se encontró {{count}} parqueadero en tu área', { count: 1 })
+      : t('parking.multipleSpotFound', 'Se encontraron {{count}} parqueaderos en tu área', { count: parkingSpots.length });
   };
 
   const handleParkingSpotSelected = useCallback(({ spot, navigate }) => {

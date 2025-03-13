@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import iconAboutUs from '../assets/Icon-AboutUs.png';
 import iconGoal from '../assets/Icon-Goal.png';
 import iconCelebrate from '../assets/Icon-Celebrate.png';
@@ -10,26 +11,24 @@ import { Header } from '@/components/Header';
 import DarkFooter from '@/components/Footer';
 
 const Features = () => {
+  const { t } = useTranslation();
+
   return (
     <>
       <Header />
       <main className="container mx-auto mt-24 px-4">
         <section className="bg-white p-6 shadow-lg rounded-xl">
           <div className="text-center">
-            <h1 className="text-3xl font-bold mb-8">SOBRE NOSOTROS</h1>
+            <h1 className="text-3xl font-bold mb-8">{t('features.page.aboutUs.title', 'SOBRE NOSOTROS')}</h1>
 
             <div className="flex flex-col md:flex-row justify-center items-center text-justify mb-6">
               <img
                 src={iconAboutUs}
-                alt="Icono de presentación"
+                alt={t('features.page.aboutUs.iconAlt', 'Icono de presentación')}
                 className="w-20 h-20 mr-4 mb-4 md:mb-0"
               />
               <p>
-                Este proyecto surgió como parte de la Especialización en
-                Ingeniería de Software de la Universidad Antonio Nariño. Fue
-                desarrollado por estudiantes a lo largo del año académico 2024,
-                con el objetivo de aplicar conocimientos adquiridos y crear una
-                solución innovadora.
+                {t('features.page.aboutUs.description', 'Este proyecto surgió como parte de la Especialización en Ingeniería de Software de la Universidad Antonio Nariño. Fue desarrollado por estudiantes a lo largo del año académico 2024,')}
               </p>
             </div>
 

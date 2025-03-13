@@ -1,5 +1,6 @@
 import { LuPlus } from 'react-icons/lu';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/common/Button/Button';
 
@@ -13,6 +14,7 @@ import { useQueryClient } from '@/context/queryClientUtils';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function Admin() {
+  const { t } = useTranslation();
   const { loginWithLocale, isAuthenticated, isLoading } = useAuth();
 
   const queryClient = useQueryClient();
@@ -48,14 +50,14 @@ export default function Admin() {
       <main className="self-center gap-4 p-4 mt-1 max-w-4xl w-full">
         <section className="p-8 bg-white rounded-xl shadow-sm overflow-hidden space-y-6 min-w-96">
           <div className="flex w-full justify-between items-center">
-            <h1 className="text-2xl">Tus Parqueaderos</h1>
+            <h1 className="text-2xl">{t('admin.parkingList.title', 'Tus Parqueaderos')}</h1>
             <ParkingFormDialog
-              title="Añadir un nuevo parqueadero"
-              description="Ingresa los datos del nuevo parqueadero para añadirlo a tu lista."
+              title={t('admin.parkingList.addNew.title', 'Añadir un nuevo parqueadero')}
+              description={t('admin.parkingList.addNew.description', 'Ingresa los datos del nuevo parqueadero para añadirlo a tu lista.')}
               onSubmit={createParking}
             >
               <Button className="bg-blue-500 hover:bg-blue-600">
-                <LuPlus className="mr-2 h-4 w-4" /> Añadir Nuevo Parqueadero
+                <LuPlus className="mr-2 h-4 w-4" /> {t('admin.parkingList.addButton', 'Añadir Nuevo Parqueadero')}
               </Button>
             </ParkingFormDialog>
           </div>

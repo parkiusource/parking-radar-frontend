@@ -1,10 +1,10 @@
-import { useState, useEffect, memo, useRef } from 'react';
+import { useState, useEffect, memo, useRef, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { FaAward, FaCalendarCheck, FaMoneyBillWave, FaComments, FaShieldAlt, FaChartLine, FaUsers, FaMapMarkerAlt } from 'react-icons/fa';
 import { FaSquareParking } from 'react-icons/fa6';
 import DarkFooter from '@/components/Footer';
-import { Button } from '@/components/common';
+import { Button } from '@/components/common/Button/Button';
 import { LuSearch, LuParkingSquare, LuLoader2, LuArrowRight, LuCompass } from "react-icons/lu";
 import { motion, AnimatePresence } from "framer-motion";
 import imgParkiu from '@/images/img_parkiu.webp';
@@ -13,73 +13,20 @@ import { Header } from '@/components/Header';
 import { useSearchPlaces } from '@/api/hooks/useSearchPlaces';
 import { SearchBox } from '@/components/SearchBox';
 import PropTypes from 'prop-types';
+import { useTranslation } from 'react-i18next';
+
+// Prefetch de la imagen de fondo del hero para evitar CLS (Cumulative Layout Shift)
+const prefetchImage = (src) => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.src = src;
+    img.onload = resolve;
+    img.onerror = reject;
+  });
+};
 
 // Datos constantes para evitar valores quemados en el código
 const DEFAULT_RECENT_SEARCHES = ["Zona G", "Chapinero Alto"];
-
-// Features del Hero
-const HERO_FEATURES = [
-  { icon: <FaMapMarkerAlt className="text-primary-300" />, text: "Disponibilidad en tiempo real" },
-  { icon: <FaMoneyBillWave className="text-primary-300" />, text: "Tarifas actualizadas" },
-  { icon: <FaComments className="text-primary-300" />, text: "Reseñas verificadas" },
-  { icon: <FaShieldAlt className="text-primary-300" />, text: "Seguridad garantizada" }
-];
-
-// Beneficios para administradores
-const ADMIN_BENEFITS = [
-  { icon: <FaChartLine className="text-white text-xl" />, text: "Mayor visibilidad digital" },
-  { icon: <FaUsers className="text-white text-xl" />, text: "Atrae nuevos clientes" },
-  { icon: <FaMoneyBillWave className="text-white text-xl" />, text: "Optimiza tus ingresos" },
-  { icon: <FaShieldAlt className="text-white text-xl" />, text: "Gestión simplificada" }
-];
-
-// Pasos de cómo funciona la app
-const HOW_IT_WORKS_STEPS = [
-  {
-    icon: <FaSquareParking />,
-    title: "Busca",
-    description: "Encuentra parqueaderos verificados cerca de ti con disponibilidad e información actualizada"
-  },
-  {
-    icon: <FaAward />,
-    title: "Compara",
-    description: "Analiza precios, valoraciones y servicios para elegir la mejor opción para ti"
-  },
-  {
-    icon: <FaCalendarCheck />,
-    title: "Contribuye",
-    description: "Comparte tu experiencia y ayuda a otros conductores a tomar mejores decisiones"
-  }
-];
-
-// Testimonios de usuarios
-const TESTIMONIALS = [
-  {
-    name: "Carlos Ramírez",
-    role: "Conductor",
-    testimonial: "ParkiÜ me ha ahorrado mucho tiempo y estrés. Ahora encuentro parqueadero en minutos y puedo planificar mejor mis salidas."
-  },
-  {
-    name: "María González",
-    role: "Administradora de Parqueadero",
-    testimonial: "Desde que registré mi parqueadero en ParkiÜ, he aumentado mis clientes en un 30%. La plataforma es intuitiva y fácil de usar."
-  },
-  {
-    name: "Andrés Martínez",
-    role: "Conductor frecuente",
-    testimonial: "Las reseñas y comentarios me ayudan a elegir parqueaderos seguros. La información actualizada de disponibilidad es invaluable."
-  }
-];
-
-// Meta información para SEO
-const SEO_META = {
-  title: "ParkiÜ - Encuentra el mejor parqueadero cerca de ti | Información en tiempo real",
-  description: "ParkiÜ te ayuda a encontrar parqueaderos disponibles en tiempo real. Consulta tarifas, disponibilidad, horarios y reseñas de parqueaderos cercanos a tu ubicación.",
-  keywords: "parqueaderos, estacionamiento, parking, parqueo, lugares para parquear, tarifas parking, disponibilidad, seguridad",
-  ogTitle: "ParkiÜ - Encuentra el mejor parqueadero cerca de ti",
-  ogDescription: "Encuentra parqueaderos disponibles en tiempo real con información de tarifas, disponibilidad, horarios y reseñas.",
-  canonical: "https://parkiu.app/"
-};
 
 // Componente optimizado del SearchBox para evitar re-renderizados innecesarios
 const MemoizedSearchBox = memo(function MemoizedSearchBox(props) {
@@ -89,6 +36,7 @@ const MemoizedSearchBox = memo(function MemoizedSearchBox(props) {
         <div className="absolute inset-0 bg-gradient-to-r from-primary-500/30 to-primary-700/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
         <SearchBox
           {...props}
+          useSearchHook={useSearchPlaces}
           className={`pl-12 pr-12 py-4 w-full bg-white/95 backdrop-blur-md transition-all duration-300 group-hover:bg-white/98 border-0 font-medium ${props.className || ''}`}
         />
         <div className="absolute left-0 top-0 bottom-0 bg-primary rounded-l-full w-10 flex items-center justify-center">
@@ -108,7 +56,10 @@ const MemoizedSearchBox = memo(function MemoizedSearchBox(props) {
 
 MemoizedSearchBox.propTypes = {
   className: PropTypes.string,
-  children: PropTypes.node
+  children: PropTypes.node,
+  placeholder: PropTypes.string,
+  onResultSelected: PropTypes.func,
+  onFocus: PropTypes.func
 };
 
 // Componente para renderizar un Feature en el hero con animación
@@ -136,55 +87,116 @@ const HomePage = () => {
   const [recentSearches, setRecentSearches] = useState([]);
   const [showRecentSearches, setShowRecentSearches] = useState(false);
   const searchBoxRef = useRef(null);
+  const searchInputRef = useRef(null);
   const [showLocationDialog, setShowLocationDialog] = useState(false);
+  const [heroImageLoaded, setHeroImageLoaded] = useState(false);
+  const { t } = useTranslation();
 
-  // Efecto para manejar clics fuera del campo de búsqueda
+  // Prefetch de la imagen de fondo
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (searchBoxRef.current && !searchBoxRef.current.contains(event.target)) {
-        setShowRecentSearches(false);
-      }
-    };
-
-    // Añadir listener para detectar clics fuera del campo
-    document.addEventListener('mousedown', handleClickOutside);
-
-    // Limpiar listener al desmontar
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    prefetchImage(bgMapHero)
+      .then(() => setHeroImageLoaded(true))
+      .catch(err => {
+        console.error('Error loading hero background:', err);
+        setHeroImageLoaded(true); // Set to true even on error to avoid blocking UI
+      });
   }, []);
 
-  useEffect(() => {
-    // Cargar búsquedas recientes desde localStorage
-    const savedSearches = localStorage.getItem('recentSearches');
-    if (savedSearches) {
-      try {
-        setRecentSearches(JSON.parse(savedSearches));
-      } catch (error) {
-        console.error('Error parsing saved searches:', error);
-        setRecentSearches(DEFAULT_RECENT_SEARCHES);
-      }
-    } else {
-      // Utilizar valores por defecto si no hay búsquedas guardadas
-      setRecentSearches(DEFAULT_RECENT_SEARCHES);
+  // Generar features del hero usando traducciones
+  const HERO_FEATURES = useMemo(() => [
+    {
+      icon: <FaMapMarkerAlt className="text-primary-300" />,
+      text: t('hero.features.availability', 'Disponibilidad en tiempo real')
+    },
+    {
+      icon: <FaMoneyBillWave className="text-primary-300" />,
+      text: t('hero.features.rates', 'Tarifas actualizadas')
+    },
+    {
+      icon: <FaComments className="text-primary-300" />,
+      text: t('hero.features.reviews', 'Reseñas verificadas')
+    },
+    {
+      icon: <FaShieldAlt className="text-primary-300" />,
+      text: t('hero.features.security', 'Seguridad garantizada')
     }
-  }, []);
+  ], [t]);
 
-  // Guardar búsquedas recientes en localStorage cuando cambien
-  useEffect(() => {
-    if (recentSearches.length > 0) {
-      localStorage.setItem('recentSearches', JSON.stringify(recentSearches));
+  // Beneficios para administradores con traducciones
+  const ADMIN_BENEFITS = useMemo(() => [
+    {
+      icon: <FaChartLine className="text-white text-xl" />,
+      text: t('admin.benefits.visibility', 'Mayor visibilidad digital')
+    },
+    {
+      icon: <FaUsers className="text-white text-xl" />,
+      text: t('admin.benefits.clients', 'Atrae nuevos clientes')
+    },
+    {
+      icon: <FaMoneyBillWave className="text-white text-xl" />,
+      text: t('admin.benefits.income', 'Optimiza tus ingresos')
+    },
+    {
+      icon: <FaShieldAlt className="text-white text-xl" />,
+      text: t('admin.benefits.management', 'Gestión simplificada')
     }
-  }, [recentSearches]);
+  ], [t]);
 
-  // Función que maneja cuando se selecciona un lugar de la búsqueda
-  const handlePlaceSelected = (place) => {
+  // Pasos de cómo funciona la app con traducciones
+  const HOW_IT_WORKS_STEPS = useMemo(() => [
+    {
+      icon: <FaSquareParking />,
+      title: t('howItWorks.search.title', 'Busca'),
+      description: t('howItWorks.search.description', 'Encuentra parqueaderos verificados cerca de ti con disponibilidad e información actualizada')
+    },
+    {
+      icon: <FaAward />,
+      title: t('howItWorks.compare.title', 'Compara'),
+      description: t('howItWorks.compare.description', 'Analiza precios, valoraciones y servicios para elegir la mejor opción para ti')
+    },
+    {
+      icon: <FaCalendarCheck />,
+      title: t('howItWorks.contribute.title', 'Contribuye'),
+      description: t('howItWorks.contribute.description', 'Comparte tu experiencia y ayuda a otros conductores a tomar mejores decisiones')
+    }
+  ], [t]);
+
+  // Testimonios de usuarios con traducciones
+  const TESTIMONIALS = useMemo(() => [
+    {
+      name: t('testimonials.carlos.name', 'Carlos Ramírez'),
+      role: t('testimonials.carlos.role', 'Conductor'),
+      testimonial: t('testimonials.carlos.text', 'ParkiÜ me ha ahorrado mucho tiempo y estrés. Ahora encuentro parqueadero en minutos y puedo planificar mejor mis salidas.')
+    },
+    {
+      name: t('testimonials.maria.name', 'María González'),
+      role: t('testimonials.maria.role', 'Administradora de Parqueadero'),
+      testimonial: t('testimonials.maria.text', 'Desde que registré mi parqueadero en ParkiÜ, he aumentado mis clientes en un 30%. La plataforma es intuitiva y fácil de usar.')
+    },
+    {
+      name: t('testimonials.andres.name', 'Andrés Martínez'),
+      role: t('testimonials.andres.role', 'Conductor frecuente'),
+      testimonial: t('testimonials.andres.text', 'Las reseñas y comentarios me ayudan a elegir parqueaderos seguros. La información actualizada de disponibilidad es invaluable.')
+    }
+  ], [t]);
+
+  // Meta información para SEO con traducciones
+  const SEO_META = useMemo(() => ({
+    title: t('seo.title', 'ParkiÜ - Encuentra el mejor parqueadero cerca de ti | Información en tiempo real'),
+    description: t('seo.description', 'ParkiÜ te ayuda a encontrar parqueaderos disponibles en tiempo real. Consulta tarifas, disponibilidad, horarios y reseñas de parqueaderos cercanos a tu ubicación.'),
+    keywords: t('seo.keywords', 'parqueaderos, estacionamiento, parking, parqueo, lugares para parquear, tarifas parking, disponibilidad, seguridad'),
+    ogTitle: t('seo.ogTitle', 'ParkiÜ - Encuentra el mejor parqueadero cerca de ti'),
+    ogDescription: t('seo.ogDescription', 'Encuentra parqueaderos disponibles en tiempo real con información de tarifas, disponibilidad, horarios y reseñas.'),
+    canonical: "https://parkiu.app/"
+  }), [t]);
+
+  // Optimizamos las funciones reutilizando useCallback para evitar recreaciones innecesarias
+  const handlePlaceSelected = useCallback((place) => {
     setIsSearching(true);
 
     // Guardar la búsqueda en el historial reciente
     const searchText = place.displayName?.text || place;
-    if (!recentSearches.includes(searchText)) {
+    if (searchText && !recentSearches.includes(searchText)) {
       setRecentSearches(prev => [searchText, ...prev].slice(0, 3));
     }
 
@@ -199,14 +211,14 @@ const HomePage = () => {
         navigate(`/parking?search=${encodeURIComponent(place)}`);
       }
     }, 300);
-  };
+  }, [navigate, recentSearches]);
 
-  const handleNearbySearch = () => {
+  const handleNearbySearch = useCallback(() => {
     // Mostrar diálogo de confirmación en lugar de solicitar directamente la ubicación
     setShowLocationDialog(true);
-  };
+  }, []);
 
-  const confirmLocationAccess = () => {
+  const confirmLocationAccess = useCallback(() => {
     if (navigator.geolocation) {
       // Mostrar estado de carga
       setIsSearching(true);
@@ -251,7 +263,99 @@ const HomePage = () => {
     } else {
       alert("Tu navegador no soporta geolocalización. Por favor busca manualmente usando el campo de búsqueda.");
     }
-  };
+  }, [navigate]);
+
+  // Efecto para manejar clics fuera del campo de búsqueda
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchBoxRef.current && !searchBoxRef.current.contains(event.target)) {
+        setShowRecentSearches(false);
+      }
+    };
+
+    // Añadir listener para detectar clics fuera del campo
+    document.addEventListener('mousedown', handleClickOutside);
+
+    // Limpiar listener al desmontar
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Usamos un useEffect separado para las búsquedas recientes para mejor control
+  useEffect(() => {
+    try {
+      // Cargar búsquedas recientes desde localStorage
+      const savedSearches = localStorage.getItem('recentSearches');
+
+      if (savedSearches) {
+        const parsedSearches = JSON.parse(savedSearches);
+        if (Array.isArray(parsedSearches) && parsedSearches.length > 0) {
+          setRecentSearches(parsedSearches);
+        } else {
+          setRecentSearches(DEFAULT_RECENT_SEARCHES);
+        }
+      } else {
+        // Utilizar valores por defecto si no hay búsquedas guardadas
+        setRecentSearches(DEFAULT_RECENT_SEARCHES);
+      }
+    } catch (error) {
+      console.error('Error parsing saved searches:', error);
+      setRecentSearches(DEFAULT_RECENT_SEARCHES);
+    }
+  }, []);
+
+  // Guardar búsquedas recientes en localStorage cuando cambien
+  useEffect(() => {
+    if (recentSearches.length > 0) {
+      localStorage.setItem('recentSearches', JSON.stringify(recentSearches));
+    }
+  }, [recentSearches]);
+
+  // Función optimizada para manejar el foco en el cuadro de búsqueda
+  const handleSearchFocus = useCallback(() => {
+    setShowRecentSearches(true);
+  }, []);
+
+  // Mejora: Componente de búsquedas recientes optimizado
+  const RecentSearchesPanel = useMemo(() => {
+    if (!showRecentSearches || isSearching || recentSearches.length === 0) return null;
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -10 }}
+        transition={{ duration: 0.2 }}
+        className="absolute z-20 top-full left-0 right-0 mt-3 bg-white/95 backdrop-blur-md rounded-xl shadow-xl overflow-hidden border border-white/30"
+      >
+        <div className="p-3">
+          <div className="text-xs text-gray-500 px-3 py-1 uppercase font-medium flex items-center mb-1">
+            <LuSearch className="mr-1.5 h-3 w-3" /> {t('search.recentSearches', 'Búsquedas recientes')}
+          </div>
+          <div className="mt-1 max-h-48 overflow-y-auto px-1">
+            {recentSearches.map((search, index) => (
+              <motion.button
+                key={index}
+                whileTap={{ scale: 0.98 }}
+                whileHover={{ backgroundColor: "rgba(6, 28, 61, 0.05)" }}
+                className="w-full text-left px-4 py-3 text-gray-700 hover:text-primary rounded-lg flex items-center gap-3 text-sm transition-all"
+                onClick={() => {
+                  handlePlaceSelected(search);
+                  setShowRecentSearches(false);
+                }}
+              >
+                <span className="bg-primary-50 p-2 rounded-full text-primary">
+                  <LuSearch className="h-4 w-4" />
+                </span>
+                <span className="font-medium">{search}</span>
+              </motion.button>
+            ))}
+          </div>
+        </div>
+      </motion.div>
+    );
+  }, [showRecentSearches, isSearching, recentSearches, handlePlaceSelected, t]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -264,18 +368,23 @@ const HomePage = () => {
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
         <link rel="canonical" href={SEO_META.canonical} />
+        {/* Preconectar y precargar recursos críticos para mejorar el rendimiento */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </Helmet>
 
       <Header />
       <main className="flex flex-col">
-        {/* Hero Section */}
+        {/* Hero Section - Optimizing for better performance */}
         <motion.section
           initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
+          animate={{ opacity: heroImageLoaded ? 1 : 0 }}
+          transition={{ duration: 0.4 }}
           className="min-h-[90vh] md:min-h-screen flex flex-col items-center justify-center relative pt-20 pb-12 md:py-12 bg-primary-700 text-white overflow-hidden"
           style={{
-            backgroundImage: `linear-gradient(to bottom ,rgba(7, 89, 133, 0.6), rgba(7, 89, 133, 0.7)), url(${bgMapHero})`,
+            backgroundImage: heroImageLoaded ?
+              `linear-gradient(to bottom ,rgba(7, 89, 133, 0.6), rgba(7, 89, 133, 0.7)), url(${bgMapHero})` :
+              'linear-gradient(to bottom ,rgba(7, 89, 133, 0.6), rgba(7, 89, 133, 0.7))',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           }}
@@ -286,34 +395,34 @@ const HomePage = () => {
             <motion.h1
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2 }}
+              transition={{ delay: 0.2, duration: 0.4 }}
               className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-center mb-4 md:mb-6 tracking-tight mx-auto max-w-3xl text-white drop-shadow-md"
             >
-              Encuentra el parqueadero ideal en segundos
+              {t('hero.title', 'Encuentra el parqueadero ideal en segundos')}
             </motion.h1>
 
             <motion.p
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.4 }}
+              transition={{ delay: 0.3, duration: 0.4 }}
               className="text-lg sm:text-xl md:text-2xl mb-10 md:mb-12 text-gray-100 max-w-2xl text-center drop-shadow"
             >
-              Información en tiempo real sobre disponibilidad, tarifas y seguridad
+              {t('hero.subtitle', 'Información en tiempo real sobre disponibilidad, tarifas y seguridad')}
             </motion.p>
 
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.6 }}
+              transition={{ delay: 0.4, duration: 0.4 }}
               className="flex flex-col items-center w-full gap-6 max-w-xl mx-auto"
             >
               <div className="relative w-full" ref={searchBoxRef}>
                 <MemoizedSearchBox
                   className="text-gray-700 text-base"
-                  placeholder="Buscar por zona, dirección o referencia"
-                  useSearchHook={useSearchPlaces}
+                  placeholder={t('search.placeholder', 'Buscar por zona, dirección o referencia')}
                   onResultSelected={handlePlaceSelected}
-                  onFocus={() => setShowRecentSearches(true)}
+                  onFocus={handleSearchFocus}
+                  ref={searchInputRef}
                 />
 
                 {isSearching && (
@@ -327,41 +436,9 @@ const HomePage = () => {
                   </div>
                 )}
 
-                {/* Búsquedas recientes */}
+                {/* Búsquedas recientes - usando componente memoizado */}
                 <AnimatePresence>
-                  {showRecentSearches && !isSearching && recentSearches.length > 0 && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="absolute z-20 top-full left-0 right-0 mt-3 bg-white/95 backdrop-blur-md rounded-xl shadow-xl overflow-hidden border border-white/30"
-                    >
-                      <div className="p-3">
-                        <div className="text-xs text-gray-500 px-3 py-1 uppercase font-medium flex items-center mb-1">
-                          <LuSearch className="mr-1.5 h-3 w-3" /> Búsquedas recientes
-                        </div>
-                        <div className="mt-1 max-h-48 overflow-y-auto px-1">
-                          {recentSearches.map((search, index) => (
-                            <motion.button
-                              key={index}
-                              whileTap={{ scale: 0.98 }}
-                              whileHover={{ backgroundColor: "rgba(6, 28, 61, 0.05)" }}
-                              className="w-full text-left px-4 py-3 text-gray-700 hover:text-primary rounded-lg flex items-center gap-3 text-sm transition-all"
-                              onClick={() => {
-                                handlePlaceSelected(search);
-                                setShowRecentSearches(false);
-                              }}
-                            >
-                              <span className="bg-primary-50 p-2 rounded-full text-primary">
-                                <LuSearch className="h-4 w-4" />
-                              </span>
-                              <span className="font-medium">{search}</span>
-                            </motion.button>
-                          ))}
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
+                  {RecentSearchesPanel}
                 </AnimatePresence>
               </div>
 
@@ -389,7 +466,7 @@ const HomePage = () => {
                     ) : (
                       <>
                         <LuCompass className="text-2xl group-hover:animate-pulse" />
-                        <span className="whitespace-nowrap tracking-wide uppercase">Encontrar cerca de mí</span>
+                        <span className="whitespace-nowrap tracking-wide uppercase">{t('hero.findNow', 'Encontrar cerca de mí')}</span>
                       </>
                     )}
                   </div>
@@ -419,12 +496,12 @@ const HomePage = () => {
                         <div className="mx-auto w-12 h-12 bg-primary-50 rounded-xl flex items-center justify-center mb-4">
                           <LuParkingSquare className="text-primary text-2xl" />
                         </div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">¿Por qué necesitamos tu ubicación?</h3>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">{t('locationDialog.title', '¿Por qué necesitamos tu ubicación?')}</h3>
                         <p className="text-gray-600 mb-2">
-                          Para mostrarte los parqueaderos más cercanos a tu ubicación actual.
+                          {t('locationDialog.description', 'Para mostrarte los parqueaderos más cercanos a tu ubicación actual.')}
                         </p>
                         <p className="text-xs text-gray-500 mb-4">
-                          No almacenamos tu ubicación, solo la usamos para esta búsqueda.
+                          {t('locationDialog.privacy', 'No almacenamos tu ubicación, solo la usamos para esta búsqueda.')}
                         </p>
                       </div>
                       <div className="flex gap-2 justify-center">
@@ -433,13 +510,13 @@ const HomePage = () => {
                           className="px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg text-sm font-medium"
                           variant="light"
                         >
-                          Cancelar
+                          {t('locationDialog.cancelButton', 'Cancelar')}
                         </Button>
                         <Button
                           onClick={confirmLocationAccess}
                           className="px-4 py-2 bg-primary text-white hover:bg-primary-600 rounded-lg text-sm font-medium"
                         >
-                          Permitir
+                          {t('locationDialog.allowButton', 'Permitir')}
                         </Button>
                       </div>
                     </motion.div>
@@ -461,22 +538,22 @@ const HomePage = () => {
           </div>
         </motion.section>
 
-        {/* Admin Section */}
+        {/* Admin Section - With optimized animation triggers */}
         <section className="py-16 md:py-20 bg-gradient-to-b from-primary-600 via-primary-800 to-white">
           <div className="container mx-auto px-4 md:px-6">
             <motion.div
               initial={{ y: 50, opacity: 0 }}
               whileInView={{ y: 0, opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.4 }}
               className="flex flex-col md:flex-row justify-between items-center max-w-6xl mx-auto gap-10 md:gap-12"
             >
               <div className="flex flex-col justify-center items-center max-w-xl gap-y-6">
                 <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 text-white text-center md:text-left drop-shadow-md">
-                  Potencia tu negocio con ParkiÜ
+                  {t('admin.sectionTitle', 'Potencia tu negocio con ParkiÜ')}
                 </h2>
                 <p className="text-lg md:text-xl leading-relaxed max-w-lg text-center md:text-left text-white/90 drop-shadow-md">
-                  Aumenta tus ingresos y mejora la experiencia de tus clientes con nuestra plataforma especializada para administradores de parqueaderos
+                  {t('admin.description', 'Aumenta tus ingresos y mejora la experiencia de tus clientes con nuestra plataforma especializada para administradores de parqueaderos')}
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2 mb-6">
@@ -504,7 +581,7 @@ const HomePage = () => {
                       className="px-4 md:px-6 py-3 md:py-4 font-semibold text-base md:text-lg shadow-xl transition-all duration-200 hover:scale-105 hover:shadow-2xl rounded-full"
                       aria-label="Registra tu parqueadero en nuestra plataforma"
                     >
-                      Registrar mi parqueadero
+                      {t('admin.registerButton', 'Registrar mi parqueadero')}
                     </Button>
                   </Link>
                   <Link to="/login" >
@@ -513,7 +590,7 @@ const HomePage = () => {
                       className="flex-wrap px-4 md:px-6 py-3 md:py-4 font-semibold text-base md:text-lg shadow-xl transition-all duration-200 hover:scale-105 hover:shadow-2xl rounded-full"
                       aria-label="Iniciar sesión"
                     >
-                      ¿Ya tienes cuenta? <span className="underline ml-2 font-medium">Iniciar sesión</span>
+                      {t('admin.loginButton', '¿Ya tienes cuenta?')} <span className="underline ml-2 font-medium">{t('admin.loginButtonAction', 'Iniciar sesión')}</span>
                     </Button>
                   </Link>
                 </div>
@@ -528,35 +605,37 @@ const HomePage = () => {
               >
                 <img
                   src={imgParkiu}
-                  alt="Plataforma de administración de parqueaderos ParkiÜ"
+                  alt={t('admin.platformImage', 'Plataforma de administración de parqueaderos ParkiÜ')}
                   className="w-full h-full object-cover rounded-3xl shadow-2xl transform hover:scale-105 transition-transform duration-300 border-4 border-white/20"
                   loading="lazy"
+                  fetchPriority="low"
                 />
               </motion.div>
             </motion.div>
           </div>
         </section>
 
-        {/* How It Works Section */}
+        {/* How It Works Section - With optimized animation triggers */}
         <section className="py-16 md:py-24 bg-white" id="como-funciona">
           <div className="container mx-auto px-4 md:px-6">
             <motion.h2
               initial={{ y: 20, opacity: 0 }}
               whileInView={{ y: 0, opacity: 1 }}
-              viewport={{ once: true }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.3 }}
               className="text-center text-3xl md:text-4xl font-bold mb-10 md:mb-16 text-gray-900"
             >
-              Cómo funciona ParkiÜ
+              {t('howItWorks.sectionTitle', 'Cómo funciona ParkiÜ')}
             </motion.h2>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 max-w-5xl mx-auto">
               {HOW_IT_WORKS_STEPS.map((feature, index) => (
                 <motion.div
                   key={feature.title}
-                  initial={{ y: 50, opacity: 0 }}
+                  initial={{ y: 30, opacity: 0 }}
                   whileInView={{ y: 0, opacity: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.2 }}
+                  viewport={{ once: true, margin: "-50px" }}
+                  transition={{ delay: index * 0.1, duration: 0.3 }}
                   className="flex flex-col items-center text-center group"
                 >
                   <div className="w-20 h-20 md:w-24 md:h-24 bg-primary rounded-2xl flex items-center justify-center mb-5 md:mb-6 transform group-hover:scale-110 transition-all duration-300 shadow-lg">
@@ -572,27 +651,28 @@ const HomePage = () => {
           </div>
         </section>
 
-        {/* Testimonials Section */}
+        {/* Testimonials Section - With optimized animation triggers */}
         <section className="py-14 md:py-16 bg-gray-50">
           <div className="container mx-auto px-4 md:px-6">
             <motion.h2
               initial={{ y: 20, opacity: 0 }}
               whileInView={{ y: 0, opacity: 1 }}
-              viewport={{ once: true }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.3 }}
               className="text-center text-3xl md:text-4xl font-bold mb-8 md:mb-12 text-gray-900"
             >
-              Lo que dicen nuestros usuarios
+              {t('testimonials.sectionTitle', 'Lo que dicen nuestros usuarios')}
             </motion.h2>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto">
               {TESTIMONIALS.map((testimonial, index) => (
                 <motion.div
                   key={testimonial.name}
-                  initial={{ y: 30, opacity: 0 }}
+                  initial={{ y: 20, opacity: 0 }}
                   whileInView={{ y: 0, opacity: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.2 }}
-                  className="bg-white p-5 md:p-6 rounded-xl shadow-md border border-gray-100 "
+                  viewport={{ once: true, margin: "-50px" }}
+                  transition={{ delay: index * 0.1, duration: 0.3 }}
+                  className="bg-white p-5 md:p-6 rounded-xl shadow-md border border-gray-100"
                 >
                   <p className="text-gray-700 mb-4 italic text-base md:text-lg">&ldquo;{testimonial.testimonial}&rdquo;</p>
                   <div className="flex items-center gap-3">
@@ -618,7 +698,7 @@ const HomePage = () => {
                 <Button
                   className="group text-base md:text-lg px-6 py-3 bg-primary text-white hover:bg-primary-600 transition-colors inline-flex items-center gap-2 rounded-full"
                 >
-                  Comenzar a buscar parqueaderos
+                  {t('cta.findParkings', 'Comenzar a buscar parqueaderos')}
                   <LuArrowRight className="group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>

@@ -34,23 +34,28 @@ export default defineConfig(({ mode }) => {
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
         manifest: {
-          name: 'Parking Radar',
-          short_name: 'ParkingRadar',
-          description: 'Encuentra estacionamiento de manera fácil y rápida',
-          theme_color: '#ffffff',
+          name: 'ParkiÜ',
+          short_name: 'ParkiÜ',
+          description: 'Encuentra parqueaderos disponibles en tiempo real',
+          theme_color: '#0284c7',
           icons: [
             {
-              src: 'pwa-192x192.png',
+              src: 'favicon.ico',
+              sizes: '64x64 32x32 24x24 16x16',
+              type: 'image/x-icon'
+            },
+            {
+              src: 'icons/pwa-192x192.png',
               sizes: '192x192',
               type: 'image/png'
             },
             {
-              src: 'pwa-512x512.png',
+              src: 'icons/pwa-512x512.png',
               sizes: '512x512',
               type: 'image/png'
             },
             {
-              src: 'pwa-512x512.png',
+              src: 'icons/pwa-512x512.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any maskable'
