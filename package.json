@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "predeploy": "vite build",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist",
+    "analyze": "vite build --mode analyze"
   },
   "dependencies": {
     "@auth0/auth0-react": "^2.2.4",
@@ -52,7 +53,13 @@
     "postcss": "^8.4.47",
     "prettier": "3.3.3",
     "prettier-plugin-tailwindcss": "^0.6.8",
+    "rollup-plugin-visualizer": "^5.12.0",
     "tailwindcss": "^3.4.13",
-    "vite": "^6.2.0"
+    "terser": "^5.27.2",
+    "vite": "^6.2.0",
+    "vite-plugin-compression": "^0.5.1",
+    "vite-plugin-image-optimizer": "^1.1.8",
+    "vite-plugin-pwa": "^0.21.1",
+    "workbox-window": "^7.3.0"
   }
 }

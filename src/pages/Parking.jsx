@@ -159,17 +159,11 @@ export default function Parking() {
 
   // Función mejorada para manejar el clic en la tarjeta de parqueadero
   const handleParkingCardClick = useCallback((parking) => {
-    console.log(`Seleccionando parqueadero desde tarjeta: ${parking.name}`);
-
-    // Establecer el parqueadero seleccionado
     setSelectedSpot(parking);
 
     // Utilizar la referencia al mapa para centrar en el parqueadero seleccionado
-    if (mapRef.current && mapRef.current.handleCardClick) {
-      console.log(`Llamando a handleCardClick para ${parking.name}`);
-      mapRef.current.handleCardClick(parking);
-    } else {
-      console.log('No se encontró la referencia al mapa o handleCardClick');
+    if (mapRef.current && mapRef.current.centerOnSpot) {
+      mapRef.current.centerOnSpot(parking);
     }
   }, [setSelectedSpot]);
 

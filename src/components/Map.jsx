@@ -85,37 +85,10 @@ const ParkingMap = forwardRef(({
   });
 
   // Función mejorada para centrar el mapa con animación suave
-  const centerMapOnLocation = useCallback((location, zoom = 16, animate = true) => {
-    if (!mapRef.current || !location) return;
-
-    console.log('Centrando mapa en:', location);
-
-    // Validar que la ubicación tiene coordenadas numéricas
-    if (typeof location.lat !== 'number' || typeof location.lng !== 'number') {
-      console.error('Coordenadas inválidas:', location);
-      return;
-    }
-
-    try {
-      if (animate) {
-        // Animación en dos pasos: primero zoom out, luego centrar y zoom in
-        mapRef.current.setZoom(14);
-
-        setTimeout(() => {
-          mapRef.current.panTo(location);
-          mapRef.current.setCenter(location);
-
-          setTimeout(() => {
-            mapRef.current.setZoom(zoom);
-          }, 100);
-        }, 50);
-      } else {
-        // Centrado inmediato sin animación
-        mapRef.current.setCenter(location);
-        mapRef.current.setZoom(zoom);
-      }
-    } catch (error) {
-      console.error('Error al centrar el mapa:', error);
+  const centerMapOnLocation = useCallback((location) => {
+    if (mapRef.current && location) {
+      mapRef.current.panTo(location);
+      mapRef.current.setZoom(16);
     }
   }, []);
 
@@ -230,7 +203,7 @@ const ParkingMap = forwardRef(({
     const spotLocation = { lat: spot.latitude, lng: spot.longitude };
 
     // Forzar el centrado con animación
-    centerMapOnLocation(spotLocation, 17, true);
+    centerMapOnLocation(spotLocation);
 
     // Resaltar el marcador correspondiente
     highlightMarker(spot);
@@ -536,7 +509,7 @@ const ParkingMap = forwardRef(({
             };
 
             console.log('Centrando en spot seleccionado después de inicialización', selectedSpot.name);
-            centerMapOnLocation(spotLocation, 17);
+            centerMapOnLocation(spotLocation);
             setInfoWindowOpen(true);
           }
           // Centrar en la ubicación objetivo si existe

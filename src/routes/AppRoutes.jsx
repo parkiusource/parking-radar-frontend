@@ -1,15 +1,24 @@
+import { Suspense, lazy } from 'react';
 import { Route, Routes } from 'react-router-dom';
 
-import About from '@/pages/About';
-import Admin from '@/pages/Admin';
-import Features from '@/pages/Features';
-import HomePage from '@/pages/HomePage';
-import Parking from '@/pages/Parking';
-import SupportForm from '@/pages/SupportForm';
-import AdminLandingPage from '@/pages/AdminLandingPage';
+// Lazy load components
+const HomePage = lazy(() => import('@/pages/HomePage'));
+const About = lazy(() => import('@/pages/About'));
+const Admin = lazy(() => import('@/pages/Admin'));
+const Features = lazy(() => import('@/pages/Features'));
+const Parking = lazy(() => import('@/pages/Parking'));
+const SupportForm = lazy(() => import('@/pages/SupportForm'));
+const AdminLandingPage = lazy(() => import('@/pages/AdminLandingPage'));
+
+// Loading fallback component
+const LoadingFallback = () => (
+  <div className="flex h-screen w-full items-center justify-center">
+    <div className="h-16 w-16 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+  </div>
+);
 
 const AppRoutes = () => (
-  <>
+  <Suspense fallback={<LoadingFallback />}>
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/about" element={<About />} />
@@ -19,7 +28,7 @@ const AppRoutes = () => (
       <Route path="/support" element={<SupportForm />} />
       <Route path="/admin-landing" element={<AdminLandingPage />} />
     </Routes>
-  </>
+  </Suspense>
 );
 
 export default AppRoutes;

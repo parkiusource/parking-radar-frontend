@@ -7,6 +7,7 @@ import { UserProvider } from '@/context/UserContext';
 import AppRoutes from '@/routes/AppRoutes';
 import ScrollToTop from '@/services/ScrollToTop';
 import { Auth0Provider } from '@auth0/auth0-react';
+import RoutePrefetcher from '@/components/RoutePrefetcher';
 
 const AUTH_DOMAIN = import.meta.env.VITE_AUTH_DOMAIN;
 const AUTH_CLIENT_ID = import.meta.env.VITE_AUTH_CLIENT_ID;
@@ -23,6 +24,7 @@ const App = () => (
             <UserProvider>
               <ParkingProvider>
                 <ScrollToTop />
+                <RoutePrefetcher />
                 <AppRoutes />
               </ParkingProvider>
             </UserProvider>

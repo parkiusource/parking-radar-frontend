@@ -10,7 +10,6 @@ export const ParkingContext = createContext();
 
 export const ParkingProvider = ({ children }) => {
   const webSocketRef = useRef(null);
-
   const [targetLocation, setTargetLocation] = useState(null);
 
   const queryClient = useQueryClient();
@@ -25,7 +24,6 @@ export const ParkingProvider = ({ children }) => {
           import.meta.env.VITE_API_BASE_URL,
           (data) => {
             if (data.type === 'new-change-in-parking') {
-              console.log('New change detected:', data.payload);
               invalidate();
               refetch();
             }
@@ -42,6 +40,7 @@ export const ParkingProvider = ({ children }) => {
       };
     }
   }, [invalidate, refetch]);
+
   return (
     <ParkingContext.Provider
       value={{
