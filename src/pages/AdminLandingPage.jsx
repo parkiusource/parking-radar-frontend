@@ -3,25 +3,28 @@ import { Button } from '@/components/common';
 import Footer from '@/components/Footer';
 import imgParkiu from '@/images/img-parking.webp';
 import imgAdmin from '@/images/img-admin.webp';
+import { useTranslation } from 'react-i18next';
 
 const AdminLandingPage = () => {
+  const { t } = useTranslation();
+
   return (
     <>
       <Header />
       <main className="flex flex-col items-center min-h-screen gap-y-8 bg-white">
         <section className="w-full bg-white text-white text-center space-y-4 flex flex-col items-center justify-center min-h-96 gap-y-4 pt-12 ">
-          <h1 className="text-3xl font-bold text-primary mb-4 mt-8">Únete como Administrador</h1>
+          <h1 className="text-3xl font-bold text-primary mb-4 mt-8">{t('admin.landing.title', 'Únete como Administrador')}</h1>
           <p className="text-2xl md:text-3xl text-secondary font-light px-8 md:max-w-4xl">
-            Empieza a gestionar tu parqueadero con nuestras herramientas
+            {t('admin.landing.subtitle', 'Empieza a gestionar tu parqueadero con nuestras herramientas')}
           </p>
         </section>
 
         <section className="flex flex-col-reverse sm:flex-row items-center gap-12 bg-white rounded-lg overflow-hidden max-w-5xl">
           {/* Imagen representativa */}
           <div className="w-1/2 aspect-[1/1] overflow-hidden flex items-center justify-center">
-            <img 
-              src={imgAdmin} 
-              alt="Persona utilizando ParkiÜ" 
+            <img
+              src={imgAdmin}
+              alt={t('admin.landing.personImage', 'Persona utilizando ParkiÜ')}
               className="h-full object-cover rounded-lg"
             />
           </div>
@@ -59,10 +62,10 @@ const AdminLandingPage = () => {
           </div>
 
           <div className=" max-w-2xl aspect-[4/3] overflow-hidden flex items-center justify-center">
-            <img 
+            <img
               src={imgParkiu}
-              alt="Administrador de parqueaderos" 
-              className="h-full object-cover md:rounded-lg shadow-md" 
+              alt="Administrador de parqueaderos"
+              className="h-full object-cover md:rounded-lg shadow-md"
             />
           </div>
         </section>

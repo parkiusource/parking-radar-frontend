@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fondo redondeado -->
+  <rect width="512" height="512" rx="128" fill="#0284c7"/>
+
+  <!-- Texto "PÜ" -->
+  <text x="256" y="320"
+        font-family="Inter, system-ui, -apple-system, sans-serif"
+        font-size="240"
+        font-weight="700"
+        text-anchor="middle"
+        fill="white">
+    PÜ
+  </text>
+</svg>

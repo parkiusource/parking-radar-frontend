@@ -29,7 +29,7 @@ const FooterLink = ({ to, external, children }) => {
   );
 };
 
-const Footer = ({ className }) => (
+const DarkFooter = ({ className }) => (
   <footer
     className={twMerge(
       'bg-secondary-900 text-gray-200',
@@ -120,4 +120,4 @@ const Footer = ({ className }) => (
   </footer>
 );
 
-export default Footer;
+export default DarkFooter;

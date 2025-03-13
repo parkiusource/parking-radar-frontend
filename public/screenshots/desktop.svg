@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1280" height="800" viewBox="0 0 1280 800" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1280" height="800" fill="#f8fafc"/>
+  <text x="640" y="400"
+        font-family="Inter, system-ui, -apple-system, sans-serif"
+        font-size="48"
+        font-weight="700"
+        text-anchor="middle"
+        fill="#0284c7">
+    ParkiÜ Desktop
+  </text>
+</svg>
