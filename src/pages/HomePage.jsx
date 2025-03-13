@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { FaAward, FaCalendarCheck, FaMoneyBillWave, FaComments, FaShieldAlt, FaChartLine, FaUsers, FaMapMarkerAlt } from 'react-icons/fa';
 import { FaSquareParking } from 'react-icons/fa6';
-import Footer from '@/components/Footer';
+import DarkFooter from '@/components/Footer';
 import { Button } from '@/components/common';
 import { LuSearch, LuParkingSquare, LuLoader2, LuArrowRight, LuCompass } from "react-icons/lu";
 import { motion, AnimatePresence } from "framer-motion";
@@ -626,7 +626,7 @@ const HomePage = () => {
         </section>
       </main>
 
-      <Footer />
+      <DarkFooter />
     </div>
   );
 };

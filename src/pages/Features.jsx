@@ -7,7 +7,7 @@ import iconInteresting from '../assets/Icon-Interesting.png';
 import iconLogo from '../assets/smart-parking-logo3.png';
 
 import { Header } from '@/components/Header';
-import Footer from '@/components/Footer';
+import DarkFooter from '@/components/Footer';
 
 const Features = () => {
   return (
@@ -111,7 +111,7 @@ const Features = () => {
           </div>
         </section>
       </main>
-      <Footer />
+      <DarkFooter />
     </>
   );
 };

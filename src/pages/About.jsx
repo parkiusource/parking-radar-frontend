@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
@@ -8,7 +7,7 @@ import { Link } from 'react-router-dom';
 
 import { Button, Card } from '@/components/common';
 import { CardContent } from '@/components/common/Card';
-import Footer from '@/components/Footer';
+import DarkFooter from '@/components/Footer';
 import { Header } from '@/components/Header';
 
 export default function About() {
@@ -278,7 +277,7 @@ export default function About() {
           </div>
         </section>
       </main>
-      <Footer />
+      <DarkFooter />
     </>
   );
 }
