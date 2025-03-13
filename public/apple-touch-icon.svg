@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="180" height="180" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+  <rect width="180" height="180" rx="45" fill="#0284c7"/>
+  <text x="90" y="110"
+        font-family="Inter, system-ui, -apple-system, sans-serif"
+        font-size="84"
+        font-weight="700"
+        text-anchor="middle"
+        fill="white">
+    PÜ
+  </text>
+</svg>
