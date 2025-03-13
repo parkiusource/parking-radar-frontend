@@ -28,6 +28,7 @@ const CtaButtons = ({ auth: { isAuthenticated, isLoading }, onLogin, className }
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
         className="flex-1 md:flex-auto"
+        transition={{  delay: 1 }}
       >
         {isLoading || !isAuthenticated ? (
           <Button
