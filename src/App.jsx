@@ -1,12 +1,12 @@
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { HelmetProvider } from 'react-helmet-async';
+import { Auth0Provider } from '@auth0/auth0-react';
 
 import { ParkingProvider } from '@/context/ParkingContext';
 import { QueryClientContextProvider } from '@/context/QueryClientContext';
 import { UserProvider } from '@/context/UserContext';
 import AppRoutes from '@/routes/AppRoutes';
-import ScrollToTop from '@/services/ScrollToTop';
-import { Auth0Provider } from '@auth0/auth0-react';
+import ScrollToTop from '@/components/ScrollToTop';
 import RoutePrefetcher from '@/components/RoutePrefetcher';
 
 const AUTH_DOMAIN = import.meta.env.VITE_AUTH_DOMAIN;
