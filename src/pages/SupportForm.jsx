@@ -57,8 +57,8 @@ const SupportForm = () => {
     <>
       <Header />
       <main className="min-h-screen bg-gradient-to-br from-primary-100 to-secondary-100 ">
-        <section className="container mx-auto bg-white px-4 py-20 flex flex-col items-center justify-center">
-          <Card className="h-full bg-opacity-70 backdrop-filter backdrop-blur-sm hover:shadow-xl transition-shadow duration-300 mt-12">
+        <section className="container mx-auto min-h-screen bg-white px-4 py-20 flex flex-col items-center justify-center">
+          <Card className="h-full bg-opacity-70 backdrop-filter backdrop-blur-sm mt-12">
             <CardContent className="py-4 flex flex-col items-center text-center">
               <h3 className="text-xl font-semibold mb-2 text-gray-800">
               </h3>
