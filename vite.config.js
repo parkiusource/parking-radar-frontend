@@ -32,7 +32,7 @@ export default defineConfig(({ mode }) => {
       }),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+        includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
         manifest: {
           name: 'ParkiÜ',
           short_name: 'ParkiÜ',
@@ -45,17 +45,17 @@ export default defineConfig(({ mode }) => {
               type: 'image/x-icon'
             },
             {
-              src: 'icons/pwa-192x192.png',
+              src: 'icons/temp-icon.png',
               sizes: '192x192',
               type: 'image/png'
             },
             {
-              src: 'icons/pwa-512x512.png',
+              src: 'icons/temp-icon.png',
               sizes: '512x512',
               type: 'image/png'
             },
             {
-              src: 'icons/pwa-512x512.png',
+              src: 'icons/temp-icon.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any maskable'
