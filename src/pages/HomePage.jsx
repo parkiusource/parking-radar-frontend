@@ -403,42 +403,43 @@ const HomePage = () => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-primary/40 backdrop-blur-md"
-                    onClick={() => setShowLocationDialog(false)}
+                    transition={{ duration: 0.2 }}
+                    className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
                   >
+                    {/* Modal content */}
                     <motion.div
-                      initial={{ scale: 0.9, y: 20 }}
-                      animate={{ scale: 1, y: 0 }}
-                      exit={{ scale: 0.9, y: 20 }}
-                      className="bg-white rounded-xl p-6 max-w-md mx-4 shadow-2xl border border-white/20"
+                      initial={{ scale: 0.95, y: 20, opacity: 0 }}
+                      animate={{ scale: 1, y: 0, opacity: 1 }}
+                      exit={{ scale: 0.95, y: 20, opacity: 0 }}
+                      transition={{ duration: 0.2, type: "spring", stiffness: 300 }}
+                      className="relative bg-white/95 backdrop-blur-sm rounded-2xl p-6 max-w-sm mx-4 shadow-lg border border-white/20 pointer-events-auto"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <div className="text-center mb-4">
-                        <div className="mx-auto w-12 h-12 bg-primary-50 rounded-full flex items-center justify-center mb-4">
+                      <div className="text-center">
+                        <div className="mx-auto w-12 h-12 bg-primary-50 rounded-xl flex items-center justify-center mb-4">
                           <LuParkingSquare className="text-primary text-2xl" />
                         </div>
                         <h3 className="text-xl font-bold text-gray-900 mb-2">¿Por qué necesitamos tu ubicación?</h3>
-                        <p className="text-gray-600 mb-4">
-                          Utilizaremos tu ubicación aproximada para mostrarte los parqueaderos más cercanos a ti.
-                          Esto nos permite ofrecerte resultados relevantes sin tener que buscar manualmente.
+                        <p className="text-gray-600 mb-2">
+                          Para mostrarte los parqueaderos más cercanos a tu ubicación actual.
                         </p>
-                        <p className="text-sm text-gray-500 mb-5">
-                          No almacenamos tu ubicación de forma permanente y solo la usamos para esta búsqueda.
+                        <p className="text-xs text-gray-500 mb-4">
+                          No almacenamos tu ubicación, solo la usamos para esta búsqueda.
                         </p>
                       </div>
-                      <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                      <div className="flex gap-2 justify-center">
                         <Button
                           onClick={() => setShowLocationDialog(false)}
-                          className="px-5 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          className="px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg text-sm font-medium"
                           variant="light"
                         >
                           Cancelar
                         </Button>
                         <Button
                           onClick={confirmLocationAccess}
-                          className="px-5 py-2 bg-primary text-white hover:bg-primary-600"
+                          className="px-4 py-2 bg-primary text-white hover:bg-primary-600 rounded-lg text-sm font-medium"
                         >
-                          Permitir acceso a ubicación
+                          Permitir
                         </Button>
                       </div>
                     </motion.div>
