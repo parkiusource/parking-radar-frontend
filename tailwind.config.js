@@ -11,7 +11,11 @@ export default {
         sans: ['Poppins', 'sans-serif'],
       },
       colors: {
-        ...colors,
+        sky: colors.sky,
+        stone: colors.stone,
+        neutral: colors.neutral,
+        gray: colors.gray,
+        slate: colors.slate,
         primary: { ...colors.sky, DEFAULT: colors.sky[500] },
         secondary: { ...colors.gray, DEFAULT: colors.gray[800] },
         background: { ...colors.gray, DEFAULT: colors.gray[50] },
@@ -47,13 +51,13 @@ export default {
     plugin(({ theme, addUtilities }) => {
       const patternUtilities = {};
 
-      const colors = theme('colors');
+      const themeColors = theme('colors');
 
-      for (const color in colors) {
-        if (typeof colors[color] === 'object') {
+      for (const color in themeColors) {
+        if (typeof themeColors[color] === 'object') {
           patternUtilities[`.bg-boxes-${color}`] = {
-            backgroundColor: colors[color][950],
-            backgroundImage: `linear-gradient(${colors[color][900]} 0.1rem, transparent 0.1rem), linear-gradient(to right, ${colors[color][900]} 0.1rem, ${colors[color][950]} 0.1rem)`,
+            backgroundColor: themeColors[color][950],
+            backgroundImage: `linear-gradient(${themeColors[color][900]} 0.1rem, transparent 0.1rem), linear-gradient(to right, ${themeColors[color][900]} 0.1rem, ${themeColors[color][950]} 0.1rem)`,
             backgroundSize: '1.5rem 1.5rem',
           };
         }
@@ -64,12 +68,12 @@ export default {
     plugin(({ theme, addUtilities }) => {
       const textShadowUtilities = {};
 
-      const colors = theme('colors');
+      const themeColors = theme('colors');
 
-      for (const color in colors) {
-        if (typeof colors[color] === 'object') {
+      for (const color in themeColors) {
+        if (typeof themeColors[color] === 'object') {
           textShadowUtilities[`.text-shadow-${color}`] = {
-            textShadow: `0 0 1rem ${colors[color][500]}`,
+            textShadow: `0 0 1rem ${themeColors[color][500]}`,
           };
         }
       }
