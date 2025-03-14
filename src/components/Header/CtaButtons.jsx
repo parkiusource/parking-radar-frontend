@@ -4,8 +4,31 @@ import { motion } from 'framer-motion';
 import { LuParkingSquare, LuLogIn, LuSearch } from 'react-icons/lu';
 import { Button } from '@/components/common';
 import { twMerge } from 'tailwind-merge';
+import { useAdminProfile } from '@/api/hooks/useAdminOnboarding';
 
 const CtaButtons = ({ auth: { isAuthenticated, isLoading }, onLogin, className }) => {
+  const { data: profile, isLoading: profileLoading } = useAdminProfile();
+
+  const getAdminLink = () => {
+    console.log('Profile state:', {
+      profile,
+      isLoading: profileLoading,
+      isProfileComplete: profile?.isProfileComplete,
+      hasParking: profile?.hasParking
+    });
+
+    if (!profile || profileLoading) {
+      console.log('Redirecting to onboarding: No profile or loading');
+      return '/admin/onboarding';
+    }
+    if (profile.isProfileComplete && profile.hasParking) {
+      console.log('Redirecting to dashboard: Profile complete and has parking');
+      return '/admin/dashboard';
+    }
+    console.log('Redirecting to onboarding: Incomplete profile or no parking');
+    return '/admin/onboarding';
+  };
+
   return (
     <div className={twMerge("flex flex-row gap-2 lg:gap-4 items-center w-full md:w-auto", className)}>
       <motion.div
@@ -43,9 +66,10 @@ const CtaButtons = ({ auth: { isAuthenticated, isLoading }, onLogin, className }
             </div>
           </Button>
         ) : (
-          <Link to="/admin" className="w-full block">
+          <Link to={getAdminLink()} className="w-full block">
             <Button
               className="w-full flex items-center justify-center gap-2 px-3 md:px-4 py-2 text-sm font-medium bg-white text-primary hover:bg-white/90"
+              disabled={profileLoading}
             >
               <LuParkingSquare className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
               <span className="whitespace-nowrap">Mi Panel</span>

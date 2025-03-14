@@ -210,6 +210,17 @@ const resources = {
           findButton: 'Encontrar Parqueadero',
           registerButton: 'Registrar mi Parqueadero'
         }
+      },
+      // Añadimos traducciones para la página de parqueaderos
+      parking: {
+        loading: 'Buscando parqueaderos cercanos...',
+        noResults: 'No se encontraron parqueaderos cerca de {{location}}',
+        noResultsDefault: 'No se encontraron parqueaderos cercanos',
+        resultsFound: 'Parqueaderos cerca de {{location}}',
+        resultsFoundDefault: 'Parqueaderos cercanos',
+        oneSpotFound: 'Se encontró {{count}} parqueadero en tu área',
+        multipleSpotFound: 'Se encontraron {{count}} parqueaderos en tu área',
+        tryDifferentLocation: 'Intenta con otra ubicación o amplía tu área de búsqueda'
       }
     }
   },
@@ -419,6 +430,17 @@ const resources = {
           findButton: 'Find Parking',
           registerButton: 'Register my Parking Lot'
         }
+      },
+      // English translations for the parking page
+      parking: {
+        loading: 'Searching for nearby parking lots...',
+        noResults: 'No parking lots found near {{location}}',
+        noResultsDefault: 'No nearby parking lots found',
+        resultsFound: 'Parking lots near {{location}}',
+        resultsFoundDefault: 'Nearby parking lots',
+        oneSpotFound: 'Found {{count}} parking lot in your area',
+        multipleSpotFound: 'Found {{count}} parking lots in your area',
+        tryDifferentLocation: 'Try a different location or expand your search area'
       }
     }
   }

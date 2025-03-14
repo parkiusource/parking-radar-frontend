@@ -10,6 +10,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const isProduction = mode === 'production';
+  const backendUrl = env.VITE_API_BACKEND_URL || 'http://localhost:8000';
 
   return {
     plugins: [
@@ -111,9 +112,14 @@ export default defineConfig(({ mode }) => {
       historyApiFallback: true,
       proxy: {
         '/api': {
-          target: env.VITE_API_BACKEND_URL,
+          target: backendUrl,
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api/, ''),
+        },
+        '/ws': {
+          target: backendUrl,
+          ws: true, // Enable WebSocket proxy
+          changeOrigin: true,
         },
       },
     },

@@ -1,8 +1,10 @@
 import { LuPlus } from 'react-icons/lu';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useAuth0 } from '@auth0/auth0-react';
 
 import { Button } from '@/components/common/Button/Button';
+import { LoadingOverlay } from '@/components/common/LoadingOverlay';
 
 import { useParkingSpots } from '@/api/hooks/useParkingSpots';
 import { useCreateParking } from '@/api/hooks/useCreateParking';
@@ -11,11 +13,11 @@ import { ParkingFormDialog } from '@/components/admin/ParkingForm';
 import { getHeaderClassName } from '@/components/Header';
 import { Logo } from '@/components/Logo';
 import { useQueryClient } from '@/context/queryClientUtils';
-import { useAuth } from '@/hooks/useAuth';
 
-export default function Admin() {
+export default function AdminDashboard() {
   const { t } = useTranslation();
-  const { loginWithLocale, isAuthenticated, isLoading } = useAuth();
+  const navigate = useNavigate();
+  const { isAuthenticated, isLoading } = useAuth0();
 
   const queryClient = useQueryClient();
   const { parkingSpots, invalidate, refetch } = useParkingSpots({
@@ -29,11 +31,15 @@ export default function Admin() {
     },
   });
 
+  // Si está cargando, mostrar loading
   if (isLoading) {
-    return <></>;
-  } else if (!isAuthenticated) {
-    loginWithLocale();
-    return <></>;
+    return <LoadingOverlay message="Verificando sesión..." />;
+  }
+
+  // Si no está autenticado, redirigir al gateway
+  if (!isAuthenticated) {
+    navigate('/admin/gateway', { replace: true });
+    return <LoadingOverlay message="Redirigiendo..." />;
   }
 
   return (
@@ -56,13 +62,13 @@ export default function Admin() {
               description={t('admin.parkingList.addNew.description', 'Ingresa los datos del nuevo parqueadero para añadirlo a tu lista.')}
               onSubmit={createParking}
             >
-              <Button className="bg-blue-500 hover:bg-blue-600">
+              <Button className="bg-primary-500 hover:bg-primary-600">
                 <LuPlus className="mr-2 h-4 w-4" /> {t('admin.parkingList.addButton', 'Añadir Nuevo Parqueadero')}
               </Button>
             </ParkingFormDialog>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {parkingSpots.map((parking) => (
+            {parkingSpots?.map((parking) => (
               <ParkingCard parking={parking} key={parking.id} />
             ))}
           </div>

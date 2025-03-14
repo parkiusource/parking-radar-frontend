@@ -1,23 +1,48 @@
 import { useAuth0 } from '@auth0/auth0-react';
+import { useCallback } from 'react';
 
-const useAuth = () => {
-  const auth0 = useAuth0();
+export function useAuth() {
+  const {
+    isAuthenticated,
+    isLoading,
+    loginWithRedirect,
+    logout,
+    getAccessTokenSilently,
+    user
+  } = useAuth0();
 
-  const loginWithLocale = ({
-    redirect_uri = `${window.location.origin}/admin`,
-  } = {}) => {
-    auth0.loginWithRedirect({
-      authorizationParams: {
-        ui_locales: 'es',
-        redirect_uri,
-      },
+  const getToken = useCallback(async () => {
+    try {
+      return await getAccessTokenSilently();
+    } catch (error) {
+      console.error('Error al obtener el token:', error);
+      throw error;
+    }
+  }, [getAccessTokenSilently]);
+
+  const handleLogin = useCallback((options = {}) => {
+    return loginWithRedirect({
+      appState: { returnTo: '/admin/onboarding', ...options.appState },
+      ...options
     });
-  };
+  }, [loginWithRedirect]);
+
+  const handleLogout = useCallback(async (options = {}) => {
+    return logout({
+      logoutParams: {
+        returnTo: window.location.origin,
+        ...options.logoutParams
+      },
+      ...options
+    });
+  }, [logout]);
 
   return {
-    ...auth0,
-    loginWithLocale,
+    isAuthenticated,
+    isLoading,
+    user,
+    getToken,
+    loginWithRedirect: handleLogin,
+    logout: handleLogout
   };
-};
-
-export { useAuth };
+}

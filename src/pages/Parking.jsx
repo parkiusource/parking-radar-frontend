@@ -1,10 +1,11 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import React, { useCallback, useContext, useState, useEffect, useRef } from 'react';
+import React, { useCallback, useContext, useState, useEffect, useRef, useMemo } from 'react';
 import { LuCar, LuDollarSign, LuNavigation, LuSearch, LuArrowLeft, LuInfo, LuMapPin } from 'react-icons/lu';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 import { useSearchPlaces } from '@/api/hooks/useSearchPlaces';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { Button } from '@/components/common';
 import Map from '@/components/Map';
 import { SearchBox } from '@/components/SearchBox';
@@ -20,14 +21,97 @@ const DEFAULT_LIMIT = 10;
 // Componente optimizado del SearchBox para evitar re-renderizados innecesarios
 const MemoizedSearchBox = React.memo(SearchBox);
 
+// Componente ParkingSpotList para reducir re-renderizados del listado de parqueaderos
+const ParkingSpotList = React.memo(({
+  spots,
+  selectedSpot,
+  onSpotClick
+}) => {
+  if (spots.length === 0) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="flex flex-col items-center text-center p-6 bg-white rounded-xl shadow-sm"
+      >
+        <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+          <LuInfo className="h-8 w-8 text-gray-400" />
+        </div>
+        <h3 className="text-gray-700 font-medium mb-2">No encontramos parqueaderos</h3>
+        <p className="text-gray-600 text-sm">
+          No encontramos parqueaderos en esta zona. Intenta buscar en otra ubicación.
+        </p>
+      </motion.div>
+    );
+  }
+
+  return (
+    <React.Fragment>
+      {spots.map((parking) => (
+        <motion.div
+          key={parking.id}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.3 }}
+          layout
+          className={`mb-4 p-4 bg-white rounded-xl shadow-sm border border-transparent hover:border-primary/30 hover:shadow-md transition-all ${
+            selectedSpot?.id === parking.id ? 'border-primary border-opacity-70' : ''
+          }`}
+          onClick={() => onSpotClick(parking)}
+        >
+          <div className="flex justify-between items-center mb-3">
+            <div className="flex items-center">
+              <div className="bg-primary/10 p-1.5 rounded-full text-primary mr-2">
+                <LuCar className="w-4 h-4" />
+              </div>
+              <h3 className="font-medium text-gray-800 text-base">
+                {parking.name}
+              </h3>
+            </div>
+            <span className="text-xs px-2 py-0.5 bg-green-100 text-green-800 rounded-full font-medium">
+              Abierto
+            </span>
+          </div>
+
+          <div className="flex items-center text-gray-600 text-xs mb-4">
+            <LuMapPin className="mr-1 flex-shrink-0 text-gray-400" />
+            <span className="line-clamp-1">{parking.address}</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="flex items-center text-gray-700 text-sm">
+              <div className="bg-blue-50 p-1.5 rounded-full text-blue-600 mr-2">
+                <LuCar className="w-4 h-4" />
+              </div>
+              <span>{parking.available_spaces} disponibles</span>
+            </div>
+            <div className="flex items-center text-gray-700 text-sm">
+              <div className="bg-green-50 p-1.5 rounded-full text-green-600 mr-2">
+                <LuDollarSign className="w-4 h-4" />
+              </div>
+              <span>$60 a $100/min</span>
+            </div>
+          </div>
+
+          {/* No incluir botón de navegación - será añadido cuando se seleccione el spot */}
+        </motion.div>
+      ))}
+    </React.Fragment>
+  );
+});
+
+ParkingSpotList.displayName = 'ParkingSpotList';
+
 export default function Parking() {
   const { t } = useTranslation();
-  const { parkingSpots, targetLocation, setTargetLocation } =
+  const { parkingSpots, targetLocation, setTargetLocation, invalidate, refetch } =
     useContext(ParkingContext);
   const { user } = useContext(UserContext);
   const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  const [showConnectionMessage, setShowConnectionMessage] = useState(false);
 
   const searchRef = useRef(null);
   const [selectedSpot, setSelectedSpot] = useState(null);
@@ -82,6 +166,36 @@ export default function Parking() {
     }, 100);
   }, [searchParams, setTargetLocation]);
 
+  // Memoize the WebSocket message handler to keep its reference stable
+  const handleWebSocketMessage = useCallback((data) => {
+    if (data.type === 'new-change-in-parking') {
+      console.log('Received parking update, refreshing data...');
+      invalidate();
+      refetch();
+    }
+  }, [invalidate, refetch]);
+
+  // Initialize WebSocket connection with real-time updates
+  const { isConnected } = useWebSocket({
+    onMessage: handleWebSocketMessage,
+    // Only enable WebSocket when the component is mounted
+    enabled: true
+  });
+
+  // Efecto para mostrar/ocultar el mensaje de conexión
+  useEffect(() => {
+    if (isConnected) {
+      setShowConnectionMessage(true);
+      const timer = setTimeout(() => {
+        setShowConnectionMessage(false);
+      }, 3000); // Ocultar después de 3 segundos
+      return () => clearTimeout(timer);
+    } else {
+      setShowConnectionMessage(true);
+    }
+  }, [isConnected]);
+
+  // Memoizar el resultado de useNearbyParkingSpots para evitar recálculos
   const { nearbySpots } = useNearbyParkingSpots({
     spots: parkingSpots,
     center: targetLocation || userLocation,
@@ -89,8 +203,8 @@ export default function Parking() {
     maxRadius: DEFAULT_MAX_DISTANCE,
   });
 
-  // Determinar el título según el tipo de búsqueda
-  const getSectionTitle = () => {
+  // Determinar el título según el tipo de búsqueda - Memoizado para evitar recálculos
+  const getSectionTitle = useMemo(() => {
     if (isLoadingLocation) {
       return t('parking.loading', 'Buscando parqueaderos cercanos...');
     }
@@ -104,10 +218,10 @@ export default function Parking() {
     return searchTerm
       ? t('parking.resultsFound', 'Parqueaderos cerca de {{location}}', { location: searchTerm })
       : t('parking.resultsFoundDefault', 'Parqueaderos cercanos');
-  };
+  }, [isLoadingLocation, parkingSpots, searchTerm, t]);
 
-  // Determinar el mensaje descriptivo según el contexto
-  const getDescriptiveMessage = () => {
+  // Determinar el mensaje descriptivo - Memoizado para evitar recálculos
+  const getDescriptiveMessage = useMemo(() => {
     if (!parkingSpots?.length) {
       return t('parking.tryDifferentLocation', 'Intenta con otra ubicación o amplía tu área de búsqueda');
     }
@@ -115,13 +229,44 @@ export default function Parking() {
     return parkingSpots.length === 1
       ? t('parking.oneSpotFound', 'Se encontró {{count}} parqueadero en tu área', { count: 1 })
       : t('parking.multipleSpotFound', 'Se encontraron {{count}} parqueaderos en tu área', { count: parkingSpots.length });
-  };
+  }, [parkingSpots, t]);
 
   const handleParkingSpotSelected = useCallback(({ spot, navigate }) => {
     setSelectedSpot(spot);
     setSpotNavigation(() => navigate);
   }, []);
 
+  // Función mejorada para manejar el clic en la tarjeta de parqueadero
+  const handleParkingCardClick = useCallback((parking) => {
+    setSelectedSpot(parking);
+
+    // Utilizar la referencia al mapa para centrar en el parqueadero seleccionado
+    if (mapRef.current && mapRef.current.centerOnSpot) {
+      mapRef.current.centerOnSpot(parking);
+    }
+  }, []);
+
+  // Memoize ConnectionIndicator component to prevent re-renders
+  const MemoizedConnectionIndicator = React.memo(({ isConnected }) => (
+    <div className="flex items-center gap-2">
+      <div
+        className={`w-2 h-2 rounded-full ${
+          isConnected ? 'bg-emerald-500' : 'bg-amber-500'
+        }`}
+      />
+      <span className="text-xs font-medium hidden md:block">
+        {isConnected ? (
+          <span className="text-emerald-600">En línea</span>
+        ) : (
+          <span className="text-amber-600">Fuera de línea</span>
+        )}
+      </span>
+    </div>
+  ));
+
+  MemoizedConnectionIndicator.displayName = 'MemoizedConnectionIndicator';
+
+  // Función para manejar la selección de lugares personalizados en la búsqueda
   const handleCustomPlaceSelected = useCallback(
     (place) => {
       // Limpiar estados previos
@@ -165,16 +310,6 @@ export default function Parking() {
     [setTargetLocation, setInitialLocation],
   );
 
-  // Función mejorada para manejar el clic en la tarjeta de parqueadero
-  const handleParkingCardClick = useCallback((parking) => {
-    setSelectedSpot(parking);
-
-    // Utilizar la referencia al mapa para centrar en el parqueadero seleccionado
-    if (mapRef.current && mapRef.current.centerOnSpot) {
-      mapRef.current.centerOnSpot(parking);
-    }
-  }, [setSelectedSpot]);
-
   return (
     <div className="flex flex-col min-h-screen relative bg-gray-50">
       <header className={getHeaderClassName({
@@ -202,6 +337,8 @@ export default function Parking() {
         >
           <LuSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
         </MemoizedSearchBox>
+
+        <MemoizedConnectionIndicator isConnected={isConnected} />
       </header>
 
       <motion.main
@@ -210,6 +347,31 @@ export default function Parking() {
         transition={{ duration: 0.4 }}
         className="flex-grow grid grid-cols-1 md:grid-cols-3 gap-4 p-4 relative"
       >
+        {/* Show connection status messages */}
+        <AnimatePresence>
+          {showConnectionMessage && (
+            <motion.div
+              key={isConnected ? "connected" : "disconnected"}
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="absolute top-4 left-1/2 -translate-x-1/2 z-20"
+            >
+              {isConnected ? (
+                <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span>En línea</span>
+                </div>
+              ) : (
+                <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-amber-500" />
+                  <span>Sin conexión</span>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <AnimatePresence mode="wait">
           {isLoadingLocation && (
             <motion.div
@@ -255,91 +417,42 @@ export default function Parking() {
         >
           <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
             <h2 className="text-xl font-semibold text-gray-800">
-              {getSectionTitle()}
+              {getSectionTitle}
             </h2>
             <p className="text-gray-600 text-sm mt-1">
-              {getDescriptiveMessage()}
+              {getDescriptiveMessage}
             </p>
           </div>
 
           <AnimatePresence>
-            {nearbySpots.length === 0 ? (
+            <ParkingSpotList
+              key="parkingSpotList"
+              spots={nearbySpots}
+              selectedSpot={selectedSpot}
+              onSpotClick={handleParkingCardClick}
+            />
+
+            {/* Mostrar el botón Navegar solo para el spot seleccionado */}
+            {selectedSpot && spotNavigation && (
               <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex flex-col items-center text-center p-6 bg-white rounded-xl shadow-sm"
+                key="navigationButton"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className="bg-white rounded-xl p-4 shadow-sm mb-4"
               >
-                <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-                  <LuInfo className="h-8 w-8 text-gray-400" />
-                </div>
-                <h3 className="text-gray-700 font-medium mb-2">No encontramos parqueaderos</h3>
-                <p className="text-gray-600 text-sm">
-                  No encontramos parqueaderos en esta zona. Intenta buscar en otra ubicación.
-                </p>
-              </motion.div>
-            ) : (
-              nearbySpots.map((parking) => (
-                <motion.div
-                  key={parking.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                  layout
-                  className={`mb-4 p-4 bg-white rounded-xl shadow-sm border border-transparent hover:border-primary/30 hover:shadow-md transition-all ${
-                    selectedSpot?.id === parking.id ? 'border-primary border-opacity-70' : ''
-                  }`}
-                  onClick={() => handleParkingCardClick(parking)}
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    spotNavigation();
+                  }}
+                  className="w-full bg-amber-500 hover:bg-amber-600 text-white transition-all flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg shadow-md hover:shadow-lg hover:scale-[1.02]"
+                  aria-label="Navegar al parqueadero seleccionado"
                 >
-                  <div className="flex justify-between items-center mb-3">
-                    <div className="flex items-center">
-                      <div className="bg-primary/10 p-1.5 rounded-full text-primary mr-2">
-                        <LuCar className="w-4 h-4" />
-                      </div>
-                      <h3 className="font-medium text-gray-800 text-base">
-                        {parking.name}
-                      </h3>
-                    </div>
-                    <span className="text-xs px-2 py-0.5 bg-green-100 text-green-800 rounded-full font-medium">
-                      Abierto
-                    </span>
-                  </div>
-
-                  <div className="flex items-center text-gray-600 text-xs mb-4">
-                    <LuMapPin className="mr-1 flex-shrink-0 text-gray-400" />
-                    <span className="line-clamp-1">{parking.address}</span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div className="flex items-center text-gray-700 text-sm">
-                      <div className="bg-blue-50 p-1.5 rounded-full text-blue-600 mr-2">
-                        <LuCar className="w-4 h-4" />
-                      </div>
-                      <span>{parking.available_spaces} disponibles</span>
-                    </div>
-                    <div className="flex items-center text-gray-700 text-sm">
-                      <div className="bg-green-50 p-1.5 rounded-full text-green-600 mr-2">
-                        <LuDollarSign className="w-4 h-4" />
-                      </div>
-                      <span>$60 a $100/min</span>
-                    </div>
-                  </div>
-
-                  {spotNavigation && (
-                    <Button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        spotNavigation();
-                      }}
-                      className="w-full bg-amber-500 hover:bg-amber-600 text-white transition-all flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg shadow-md hover:shadow-lg hover:scale-[1.02]"
-                      aria-label="Navegar al parqueadero seleccionado"
-                    >
-                      <LuNavigation className="w-5 h-5 animate-pulse" />
-                      <span className="font-medium">Navegar</span>
-                    </Button>
-                  )}
-                </motion.div>
-              ))
+                  <LuNavigation className="w-5 h-5 animate-pulse" />
+                  <span className="font-medium">Navegar a {selectedSpot.name}</span>
+                </Button>
+              </motion.div>
             )}
           </AnimatePresence>
         </motion.section>
