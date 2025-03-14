@@ -1,31 +1,19 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
 export default function ScrollToTop() {
   const { pathname } = useLocation();
 
-  const scrollToTop = useCallback(() => {
-    try {
-      window.scrollTo({
+  useEffect(() => {
+    const main = document.getElementById('appMain');
+    if (main) {
+      main.scrollTo({
         top: 0,
         left: 0,
-        behavior: 'instant'
+        behavior: 'smooth',
       });
-    } catch {
-      // Fallback para navegadores que no soportan el objeto options
-      window.scrollTo(0, 0);
     }
-  }, []);
-
-  useEffect(() => {
-    // Usar requestAnimationFrame para asegurar que el scroll ocurra en el siguiente frame
-    const frameId = requestAnimationFrame(scrollToTop);
-
-    // Cleanup para cancelar cualquier animación pendiente
-    return () => {
-      cancelAnimationFrame(frameId);
-    };
-  }, [pathname, scrollToTop]);
+  }, [pathname]);
 
   return null;
 }
