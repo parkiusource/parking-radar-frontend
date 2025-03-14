@@ -12,8 +12,14 @@ import { CtaButtons } from './CtaButtons';
 import { getHeaderClassName } from './getHeaderClassName';
 
 const Header = ({ className }) => {
-  const { loginWithLocale, isAuthenticated, isLoading } = useAuth();
+  const { loginWithRedirect, isAuthenticated, isLoading } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const handleLogin = () => {
+    loginWithRedirect({
+      appState: { returnTo: '/admin/onboarding' }
+    });
+  };
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(prev => !prev);
@@ -46,7 +52,7 @@ const Header = ({ className }) => {
           <LanguageSwitcher className="mr-2" />
           <CtaButtons
             auth={{ isAuthenticated, isLoading }}
-            onLogin={loginWithLocale}
+            onLogin={handleLogin}
             className="scale-95 origin-right"
           />
         </nav>
@@ -82,20 +88,20 @@ const Header = ({ className }) => {
               </div>
             </div>
             <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className='flex justify-center pt-2'
-              >
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className='flex justify-center pt-2'
+            >
               <CtaButtons
                 auth={{ isAuthenticated, isLoading }}
                 onLogin={() => {
                   setMobileMenuOpen(false);
-                  loginWithLocale();
+                  handleLogin();
                 }}
                 className="w-full justify-center"
               />
-              </motion.div>
+            </motion.div>
           </motion.nav>
         )}
       </AnimatePresence>

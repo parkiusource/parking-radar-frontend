@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-
 import { motion } from 'framer-motion';
-
 import { twMerge } from 'tailwind-merge';
+import { useNavigate } from 'react-router-dom';
 
 import { Button } from '@/components/common';
 import {
@@ -15,6 +14,8 @@ import { getHeaderClassName } from '@/components/Header';
 import { Logo } from '@/components/Logo';
 
 import { useAuth } from '@/hooks/useAuth';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAdminProfile } from '@/api/hooks/useAdminOnboarding';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -28,6 +29,8 @@ const containerVariants = {
 };
 
 export default function AdminOnboarding() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const firstStepRef = useRef();
   const secondStepRef = useRef();
 
@@ -38,16 +41,30 @@ export default function AdminOnboarding() {
     user,
   } = useAuth();
 
-  // @TODO: Remove this mock
-  const [userDetails, userDetailsLoading] = [
-    {
-      email: 'peter@parkiu.com',
-      name: 'Peter Castiblanco',
-      id: '123456789',
-      onboardingStep: '2',
-    },
-    false,
-  ];
+  const { data: profile, isLoading: profileLoading } = useAdminProfile();
+
+  const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState(0);
+
+  // Efecto para manejar la redirección basada en el estado del perfil
+  useEffect(() => {
+    if (!profileLoading && profile) {
+      // Si el perfil está completo y tenemos parqueaderos, redirigir al dashboard
+      if (profile.isProfileComplete && profile.hasParking) {
+        navigate('/admin/dashboard', { replace: true });
+        return;
+      }
+
+      // Si el perfil no está completo, determinar el paso actual
+      if (!profile.isProfileComplete) {
+        setStep(1); // Ir al paso de completar perfil
+      } else if (!profile.hasParking) {
+        setStep(2); // Ir al paso de crear parqueadero
+      } else {
+        setStep(3); // Ir al paso de verificación
+      }
+    }
+  }, [profile, profileLoading, navigate]);
 
   const steps = useMemo(() => {
     return [
@@ -58,13 +75,15 @@ export default function AdminOnboarding() {
       {
         id: 1,
         title: 'Información Básica',
-        description: 'Cuéntanos un poco sobre tu negocio',
+        description: 'Completa tu perfil de administrador',
         buttonLabel: 'Guardar y Continuar',
         ref: firstStepRef,
         StepComponent: FirstStep,
         beforeNext: async () => {
           if (firstStepRef?.current) {
-            await firstStepRef.current.submitForm();
+            const data = await firstStepRef.current.submitForm();
+            queryClient.invalidateQueries({ queryKey: ['adminProfile'] });
+            return data;
           }
         },
       },
@@ -77,7 +96,9 @@ export default function AdminOnboarding() {
         StepComponent: SecondStep,
         beforeNext: async () => {
           if (secondStepRef?.current) {
-            await secondStepRef.current.submitForm();
+            const data = await secondStepRef.current.submitForm();
+            queryClient.invalidateQueries({ queryKey: ['adminParkingLots'] });
+            return data;
           }
         },
       },
@@ -85,28 +106,27 @@ export default function AdminOnboarding() {
         id: 3,
         title: 'Verificación',
         description: 'Verificaremos tu identidad para continuar',
+        buttonLabel: 'Ir al Dashboard',
         StepComponent: ThirdStep,
+        beforeNext: () => {
+          navigate('/admin/dashboard');
+        },
       },
     ];
-  }, [firstStepRef]);
-
-  const [loading, setLoading] = useState(false);
-
-  const [step, setStep] = useState(0);
+  }, [navigate, queryClient]);
 
   const currentStep = useMemo(
     () => steps.find((s) => s.id === step),
     [steps, step],
   );
 
-  console.log({ step, currentStep });
-
   const nextStep = useCallback(async () => {
     if (currentStep.beforeNext) {
       setLoading(true);
       try {
         await currentStep.beforeNext();
-      } catch {
+      } catch (error) {
+        console.error('Error in step:', error);
         return;
       } finally {
         setLoading(false);
@@ -115,15 +135,13 @@ export default function AdminOnboarding() {
     setStep(currentStep.id + 1);
   }, [currentStep]);
 
-  useEffect(() => {
-    if (userDetails?.onboardingStep) {
-      setStep(parseInt(userDetails.onboardingStep) + 1);
-    }
-  }, [userDetails]);
-
-  if (userAuthLoading || userDetailsLoading) {
+  // Mostrar loading mientras se verifica la autenticación o se carga el perfil
+  if (userAuthLoading || profileLoading) {
     return <></>;
-  } else if (!isAuthenticated || !user) {
+  }
+
+  // Redirigir a login si no está autenticado
+  if (!isAuthenticated || !user) {
     loginWithLocale();
     return <></>;
   }

@@ -4,8 +4,17 @@ import { motion } from 'framer-motion';
 import { LuParkingSquare, LuLogIn, LuSearch } from 'react-icons/lu';
 import { Button } from '@/components/common';
 import { twMerge } from 'tailwind-merge';
+import { useAdminProfile } from '@/api/hooks/useAdminOnboarding';
 
 const CtaButtons = ({ auth: { isAuthenticated, isLoading }, onLogin, className }) => {
+  const { data: profile } = useAdminProfile();
+
+  const getAdminLink = () => {
+    if (!profile) return '/admin/onboarding';
+    if (profile.isProfileComplete) return '/admin/dashboard';
+    return '/admin/onboarding';
+  };
+
   return (
     <div className={twMerge("flex flex-row gap-2 lg:gap-4 items-center w-full md:w-auto", className)}>
       <motion.div
@@ -43,7 +52,7 @@ const CtaButtons = ({ auth: { isAuthenticated, isLoading }, onLogin, className }
             </div>
           </Button>
         ) : (
-          <Link to="/admin" className="w-full block">
+          <Link to={getAdminLink()} className="w-full block">
             <Button
               className="w-full flex items-center justify-center gap-2 px-3 md:px-4 py-2 text-sm font-medium bg-white text-primary hover:bg-white/90"
             >

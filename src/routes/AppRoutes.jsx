@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, Navigate } from 'react-router-dom';
 
 // Lazy load components
 const HomePage = lazy(() => import('@/pages/HomePage'));
@@ -19,7 +19,6 @@ const LoadingFallback = () => (
   </div>
 );
 
-
 const AppRoutes = () => (
   <Suspense fallback={<LoadingFallback />}>
     <Routes>
@@ -29,12 +28,14 @@ const AppRoutes = () => (
       <Route path="/parking" element={<Parking />} />
       <Route path="/support" element={<SupportForm />} />
       <Route path="/admin-landing" element={<AdminLandingPage />} />
+      <Route path="/admin" element={<Navigate to="/admin/onboarding" replace />} />
       <Route path="/admin/dashboard" element={<AdminDashboard />} />
       <Route path="/admin/gateway" element={<AdminGateway />} />
       <Route path="/admin/onboarding" element={<AdminOnboarding />} />
+      {/* Catch all route */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   </Suspense>
 );
-
 
 export default AppRoutes;

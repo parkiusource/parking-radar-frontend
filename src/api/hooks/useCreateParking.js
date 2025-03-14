@@ -1,35 +1,19 @@
-import { useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
+import { useAuth0 } from '@auth0/auth0-react';
+import { createParking as createParkingService } from '../services/admin';
 
-import { mutationQuery } from '@/api/base';
+export function useCreateParking({ onSuccess }) {
+  const { getAccessTokenSilently } = useAuth0();
 
-const API_BACKEND_URL = import.meta.env.VITE_API_BACKEND_URL;
-
-const useCreateParking = (options) => {
-  const mutation = useMutation({
-    mutationFn: async (data) => {
-      const response = await mutationQuery({
-        url: `${API_BACKEND_URL}/parking-lots/`,
-        method: 'POST',
-        data,
-      });
-
-      return response;
+  const { mutate } = useMutation({
+    mutationFn: async (parking) => {
+      const token = await getAccessTokenSilently();
+      return createParkingService(token, parking);
     },
-    ...options,
+    onSuccess,
   });
 
-  const createParking = useCallback(
-    (parking) => {
-      return mutation.mutate({
-        ...parking,
-        available_spots: parking.totalSpots,
-      });
-    },
-    [mutation],
-  );
-
-  return { ...mutation, createParking };
-};
-
-export { useCreateParking };
+  return {
+    createParking: mutate,
+  };
+}

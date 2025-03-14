@@ -1,23 +1,19 @@
 import { useAuth0 } from '@auth0/auth0-react';
 
-const useAuth = () => {
+export function useAuth() {
   const auth0 = useAuth0();
 
-  const loginWithLocale = ({
-    redirect_uri = `${window.location.origin}/admin`,
-  } = {}) => {
-    auth0.loginWithRedirect({
-      authorizationParams: {
-        ui_locales: 'es',
-        redirect_uri,
-      },
-    });
+  const getToken = async () => {
+    try {
+      return await auth0.getAccessTokenSilently();
+    } catch (error) {
+      console.error('Error al obtener el token:', error);
+      throw error;
+    }
   };
 
   return {
     ...auth0,
-    loginWithLocale,
+    getToken,
   };
-};
-
-export { useAuth };
+}
