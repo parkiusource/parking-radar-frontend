@@ -20,9 +20,12 @@ const createClient = () => {
         return Promise.reject(new Error('Auth0 client not configured'));
       }
 
-      // Obtener un token fresco usando getAccessTokenSilently
+      // Obtener un token fresco usando getAccessTokenSilently con scope específico
       const token = await auth0Client.getAccessTokenSilently({
-        audience: import.meta.env.VITE_AUTH_AUDIENCE,
+        authorizationParams: {
+          audience: import.meta.env.VITE_AUTH_AUDIENCE,
+          scope: 'openid profile email offline_access'
+        }
       });
 
       if (!token) {
