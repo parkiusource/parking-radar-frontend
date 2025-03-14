@@ -30,7 +30,14 @@ class WebSocketService {
       }
 
       // For production, convert the provided URL
-      baseURL = baseURL.replace(/\/+$/, '').replace(/\/ws$/, '');
+      // Remove trailing slashes safely without regex backtracking
+      while (baseURL.endsWith('/')) {
+        baseURL = baseURL.slice(0, -1);
+      }
+      // Remove '/ws' suffix if present
+      if (baseURL.endsWith('/ws')) {
+        baseURL = baseURL.slice(0, -3);
+      }
       return baseURL.replace(/^http/, 'ws') + '/ws';
     } catch (error) {
       console.error('Error constructing WebSocket URL:', error);
