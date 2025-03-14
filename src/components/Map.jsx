@@ -10,17 +10,17 @@ import {
   forwardRef,
   useImperativeHandle
 } from 'react';
-import { createRoot } from 'react-dom/client';
 import { BiTargetLock } from 'react-icons/bi';
 import { LuNavigation, LuMapPin, LuCar, LuDollarSign } from 'react-icons/lu';
 
-import SvgParking from '@/assets/ComponentIcons/SvgParking';
 import { Button } from '@/components/common';
 import { ParkingContext } from '@/context/ParkingContext';
 import { UserContext } from '@/context/UserContext';
 
 const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
+// Mover las constantes fuera del componente para evitar recreación en cada renderizado
+// https://react-google-maps-api-docs.netlify.app/#loadscript
 const LIBRARIES = ['marker'];
 const DEFAULT_RADIUS = 30;
 const DEFAULT_LOCATION = { lat: 4.711, lng: -74.0721 };
@@ -30,6 +30,31 @@ const COLOR_AVAILABLE = '#1B5E20';
 
 // Mayor tolerancia para comparar coordenadas
 const COORDINATE_TOLERANCE = 0.0005;
+
+// Crea un elemento HTML para el contenido del marcador personalizado
+const createMarkerElement = (spot) => {
+  const iconColor = spot.available_spaces > 0 ? COLOR_AVAILABLE : COLOR_NO_AVAILABLE;
+
+  // Crear un contenedor para el marcador
+  const element = document.createElement('div');
+  element.style.position = 'relative';
+  element.style.cursor = 'pointer';
+  element.style.width = '40px';
+  element.style.height = '50px';
+  element.style.transition = 'all 0.3s ease';
+
+  // Crear el SVG como HTML
+  element.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="50" viewBox="0 0 40 50" style="filter: drop-shadow(0px 3px 3px rgba(0,0,0,0.3));">
+      <path fill="${iconColor}" d="M20 0C9 0 0 9 0 20c0 11 9 20 20 20s20-9 20-20S31 0 20 0m0 33.3c-7.3 0-13.3-6-13.3-13.3 0-7.3 6-13.3 13.3-13.3 7.3 0 13.3 6 13.3 13.3 0 7.3-6 13.3-13.3 13.3"/>
+      <path fill="${iconColor}" d="M20 2.5c9.7 0 17.5 7.8 17.5 17.5 0 3.5-1 6.7-2.7 9.4l-3.1 5-6.3 10.4c-1.3 2.1-3.5 3.7-6.1 4.2-.9.2-1.6.2-2.4.1-3-.4-5.3-2.1-6.7-4.3l-6.3-10.4-3.1-5C.9 26.7 0 23.5 0 20 0 10.3 7.8 2.5 17.5 2.5h2.5z"/>
+      <circle fill="white" cx="20" cy="20" r="8"/>
+      <text x="20" y="24" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="14" fill="${iconColor}">P</text>
+    </svg>
+  `;
+
+  return element;
+};
 
 // Convertir a forwardRef para poder recibir la ref desde el componente padre
 const ParkingMap = forwardRef(({
@@ -44,7 +69,7 @@ const ParkingMap = forwardRef(({
   const mapRef = useRef(null);
   const markersRef = useRef([]);
   const userCircleRef = useRef(null);
-  const markerLibRef = useRef(null);
+  const prevParkingSpotsRef = useRef(null);
 
   // Mantener un mapa auxiliar para buscar marcadores por ID o nombre
   const spotMarkerMapRef = useRef(new Map());
@@ -55,17 +80,10 @@ const ParkingMap = forwardRef(({
   const { user, updateUser } = useContext(UserContext);
   const { location: userLocation } = user || {};
 
-  // Forzar la recarga del mapa para reforzar que use la ubicación adecuada
-  const [mapKey, setMapKey] = useState(0);
+  // Reducir recargas completas usando marcador de inicialización en lugar de mapKey
+  const [forceMapUpdate, setForceMapUpdate] = useState(false);
 
-  // Actualizar el mapKey cada vez que cambia la ubicación objetivo
-  useEffect(() => {
-    if (targetLocationProp) {
-      setMapKey(prev => prev + 1);
-    }
-  }, [targetLocationProp]);
-
-  // Ignorar completamente el contextTargetLocation cuando se proporciona targetLocationProp
+  // Memoizar efectiveTargetLocation para evitar recálculos innecesarios
   const effectiveTargetLocation = useMemo(() => {
     // Si hay una prop de ubicación objetivo, usarla directamente ignorando el contexto
     if (targetLocationProp) {
@@ -75,9 +93,31 @@ const ParkingMap = forwardRef(({
     return contextTargetLocation;
   }, [targetLocationProp, contextTargetLocation]);
 
+  // Memoizar el centro del mapa para evitar recálculos innecesarios
   const mapCenter = useMemo(() => {
     return effectiveTargetLocation || userLocation || DEFAULT_LOCATION;
   }, [effectiveTargetLocation, userLocation]);
+
+  // Memoizar las opciones del mapa para evitar recreaciones
+  const mapOptions = useMemo(() => ({
+    mapId: MAP_ID,
+    zoomControlOptions: {
+      position: 3, // LEFT_BOTTOM
+    },
+    fullscreenControl: true,
+    fullscreenControlOptions: {
+      position: 7, // RIGHT_BOTTOM
+    },
+    streetViewControl: false,
+    disableDefaultUI: false,
+    scaleControl: true,
+    scaleControlOptions: {
+      position: 5,
+    },
+    zoomControl: true,
+    mapTypeControl: false,
+    gestureHandling: 'greedy',
+  }), []);
 
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: apiKey,
@@ -179,9 +219,11 @@ const ParkingMap = forwardRef(({
         if (!marker || !marker.content) return;
 
         if (marker === foundMarker) {
+          // Resaltar el marcador seleccionado
           marker.content.style.transform = 'scale(1.2)';
           marker.content.style.zIndex = '10';
         } else {
+          // Restaurar estilo normal
           marker.content.style.transform = 'scale(1)';
           marker.content.style.zIndex = '1';
         }
@@ -211,6 +253,193 @@ const ParkingMap = forwardRef(({
     // Asegurar que el infoWindow esté abierto
     setInfoWindowOpen(true);
   }, [centerMapOnLocation, highlightMarker]);
+
+  // Manejar clic en el mapa (cierra info window y deselecciona spot)
+  const handleMapClick = useCallback(() => {
+    setSelectedSpot(null);
+    setInfoWindowOpen(false);
+  }, [setSelectedSpot]);
+
+  // Función para manejar directamente los clics en las tarjetas
+  const handleCardClick = useCallback((spot) => {
+    if (!spot) return;
+
+    console.log('Tarjeta de parqueadero seleccionada:', spot.name);
+
+    // Actualizar selectedSpot
+    setSelectedSpot(spot);
+
+    // Si el mapa está listo, centrar inmediatamente
+    if (mapRef.current && mapInitializedRef.current) {
+      centerOnSelectedSpot(spot);
+    } else {
+      console.warn('El mapa no está inicializado, no se puede centrar');
+    }
+  }, [setSelectedSpot, centerOnSelectedSpot]);
+
+  // Comparar si los parkingSpots han cambiado realmente
+  const spotsHaveChanged = useCallback(() => {
+    if (!prevParkingSpotsRef.current || !parkingSpots) return true;
+    if (prevParkingSpotsRef.current.length !== parkingSpots.length) return true;
+
+    // Comparación superficial de los IDs y available_spaces para determinar si actualizar
+    for (let i = 0; i < parkingSpots.length; i++) {
+      const prev = prevParkingSpotsRef.current[i];
+      const curr = parkingSpots[i];
+      if (!prev || !curr) return true;
+      if (prev.id !== curr.id || prev.available_spaces !== curr.available_spaces) {
+        return true;
+      }
+    }
+    return false;
+  }, [parkingSpots]);
+
+  // Función para abrir navegación en Google Maps
+  const openNavigation = (lat, lng) => {
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+    window.open(url, '_blank');
+  };
+
+  // Función simplificada para crear marcadores usando Google Maps API estándar
+  const initializeMarkers = useCallback(async (forceFull = false) => {
+    console.log('initializeMarkers ejecutándose, forceFull =', forceFull);
+    if (!mapRef.current || !isLoaded || !window.google) {
+      console.error('No se puede inicializar marcadores:', {
+        mapRefExiste: !!mapRef.current,
+        isLoaded,
+        googleExiste: !!window.google
+      });
+      return;
+    }
+
+    try {
+      // Verificar si necesitamos recrear los marcadores completamente
+      const needsFullRefresh = forceFull || !markersRef.current.length || spotsHaveChanged();
+      console.log('¿Necesita actualización completa?', needsFullRefresh, 'marcadores actuales:', markersRef.current.length);
+
+      if (!needsFullRefresh) {
+        // Solo actualizar atributos de marcadores existentes
+        if (markersRef.current.length === parkingSpots.length) {
+          console.log('Actualizando marcadores existentes sin recrearlos');
+          for (let i = 0; i < parkingSpots.length; i++) {
+            const spot = parkingSpots[i];
+            const marker = markersRef.current[i];
+
+            if (marker && marker.content) {
+              // Actualizar el contenido del marcador
+              const newContent = createMarkerElement(spot);
+              marker.content.innerHTML = newContent.innerHTML;
+            }
+          }
+          // Actualizar la referencia a los spots actuales
+          prevParkingSpotsRef.current = [...parkingSpots];
+          return;
+        }
+      }
+
+      console.log('Realizando actualización completa de marcadores para', parkingSpots?.length || 0, 'spots');
+
+      // Limpiar marcadores existentes
+      if (Array.isArray(markersRef.current)) {
+        console.log('Limpiando', markersRef.current.length, 'marcadores existentes');
+        markersRef.current.forEach((marker) => {
+          if (marker) {
+            marker.setMap(null);
+          }
+        });
+      }
+      markersRef.current = [];
+
+      // Limpiar mapa auxiliar
+      spotMarkerMapRef.current.clear();
+
+      // Cargar la biblioteca de marcadores
+      const { AdvancedMarkerElement } = await window.google.maps.importLibrary('marker');
+
+      // Verificar que parkingSpots es un array válido
+      if (!Array.isArray(parkingSpots) || parkingSpots.length === 0) {
+        console.error('No hay parkingSpots para mostrar:', parkingSpots);
+        return;
+      }
+
+      // Crear marcadores para cada spot utilizando el AdvancedMarkerElement
+      const newMarkers = [];
+      console.log('Creando', parkingSpots.length, 'nuevos marcadores');
+
+      for (const spot of parkingSpots) {
+        if (!spot || typeof spot.latitude !== 'number' || typeof spot.longitude !== 'number') {
+          console.warn('Spot inválido, saltando:', spot);
+          continue;
+        }
+
+        console.log('Creando marcador para:', spot.name, 'en', spot.latitude, spot.longitude);
+
+        // Crear el elemento HTML para el marcador
+        const markerContent = createMarkerElement(spot);
+
+        // Crear el marcador avanzado
+        const marker = new AdvancedMarkerElement({
+          position: { lat: spot.latitude, lng: spot.longitude },
+          map: mapRef.current,
+          title: spot.name,
+          content: markerContent,
+          zIndex: 1
+        });
+
+        // Agrega un listener para manejar clics en el marcador
+        marker.addListener('gmp-click', () => {
+          handleCardClick(spot);
+
+          if (onParkingSpotSelected && typeof onParkingSpotSelected === 'function') {
+            onParkingSpotSelected({
+              spot,
+              navigate: () => openNavigation(spot.latitude, spot.longitude)
+            });
+          }
+        });
+
+        // Guardar marcador en el array
+        newMarkers.push(marker);
+
+        // Guardar en el mapa auxiliar para búsqueda rápida
+        if (spot.id) spotMarkerMapRef.current.set(spot.id, marker);
+        if (spot.name) spotMarkerMapRef.current.set(spot.name, marker);
+      }
+
+      console.log('Creados', newMarkers.length, 'marcadores nuevos');
+      markersRef.current = newMarkers;
+      // Guardar referencia a los spots actuales para comparación futura
+      prevParkingSpotsRef.current = [...parkingSpots];
+
+      // Agregar listener al mapa para cerrar infowindow al hacer clic fuera
+      if (mapRef.current) {
+        if (mapRef.current.clickListener) {
+          window.google.maps.event.removeListener(mapRef.current.clickListener);
+        }
+
+        mapRef.current.clickListener = window.google.maps.event.addListener(
+          mapRef.current,
+          'click',
+          () => {
+            // Resetear estado de marcadores
+            if (Array.isArray(markersRef.current)) {
+              markersRef.current.forEach(marker => {
+                if (marker && marker.content) {
+                  marker.content.style.transform = 'scale(1)';
+                  marker.content.style.zIndex = '1';
+                }
+              });
+            }
+
+            // Cerrar infowindow
+            handleMapClick();
+          }
+        );
+      }
+    } catch (error) {
+      console.error('Error al inicializar marcadores:', error);
+    }
+  }, [parkingSpots, isLoaded, onParkingSpotSelected, handleCardClick, handleMapClick, spotsHaveChanged]);
 
   // Efecto unificado para centrar el mapa cuando cambia la ubicación objetivo
   useEffect(() => {
@@ -245,296 +474,56 @@ const ParkingMap = forwardRef(({
     }
   }, [userLocation, centerMapOnLocation, effectiveTargetLocation, selectedSpot]);
 
-  // Función mejorada para crear el contenido de los marcadores
-  const createMarkerContent = useCallback((spot) => {
-    try {
-      const markerContent = document.createElement('div');
-      markerContent.className = 'parking-marker-container';
-
-      // Determinar color basado en disponibilidad
-      const color = spot.available_spaces > 0 ? COLOR_AVAILABLE : COLOR_NO_AVAILABLE;
-
-      const root = createRoot(markerContent);
-      root.render(
-        <SvgParking
-          style={{
-            width: '35px',
-            height: '45px',
-            filter: 'drop-shadow(0px 3px 3px rgba(0,0,0,0.2))',
-            transition: 'all 0.3s ease'
-          }}
-          fill={color}
-          className="parking-marker"
-        />
-      );
-
-      return markerContent;
-    } catch (error) {
-      console.error('Error al crear el contenido del marcador:', error);
-      // Crear un marcador alternativo simple como fallback
-      const fallback = document.createElement('div');
-      fallback.textContent = 'P';
-      fallback.style.width = '30px';
-      fallback.style.height = '30px';
-      fallback.style.backgroundColor = spot.available_spaces > 0 ? COLOR_AVAILABLE : COLOR_NO_AVAILABLE;
-      fallback.style.color = 'white';
-      fallback.style.textAlign = 'center';
-      fallback.style.lineHeight = '30px';
-      fallback.style.fontWeight = 'bold';
-      fallback.style.borderRadius = '50%';
-      return fallback;
-    }
-  }, []);
-
-  // Cargar la biblioteca de marcadores avanzados
-  const loadMarkerLibrary = useCallback(async () => {
-    if (!markerLibRef.current && window.google) {
-      try {
-        const lib = await window.google.maps.importLibrary('marker');
-        markerLibRef.current = lib;
-        return lib;
-      } catch (error) {
-        console.error('Error al cargar la biblioteca de marcadores:', error);
-        return null;
-      }
-    }
-    return markerLibRef.current;
-  }, []);
-
-  // Manejar clic en el mapa (cierra info window y deselecciona spot)
-  const handleMapClick = useCallback(() => {
-    setSelectedSpot(null);
-    setInfoWindowOpen(false);
-  }, [setSelectedSpot]);
-
-  // Función para manejar directamente los clics en las tarjetas
-  const handleCardClick = useCallback((spot) => {
-    if (!spot) return;
-
-    console.log('Tarjeta de parqueadero seleccionada:', spot.name);
-
-    // Actualizar selectedSpot
-    setSelectedSpot(spot);
-
-    // Si el mapa está listo, centrar inmediatamente
-    if (mapRef.current && mapInitializedRef.current) {
-      centerOnSelectedSpot(spot);
-    } else {
-      console.warn('El mapa no está inicializado, no se puede centrar');
-    }
-  }, [setSelectedSpot, centerOnSelectedSpot]);
-
-  // Inicialización mejorada de marcadores
-  const initializeMarkers = useCallback(async () => {
-    if (!mapRef.current || !isLoaded || !window.google) return;
-
-    try {
-      console.log('Iniciando creación de marcadores...');
-      // Limpiar marcadores existentes
-      if (Array.isArray(markersRef.current)) {
-        markersRef.current.forEach((marker) => {
-          if (marker && typeof marker.setMap === 'function') {
-            marker.setMap(null);
-          }
-        });
-      }
-      markersRef.current = [];
-
-      // Limpiar mapa auxiliar
-      spotMarkerMapRef.current.clear();
-
-      // Cargar biblioteca de marcadores
-      const markerLib = await loadMarkerLibrary();
-      if (!markerLib || !markerLib.AdvancedMarkerElement) {
-        console.error('No se pudo cargar la biblioteca de marcadores');
-        return;
-      }
-
-      const { AdvancedMarkerElement } = markerLib;
-
-      // Verificar que parkingSpots es un array válido
-      if (!Array.isArray(parkingSpots) || parkingSpots.length === 0) {
-        console.error('No hay parkingSpots para mostrar:', parkingSpots);
-        return;
-      }
-
-      // Crear marcadores para cada spot
-      const newMarkers = [];
-      console.log(`Creando ${parkingSpots.length} marcadores...`);
-
-      for (const spot of parkingSpots) {
-        if (!spot || typeof spot.latitude !== 'number' || typeof spot.longitude !== 'number') {
-          continue;
-        }
-
-        const marker = new AdvancedMarkerElement({
-          map: mapRef.current,
-          position: { lat: spot.latitude, lng: spot.longitude },
-          title: spot.name,
-          content: createMarkerContent(spot),
-        });
-
-        marker.addListener('gmp-click', () => {
-          // Llamar al manejador de clics de tarjeta directamente
-          handleCardClick(spot);
-
-          // Notificar la selección externamente
-          if (onParkingSpotSelected && typeof onParkingSpotSelected === 'function') {
-            onParkingSpotSelected({
-              spot,
-              navigate: () => openNavigation(spot.latitude, spot.longitude)
-            });
-          }
-        });
-
-        // Guardar marcador en el array
-        newMarkers.push(marker);
-
-        // Guardar en el mapa auxiliar para búsqueda rápida
-        if (spot.id) spotMarkerMapRef.current.set(spot.id, marker);
-        if (spot.name) spotMarkerMapRef.current.set(spot.name, marker);
-      }
-
-      markersRef.current = newMarkers;
-      console.log(`Creados ${newMarkers.length} marcadores exitosamente`);
-
-      // Agregar listener al mapa para cerrar infowindow al hacer clic fuera
-      if (mapRef.current) {
-        if (mapRef.current.clickListener) {
-          window.google.maps.event.removeListener(mapRef.current.clickListener);
-        }
-
-        mapRef.current.clickListener = window.google.maps.event.addListener(
-          mapRef.current,
-          'click',
-          () => {
-            // Resetear estado de marcadores
-            if (Array.isArray(markersRef.current)) {
-              markersRef.current.forEach(marker => {
-                if (marker && marker.content) {
-                  marker.content.style.transform = 'scale(1)';
-                  marker.content.style.zIndex = '1';
-                }
-              });
-            }
-
-            // Cerrar infowindow
-            handleMapClick();
-          }
-        );
-      }
-    } catch (error) {
-      console.error('Error al inicializar marcadores:', error);
-    }
-  }, [parkingSpots, createMarkerContent, isLoaded, onParkingSpotSelected, loadMarkerLibrary, handleCardClick, handleMapClick]);
-
-  // Inicializar marcadores cuando el mapa esté cargado
+  // Efecto optimizado para inicializar marcadores solo cuando sea necesario
   useEffect(() => {
-    if (isLoaded && mapRef.current) {
-      setTimeout(() => {
-        initializeMarkers();
-      }, 100);
-    }
-
-    return () => {
-      try {
-        // Limpiar marcadores
-        if (Array.isArray(markersRef.current)) {
-          markersRef.current.forEach((marker) => {
-            if (marker && typeof marker.setMap === 'function') {
-              marker.setMap(null);
-            }
-          });
-        }
-
-        // Eliminar listeners
-        if (mapRef.current) {
-          if (mapRef.current.clickListener) {
-            window.google.maps.event.removeListener(mapRef.current.clickListener);
-            mapRef.current.clickListener = null;
-          }
-        }
-
-        // Limpiar círculo de usuario
-        if (userCircleRef.current) {
-          userCircleRef.current.setMap(null);
-          userCircleRef.current = null;
-        }
-      } catch (error) {
-        console.error('Error en cleanup:', error);
-      }
-    };
-  }, [isLoaded, initializeMarkers]);
-
-  // Actualizar spot seleccionado si cambian los datos
-  useEffect(() => {
-    if (selectedSpot && Array.isArray(parkingSpots)) {
-      const updatedSpot = parkingSpots.find(
-        (spot) => spot.id === selectedSpot.id
-      );
-      if (
-        updatedSpot &&
-        updatedSpot.available_spaces !== selectedSpot.available_spaces
-      ) {
-        setSelectedSpot(updatedSpot);
+    if (isLoaded && mapRef.current && mapInitializedRef.current) {
+      // Inicializar solo si han cambiado los datos de manera significativa
+      if (spotsHaveChanged()) {
+        // Pequeño timeout para no bloquear la UI
+        const timer = setTimeout(() => {
+          initializeMarkers(false);
+        }, 50);
+        return () => clearTimeout(timer);
       }
     }
-  }, [parkingSpots, selectedSpot, setSelectedSpot]);
+  }, [isLoaded, parkingSpots, initializeMarkers, spotsHaveChanged]);
 
-  const openNavigation = (lat, lng) => {
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-    window.open(url, '_blank');
-  };
-
-  // Modificar el handleMapLoad para marcar cuando el mapa está realmente listo
+  // Modificar el handleMapLoad para optimizar la inicialización
   const handleMapLoad = useCallback(
     (map) => {
       if (!map || mapRef.current === map) return;
 
-      console.log('Mapa cargado por primera vez');
+      console.log('Mapa cargado correctamente, inicializando...');
       mapRef.current = map;
 
-      // Inicializar marcadores después de que el mapa esté listo
-      setTimeout(() => {
-        initializeMarkers().then(() => {
+      // Retrasar la inicialización inicial para permitir que el mapa se renderice primero
+      const timer = setTimeout(() => {
+        console.log('Iniciando carga de marcadores...');
+        initializeMarkers(true).then(() => {
           console.log('Marcadores inicializados correctamente');
-          // Marcar el mapa como completamente inicializado
           mapInitializedRef.current = true;
 
-          // Si ya había un spot seleccionado en este punto, centrarlo
           if (selectedSpot) {
-            const spotLocation = {
-              lat: selectedSpot.latitude,
-              lng: selectedSpot.longitude
-            };
-
-            console.log('Centrando en spot seleccionado después de inicialización', selectedSpot.name);
-            centerMapOnLocation(spotLocation);
-            setInfoWindowOpen(true);
-          }
-          // Centrar en la ubicación objetivo si existe
-          else if (effectiveTargetLocation) {
-            console.log('Centrando en ubicación objetivo después de inicialización');
+            centerOnSelectedSpot(selectedSpot);
+          } else if (effectiveTargetLocation) {
             centerMapOnLocation(effectiveTargetLocation);
           }
         });
-      }, 300);
+      }, 200);
+
+      return () => clearTimeout(timer);
     },
-    [initializeMarkers, effectiveTargetLocation, centerMapOnLocation, selectedSpot],
+    [initializeMarkers, effectiveTargetLocation, centerMapOnLocation, selectedSpot, centerOnSelectedSpot],
   );
 
-  // Forzar la recarga completa del mapa cuando cambian ciertas props críticas
+  // En lugar de renderizar el mapa nuevamente con un key diferente,
+  // usamos un efecto que actualiza el estado y centro del mapa
   useEffect(() => {
-    // Si el mapa fue reiniciado (nuevo mapKey), reiniciar también el estado de inicialización
-    mapInitializedRef.current = false;
-  }, [mapKey]);
-
-  // Efecto específico para forzar el centrado cuando cambia el mapKey
-  useEffect(() => {
-    if (mapRef.current && effectiveTargetLocation) {
-      setTimeout(() => centerMapOnLocation(effectiveTargetLocation), 200);
+    if (forceMapUpdate && mapRef.current && effectiveTargetLocation) {
+      centerMapOnLocation(effectiveTargetLocation);
+      setForceMapUpdate(false);
     }
-  }, [mapKey, effectiveTargetLocation, centerMapOnLocation]);
+  }, [forceMapUpdate, effectiveTargetLocation, centerMapOnLocation]);
 
   // Exponer métodos para que el componente padre pueda acceder a ellos
   useImperativeHandle(ref, () => ({
@@ -565,31 +554,12 @@ const ParkingMap = forwardRef(({
     <div className="w-full h-[60vh] md:h-[70vh] lg:h-[80vh] xl:h-[85vh] overflow-hidden relative">
       <div className="w-full h-full md:rounded-md overflow-hidden">
         <GoogleMap
-          key={`google-map-${mapKey}`}
           mapContainerClassName="w-full h-full"
           center={mapCenter}
           zoom={15}
           onLoad={handleMapLoad}
           onClick={handleMapClick}
-          options={{
-            mapId: MAP_ID,
-            zoomControlOptions: {
-              position: 3, // LEFT_BOTTOM
-            },
-            fullscreenControl: true,
-            fullscreenControlOptions: {
-              position: 7, // RIGHT_BOTTOM
-            },
-            streetViewControl: false,
-            disableDefaultUI: false,
-            scaleControl: true,
-            scaleControlOptions: {
-              position: 5,
-            },
-            zoomControl: true,
-            mapTypeControl: false,
-            gestureHandling: 'greedy',
-          }}
+          options={mapOptions}
         >
           <button
             onClick={locateUser}

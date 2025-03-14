@@ -1,4 +1,4 @@
-import { useState, useEffect, memo, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, memo, useRef, useMemo, useCallback, forwardRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { FaAward, FaCalendarCheck, FaMoneyBillWave, FaComments, FaShieldAlt, FaChartLine, FaUsers, FaMapMarkerAlt } from 'react-icons/fa';
@@ -29,13 +29,14 @@ const prefetchImage = (src) => {
 const DEFAULT_RECENT_SEARCHES = ["Zona G", "Chapinero Alto"];
 
 // Componente optimizado del SearchBox para evitar re-renderizados innecesarios
-const MemoizedSearchBox = memo(function MemoizedSearchBox(props) {
+const MemoizedSearchBox = memo(forwardRef(function MemoizedSearchBox(props, ref) {
   return (
     <div className="relative w-full">
       <div className="relative overflow-hidden rounded-full group shadow-lg hover:shadow-xl transition-all duration-300">
         <div className="absolute inset-0 bg-gradient-to-r from-primary-500/30 to-primary-700/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
         <SearchBox
           {...props}
+          ref={ref}
           useSearchHook={useSearchPlaces}
           className={`pl-12 pr-12 py-4 w-full bg-white/95 backdrop-blur-md transition-all duration-300 group-hover:bg-white/98 border-0 font-medium ${props.className || ''}`}
         />
@@ -52,7 +53,7 @@ const MemoizedSearchBox = memo(function MemoizedSearchBox(props) {
       </div>
     </div>
   );
-});
+}));
 
 MemoizedSearchBox.propTypes = {
   className: PropTypes.string,
@@ -608,7 +609,6 @@ const HomePage = () => {
                   alt={t('admin.platformImage', 'Plataforma de administración de parqueaderos ParkiÜ')}
                   className="w-full h-full object-cover rounded-3xl shadow-2xl transform hover:scale-105 transition-transform duration-300 border-4 border-white/20"
                   loading="lazy"
-                  fetchPriority="low"
                 />
               </motion.div>
             </motion.div>
