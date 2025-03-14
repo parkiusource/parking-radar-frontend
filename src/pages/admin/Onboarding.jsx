@@ -12,10 +12,11 @@ import {
 } from '@/components/admin/Onboarding';
 import { getHeaderClassName } from '@/components/Header';
 import { Logo } from '@/components/Logo';
+import { LoadingOverlay } from '@/components/common';
 
 import { useAuth } from '@/hooks/useAuth';
 import { useQueryClient } from '@tanstack/react-query';
-import { useAdminProfile } from '@/api/hooks/useAdminOnboarding';
+import { useAdminProfile, useUpdateOnboardingStep } from '@/api/hooks/useAdminOnboarding';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -33,6 +34,7 @@ export default function AdminOnboarding() {
   const queryClient = useQueryClient();
   const firstStepRef = useRef();
   const secondStepRef = useRef();
+  const redirectedRef = useRef(false);
 
   const {
     loginWithLocale,
@@ -42,26 +44,41 @@ export default function AdminOnboarding() {
   } = useAuth();
 
   const { data: profile, isLoading: profileLoading } = useAdminProfile();
+  const { mutateAsync: updateStep } = useUpdateOnboardingStep();
 
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(() => {
+    // Inicializar el step basado en el localStorage para evitar parpadeos
+    const savedStep = localStorage.getItem('onboardingStep');
+    return savedStep ? parseInt(savedStep, 10) : 0;
+  });
 
   // Efecto para manejar la redirección basada en el estado del perfil
   useEffect(() => {
-    if (!profileLoading && profile) {
+    if (!profileLoading && profile && !redirectedRef.current) {
       // Si el perfil está completo y tenemos parqueaderos, redirigir al dashboard
       if (profile.isProfileComplete && profile.hasParking) {
+        redirectedRef.current = true;
+        localStorage.removeItem('onboardingStep');
         navigate('/admin/dashboard', { replace: true });
         return;
       }
 
-      // Si el perfil no está completo, determinar el paso actual
-      if (!profile.isProfileComplete) {
-        setStep(1); // Ir al paso de completar perfil
-      } else if (!profile.hasParking) {
-        setStep(2); // Ir al paso de crear parqueadero
-      } else {
-        setStep(3); // Ir al paso de verificación
+      // Solo actualizar el step si es menor que el actual o si no hay step guardado
+      const currentStep = parseInt(localStorage.getItem('onboardingStep'), 10) || 0;
+      let newStep = currentStep;
+
+      if (!profile.isProfileComplete && currentStep < 1) {
+        newStep = 1; // Ir al paso de completar perfil
+      } else if (profile.isProfileComplete && !profile.hasParking && currentStep < 2) {
+        newStep = 2; // Ir al paso de crear parqueadero
+      } else if (profile.isProfileComplete && profile.hasParking && currentStep < 3) {
+        newStep = 3; // Ir al paso de verificación
+      }
+
+      if (newStep !== currentStep) {
+        setStep(newStep);
+        localStorage.setItem('onboardingStep', newStep.toString());
       }
     }
   }, [profile, profileLoading, navigate]);
@@ -82,7 +99,7 @@ export default function AdminOnboarding() {
         beforeNext: async () => {
           if (firstStepRef?.current) {
             const data = await firstStepRef.current.submitForm();
-            queryClient.invalidateQueries({ queryKey: ['adminProfile'] });
+            await queryClient.invalidateQueries({ queryKey: ['adminProfile'] });
             return data;
           }
         },
@@ -97,7 +114,8 @@ export default function AdminOnboarding() {
         beforeNext: async () => {
           if (secondStepRef?.current) {
             const data = await secondStepRef.current.submitForm();
-            queryClient.invalidateQueries({ queryKey: ['adminParkingLots'] });
+            await queryClient.invalidateQueries({ queryKey: ['adminParkingLots'] });
+            await queryClient.invalidateQueries({ queryKey: ['adminProfile'] });
             return data;
           }
         },
@@ -109,7 +127,8 @@ export default function AdminOnboarding() {
         buttonLabel: 'Ir al Dashboard',
         StepComponent: ThirdStep,
         beforeNext: () => {
-          navigate('/admin/dashboard');
+          localStorage.removeItem('onboardingStep'); // Limpiar el step al finalizar
+          navigate('/admin/dashboard', { replace: true });
         },
       },
     ];
@@ -125,25 +144,38 @@ export default function AdminOnboarding() {
       setLoading(true);
       try {
         await currentStep.beforeNext();
+        const nextStepNumber = currentStep.id + 1;
+        setStep(nextStepNumber);
+        localStorage.setItem('onboardingStep', nextStepNumber.toString());
+        await updateStep(nextStepNumber);
       } catch (error) {
         console.error('Error in step:', error);
         return;
       } finally {
         setLoading(false);
       }
+    } else {
+      const nextStepNumber = currentStep.id + 1;
+      setStep(nextStepNumber);
+      localStorage.setItem('onboardingStep', nextStepNumber.toString());
+      await updateStep(nextStepNumber);
     }
-    setStep(currentStep.id + 1);
-  }, [currentStep]);
+  }, [currentStep, updateStep]);
 
   // Mostrar loading mientras se verifica la autenticación o se carga el perfil
   if (userAuthLoading || profileLoading) {
-    return <></>;
+    return <LoadingOverlay />;
   }
 
   // Redirigir a login si no está autenticado
   if (!isAuthenticated || !user) {
     loginWithLocale();
-    return <></>;
+    return <LoadingOverlay />;
+  }
+
+  // Si el perfil está completo y tiene parqueaderos, no mostrar nada mientras se redirige
+  if (profile?.isProfileComplete && profile?.hasParking) {
+    return <LoadingOverlay />;
   }
 
   return (

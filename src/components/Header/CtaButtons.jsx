@@ -7,11 +7,25 @@ import { twMerge } from 'tailwind-merge';
 import { useAdminProfile } from '@/api/hooks/useAdminOnboarding';
 
 const CtaButtons = ({ auth: { isAuthenticated, isLoading }, onLogin, className }) => {
-  const { data: profile } = useAdminProfile();
+  const { data: profile, isLoading: profileLoading } = useAdminProfile();
 
   const getAdminLink = () => {
-    if (!profile) return '/admin/onboarding';
-    if (profile.isProfileComplete) return '/admin/dashboard';
+    console.log('Profile state:', {
+      profile,
+      isLoading: profileLoading,
+      isProfileComplete: profile?.isProfileComplete,
+      hasParking: profile?.hasParking
+    });
+
+    if (!profile || profileLoading) {
+      console.log('Redirecting to onboarding: No profile or loading');
+      return '/admin/onboarding';
+    }
+    if (profile.isProfileComplete && profile.hasParking) {
+      console.log('Redirecting to dashboard: Profile complete and has parking');
+      return '/admin/dashboard';
+    }
+    console.log('Redirecting to onboarding: Incomplete profile or no parking');
     return '/admin/onboarding';
   };
 
@@ -55,6 +69,7 @@ const CtaButtons = ({ auth: { isAuthenticated, isLoading }, onLogin, className }
           <Link to={getAdminLink()} className="w-full block">
             <Button
               className="w-full flex items-center justify-center gap-2 px-3 md:px-4 py-2 text-sm font-medium bg-white text-primary hover:bg-white/90"
+              disabled={profileLoading}
             >
               <LuParkingSquare className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
               <span className="whitespace-nowrap">Mi Panel</span>

@@ -12,38 +12,101 @@ import {
 // Hook para obtener el perfil del administrador
 export function useAdminProfile() {
   const { isAuthenticated, getAccessTokenSilently } = useAuth0();
-  const queryClient = useQueryClient();
 
   return useQuery({
     queryKey: ['adminProfile'],
     queryFn: async () => {
       if (!isAuthenticated) {
+        console.log('useAdminProfile: Not authenticated');
         return null;
       }
       try {
         const token = await getAccessTokenSilently();
-        const [profile, parkingLots] = await Promise.all([
-          getAdminProfile(token),
-          getParkingLots(token).catch(() => [])
+        console.log('useAdminProfile: Fetching data...');
+
+        const [profileResponse, parkingLotsData] = await Promise.all([
+          getAdminProfile(token).catch(error => {
+            console.error('Error fetching profile:', error);
+            return null;
+          }),
+          getParkingLots(token).catch(error => {
+            console.error('Error fetching parking lots:', error);
+            return { parking_lots: [] };
+          })
         ]);
+
+        console.log('useAdminProfile: Raw data:', {
+          profile: JSON.stringify(profileResponse, null, 2),
+          parkingLots: JSON.stringify(parkingLotsData, null, 2)
+        });
+
+        // Si no hay perfil, retornar estado inicial
+        if (!profileResponse?.profile) {
+          console.log('useAdminProfile: No profile found');
+          return {
+            isProfileComplete: false,
+            hasParking: false,
+          };
+        }
+
+        const profile = profileResponse.profile;
+
+        // Verificar cada campo requerido individualmente
+        const requiredFields = {
+          name: profile.name?.trim() || '',
+          nit: profile.nit?.trim() || '',
+          contact_phone: profile.contact_phone?.trim() || '',
+          email: profile.email?.trim() || ''
+        };
+
+        console.log('useAdminProfile: Required fields:', requiredFields);
+
+        // Verificar que todos los campos requeridos estén presentes y no vacíos
+        const isProfileComplete = Object.entries(requiredFields).every(([field, value]) => {
+          const isValid = value !== '';
+          if (!isValid) {
+            console.log(`useAdminProfile: Field ${field} is invalid or empty:`, value);
+          }
+          return isValid;
+        });
+
+        // Extraer el array de parqueaderos del objeto de respuesta
+        const parkingLots = parkingLotsData?.parking_lots || [];
+        const hasParking = Array.isArray(parkingLots) && parkingLots.length > 0;
+
+        console.log('useAdminProfile: Final state:', {
+          isProfileComplete,
+          hasParking,
+          parkingLotsCount: parkingLots.length,
+          validations: {
+            name: requiredFields.name !== '',
+            nit: requiredFields.nit !== '',
+            contact_phone: requiredFields.contact_phone !== '',
+            email: requiredFields.email !== ''
+          }
+        });
 
         return {
           ...profile,
-          isProfileComplete: !!(profile?.name && profile?.nit && profile?.contact_phone),
-          hasParking: parkingLots?.length > 0
+          isProfileComplete,
+          hasParking,
+          parkingLots
         };
       } catch (error) {
-        console.error('Error al obtener el perfil:', error);
+        console.error('useAdminProfile: Error fetching data:', error);
         if (error.response?.status === 404) {
-          return { isProfileComplete: false, hasParking: false };
+          return {
+            isProfileComplete: false,
+            hasParking: false,
+          };
         }
         throw error;
       }
     },
     enabled: isAuthenticated,
     retry: 1,
-    staleTime: 30000, // 30 segundos
-    cacheTime: 60000, // 1 minuto
+    staleTime: 30000,
+    cacheTime: 60000,
   });
 }
 
