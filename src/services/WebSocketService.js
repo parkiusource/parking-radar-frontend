@@ -7,6 +7,7 @@ const MAX_RECONNECT_DELAY = 30000; // 30 seconds
 // Environment detection
 const isDevelopment = import.meta.env.DEV || window.location.hostname === 'localhost';
 
+
 // WebSocket URL configuration
 const getWebSocketURL = (baseURL) => {
   try {

@@ -29,6 +29,7 @@ export default function Parking() {
   const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  const [showConnectionMessage, setShowConnectionMessage] = useState(false);
 
   const searchRef = useRef(null);
   const [selectedSpot, setSelectedSpot] = useState(null);
@@ -54,6 +55,19 @@ export default function Parking() {
     // Only enable WebSocket when the component is mounted
     enabled: true
   });
+
+  // Efecto para mostrar/ocultar el mensaje de conexión
+  useEffect(() => {
+    if (isConnected) {
+      setShowConnectionMessage(true);
+      const timer = setTimeout(() => {
+        setShowConnectionMessage(false);
+      }, 3000); // Ocultar después de 3 segundos
+      return () => clearTimeout(timer);
+    } else {
+      setShowConnectionMessage(true);
+    }
+  }, [isConnected]);
 
   // Procesar los parámetros de URL al cargar el componente
   useEffect(() => {
@@ -244,19 +258,27 @@ export default function Parking() {
         transition={{ duration: 0.4 }}
         className="flex-grow grid grid-cols-1 md:grid-cols-3 gap-4 p-4 relative"
       >
-        {/* Show reconnecting message when disconnected */}
+        {/* Show connection status messages */}
         <AnimatePresence>
-          {!isConnected && (
+          {showConnectionMessage && (
             <motion.div
+              key={isConnected ? "connected" : "disconnected"}
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               className="absolute top-4 left-1/2 -translate-x-1/2 z-20"
             >
-              <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-amber-500" />
-                <span>Sin conexión</span>
-              </div>
+              {isConnected ? (
+                <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span>En línea</span>
+                </div>
+              ) : (
+                <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-amber-500" />
+                  <span>Sin conexión</span>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
