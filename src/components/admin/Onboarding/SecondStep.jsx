@@ -4,7 +4,6 @@ import { ParkingForm } from '@/components/admin/ParkingForm';
 import { Card } from '@/components/common';
 import { CardContent } from '@/components/common/Card';
 import { useCreateParking } from '@/api/hooks/useCreateParking';
-import { Alert } from '@/components/common/Alert';
 
 const SecondStep = forwardRef(({ onComplete }, ref) => {
   const [status, setStatus] = useState({
@@ -52,21 +51,17 @@ const SecondStep = forwardRef(({ onComplete }, ref) => {
       <Card className="overflow-hidden bg-white">
         <CardContent className="pt-6">
           {status.error && (
-            <Alert
-              type="error"
-              title="Error"
-              message={status.error}
-              className="mb-4"
-            />
+            <div className="mb-4 p-4 bg-red-50 text-red-800 rounded-lg border border-red-200">
+              <h3 className="font-medium">Error</h3>
+              <p className="text-sm mt-1">{status.error}</p>
+            </div>
           )}
 
           {status.success && (
-            <Alert
-              type="success"
-              title="¡Éxito!"
-              message="El parqueadero ha sido creado correctamente."
-              className="mb-4"
-            />
+            <div className="mb-4 p-4 bg-green-50 text-green-800 rounded-lg border border-green-200">
+              <h3 className="font-medium">¡Éxito!</h3>
+              <p className="text-sm mt-1">El parqueadero ha sido creado correctamente.</p>
+            </div>
           )}
 
           <ParkingForm
