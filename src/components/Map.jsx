@@ -39,17 +39,17 @@ const createMarkerElement = (spot) => {
   const element = document.createElement('div');
   element.style.position = 'relative';
   element.style.cursor = 'pointer';
-  element.style.width = '40px';
-  element.style.height = '50px';
+  element.style.width = '30px';
+  element.style.height = '38px';
   element.style.transition = 'all 0.3s ease';
 
   // Crear el SVG como HTML
   element.innerHTML = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="50" viewBox="0 0 40 50" style="filter: drop-shadow(0px 3px 3px rgba(0,0,0,0.3));">
+    <svg xmlns="http://www.w3.org/2000/svg" width="30" height="38" viewBox="0 0 40 50" style="filter: drop-shadow(0px 3px 3px rgba(0,0,0,0.3));">
       <path fill="${iconColor}" d="M20 0C9 0 0 9 0 20c0 11 9 20 20 20s20-9 20-20S31 0 20 0m0 33.3c-7.3 0-13.3-6-13.3-13.3 0-7.3 6-13.3 13.3-13.3 7.3 0 13.3 6 13.3 13.3 0 7.3-6 13.3-13.3 13.3"/>
       <path fill="${iconColor}" d="M20 2.5c9.7 0 17.5 7.8 17.5 17.5 0 3.5-1 6.7-2.7 9.4l-3.1 5-6.3 10.4c-1.3 2.1-3.5 3.7-6.1 4.2-.9.2-1.6.2-2.4.1-3-.4-5.3-2.1-6.7-4.3l-6.3-10.4-3.1-5C.9 26.7 0 23.5 0 20 0 10.3 7.8 2.5 17.5 2.5h2.5z"/>
       <circle fill="white" cx="20" cy="20" r="8"/>
-      <text x="20" y="24" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="14" fill="${iconColor}">P</text>
+      <text x="20" y="24" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="12" fill="${iconColor}">P</text>
     </svg>
   `;
 
