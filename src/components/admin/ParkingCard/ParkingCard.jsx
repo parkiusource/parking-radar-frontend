@@ -34,7 +34,7 @@ export const ParkingCard = ({ parking }) => {
         <div className="flex flex-col mb-4 gap-1 pt-4">
           <Label
             className="text-sm text-gray-600"
-            htmlFor={`${parking.id}_availableSpots`}
+            htmlFor={`parking_${parking.id}_availableSpots`}
           >
             Disponibles Ahora
           </Label>
@@ -47,7 +47,7 @@ export const ParkingCard = ({ parking }) => {
               <LuMinus className="h-4 w-4" />
             </Button>
             <Input
-              id={`${parking.id}_availableSpots`}
+              id={`parking_${parking.id}_availableSpots`}
               type="number"
               value={parking.availableSpots}
               onChange={() => {}}
@@ -91,7 +91,10 @@ ParkingCard.displayName = 'ParkingCard';
 
 ParkingCard.propTypes = {
   parking: PropTypes.shape({
-    id: PropTypes.string.isRequired,
+    id: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.number
+    ]).isRequired,
     name: PropTypes.string.isRequired,
     address: PropTypes.string.isRequired,
     totalSpots: PropTypes.number.isRequired,

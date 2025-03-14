@@ -5,6 +5,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 import { useSearchPlaces } from '@/api/hooks/useSearchPlaces';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { Button } from '@/components/common';
 import Map from '@/components/Map';
 import { SearchBox } from '@/components/SearchBox';
@@ -22,7 +23,7 @@ const MemoizedSearchBox = React.memo(SearchBox);
 
 export default function Parking() {
   const { t } = useTranslation();
-  const { parkingSpots, targetLocation, setTargetLocation } =
+  const { parkingSpots, targetLocation, setTargetLocation, invalidate, refetch } =
     useContext(ParkingContext);
   const { user } = useContext(UserContext);
   const [searchParams] = useSearchParams();
@@ -40,6 +41,19 @@ export default function Parking() {
 
   // Mantener una referencia local de la ubicación inicial para asegurar que se pase correctamente al mapa
   const [initialLocation, setInitialLocation] = useState(null);
+
+  // Initialize WebSocket connection with real-time updates
+  const { isConnected } = useWebSocket({
+    onMessage: (data) => {
+      if (data.type === 'new-change-in-parking') {
+        console.log('Received parking update, refreshing data...');
+        invalidate();
+        refetch();
+      }
+    },
+    // Only enable WebSocket when the component is mounted
+    enabled: true
+  });
 
   // Procesar los parámetros de URL al cargar el componente
   useEffect(() => {
@@ -175,6 +189,24 @@ export default function Parking() {
     }
   }, [setSelectedSpot]);
 
+  // Connection status indicator component
+  const ConnectionIndicator = ({ isConnected }) => (
+    <div className="flex items-center gap-2">
+      <div
+        className={`w-2 h-2 rounded-full ${
+          isConnected ? 'bg-emerald-500' : 'bg-amber-500'
+        }`}
+      />
+      <span className="text-xs font-medium hidden md:block">
+        {isConnected ? (
+          <span className="text-emerald-600">En línea</span>
+        ) : (
+          <span className="text-amber-600">Fuera de línea</span>
+        )}
+      </span>
+    </div>
+  );
+
   return (
     <div className="flex flex-col min-h-screen relative bg-gray-50">
       <header className={getHeaderClassName({
@@ -202,6 +234,8 @@ export default function Parking() {
         >
           <LuSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
         </MemoizedSearchBox>
+
+        <ConnectionIndicator isConnected={isConnected} />
       </header>
 
       <motion.main
@@ -210,6 +244,23 @@ export default function Parking() {
         transition={{ duration: 0.4 }}
         className="flex-grow grid grid-cols-1 md:grid-cols-3 gap-4 p-4 relative"
       >
+        {/* Show reconnecting message when disconnected */}
+        <AnimatePresence>
+          {!isConnected && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="absolute top-4 left-1/2 -translate-x-1/2 z-20"
+            >
+              <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-amber-500" />
+                <span>Sin conexión</span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <AnimatePresence mode="wait">
           {isLoadingLocation && (
             <motion.div
