@@ -25,7 +25,7 @@ const App = () => (
       <link rel="canonical" href="https://parkiu.app" />
     </Helmet>
 
-    <div id="appMain" className="bg-secondary-950 overflow-scroll relative h-screen no-scrollbar" role="application">
+    <div className="bg-secondary-950 overflow-scroll relative h-screen no-scrollbar" role="application">
       <div className="w-full min-w-screen min-h-screen">
         <Auth0Provider
           domain={AUTH_DOMAIN}

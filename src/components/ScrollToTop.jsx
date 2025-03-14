@@ -5,9 +5,9 @@ export default function ScrollToTop() {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    const main = document.getElementById('appMain');
-    if (main) {
-      main.scrollTo({
+    const appElement = document.querySelector('[role="application"]')
+    if (appElement) {
+      appElement.scrollTo({
         top: 0,
         left: 0,
         behavior: 'smooth',
