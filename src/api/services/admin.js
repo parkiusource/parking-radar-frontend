@@ -15,11 +15,12 @@ export const completeAdminProfile = async (formData, token) => {
   // Convertir FormData a objeto JSON si es necesario
   const data = {};
   formData.forEach((value, key) => {
-    if (key === 'photo_url' && value instanceof File) {
-      // Mantener el archivo como está para el FormData
-      data[key] = value;
-    } else {
-      data[key] = value;
+    // Asignar todos los valores directamente, incluido photo_url
+    data[key] = value;
+
+    // Añadir un log para archivos para facilitar la depuración
+    if (value instanceof File) {
+      console.log(`Procesando archivo: ${key}, tamaño: ${value.size}, tipo: ${value.type}`);
     }
   });
 
