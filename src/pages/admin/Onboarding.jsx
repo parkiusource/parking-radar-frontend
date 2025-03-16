@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
 import { useNavigate } from 'react-router-dom';
+import { LuCheckCircle, LuUser, LuParkingSquare, LuShieldCheck } from 'react-icons/lu';
 
 import { Button } from '@/components/common';
 import {
@@ -10,7 +11,6 @@ import {
   SecondStep,
   ThirdStep,
 } from '@/components/admin/Onboarding';
-import { getHeaderClassName } from '@/components/Header';
 import { Logo } from '@/components/Logo';
 import { LoadingOverlay } from '@/components/common';
 
@@ -19,14 +19,22 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAdminProfile, useUpdateOnboardingStep } from '@/api/hooks/useAdminOnboarding';
 
 const containerVariants = {
-  hidden: { opacity: 0 },
+  hidden: { opacity: 0, y: 20 },
   visible: {
     opacity: 1,
+    y: 0,
     transition: {
+      duration: 0.6,
       when: 'beforeChildren',
       staggerChildren: 0.2,
     },
   },
+};
+
+const stepIcons = {
+  1: LuUser,
+  2: LuParkingSquare,
+  3: LuShieldCheck,
 };
 
 export default function AdminOnboarding() {
@@ -179,68 +187,95 @@ export default function AdminOnboarding() {
   }
 
   return (
-    <div className="min-h-screen bg-secondary-100 flex flex-col bg-gradient-to-br from-primary-100 to-primary-50">
-      <header
-        className={getHeaderClassName({
-          className: 'gap-6 bg-white sticky md:relative top-0 z-10',
-        })}
-      >
-        <Logo variant="secondary" />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
+      <header className="bg-white/70 backdrop-blur-sm border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <Logo variant="secondary" className="h-8" />
+        </div>
       </header>
-      <main className="self-center gap-4 p-4 mt-1 w-full h-full flex justify-center items-center">
+
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <motion.div
-          className="bg-secondary bg-opacity-90 backdrop-blur-lg rounded-2xl p-8 w-full max-w-md shadow-lg shadow-neutral-500/50"
+          className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-lg shadow-blue-100/50 p-8"
           variants={containerVariants}
           initial="hidden"
           animate="visible"
         >
-          <motion.h1
-            className="text-3xl font-bold text-primary-50 mb-6"
-            variants={itemVariants}
-          >
-            Bienvenido a Parkiu!
-          </motion.h1>
-          <motion.p className="text-primary-100 mb-8" variants={itemVariants}>
-            Vamos a configurar tu cuenta en solo unos pasos.
-          </motion.p>
-          <motion.div className="space-y-4" variants={itemVariants}>
-            {steps
-              .slice(1)
-              .map(({ id, title, description, ref, StepComponent }) => (
-                <div className="flex flex-col" key={`step_${id}`}>
-                  <div className="w-full flex items-center">
-                    <div
-                      className={twMerge(
-                        'w-8 h-8 rounded-full flex items-center justify-center text-white font-bold',
-                        step > id ? 'bg-primary' : 'bg-primary/20',
-                      )}
-                    >
-                      {id}
-                    </div>
-                    <div className="ml-4">
-                      <h2 className="text-lg font-semibold text-primary-100">
-                        {title}
-                      </h2>
-                      <p className="text-primary-200 text-sm">{description}</p>
-                    </div>
-                  </div>
-                  {currentStep.id === id && StepComponent && (
-                    <StepComponent
-                      ref={ref}
-                      setLoading={setLoading}
-                      user={user}
-                    />
-                  )}
-                </div>
-              ))}
+          <motion.div variants={itemVariants}>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">
+              Bienvenido a Parkiu
+            </h1>
+            <p className="text-gray-500 mb-12">
+              Configura tu cuenta en unos sencillos pasos
+            </p>
           </motion.div>
+
+          <div className="mb-12">
+            <div className="relative">
+              <div className="absolute left-0 top-2 w-full h-0.5 bg-gray-100">
+                <div
+                  className="h-full bg-blue-400 transition-all duration-500"
+                  style={{ width: `${(step / 3) * 100}%` }}
+                />
+              </div>
+              <div className="relative flex justify-between">
+                {steps.slice(1).map(({ id, title }) => {
+                  const StepIcon = stepIcons[id];
+                  const isCompleted = step > id;
+                  const isCurrent = step === id;
+
+                  return (
+                    <div key={id} className="flex flex-col items-center">
+                      <div
+                        className={twMerge(
+                          'w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 border-2',
+                          isCompleted
+                            ? 'bg-blue-400 border-blue-400 text-white'
+                            : isCurrent
+                            ? 'bg-white border-blue-400 text-blue-500 ring-4 ring-blue-50'
+                            : 'bg-white border-gray-200 text-gray-400'
+                        )}
+                      >
+                        {isCompleted ? (
+                          <LuCheckCircle className="w-6 h-6" />
+                        ) : (
+                          <StepIcon className="w-6 h-6" />
+                        )}
+                      </div>
+                      <span
+                        className={twMerge(
+                          'mt-3 text-sm font-medium',
+                          isCompleted || isCurrent ? 'text-blue-600' : 'text-gray-400'
+                        )}
+                      >
+                        {title}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <motion.div className="space-y-6" variants={itemVariants}>
+            {currentStep.StepComponent && (
+              <div className="bg-white rounded-xl p-8 border border-gray-100">
+                <currentStep.StepComponent
+                  ref={currentStep.ref}
+                  setLoading={setLoading}
+                  user={user}
+                />
+              </div>
+            )}
+          </motion.div>
+
           {currentStep.buttonLabel && (
             <motion.div
-              className="mt-8 w-full flex justify-center items-center py-3 px-4 transition duration-300 ease-in-out"
+              className="mt-8 flex justify-end"
               variants={itemVariants}
             >
               <Button
-                className="min-w-60"
+                className="min-w-[200px] bg-blue-500 hover:bg-blue-600 text-white shadow-sm transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-md"
                 onClick={nextStep}
                 disabled={loading}
               >

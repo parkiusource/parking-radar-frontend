@@ -165,7 +165,7 @@ export function useCompleteProfile() {
   });
 }
 
-// Hook para registrar un nuevo parqueadero
+// Hook para Administrar un nuevo parqueadero
 export function useRegisterParkingLot() {
   const queryClient = useQueryClient();
   const { getAccessTokenSilently } = useAuth0();

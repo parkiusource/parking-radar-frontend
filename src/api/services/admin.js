@@ -55,7 +55,7 @@ export const getParkingLots = async (token) => {
   return response.data;
 };
 
-// Registrar nuevo parqueadero
+// Administrar nuevo parqueadero
 export const registerParkingLot = async (parkingData, token) => {
   const response = await client.post('/admins/parking-lots', parkingData, {
     headers: {

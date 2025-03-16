@@ -61,7 +61,7 @@ const CtaButtons = ({ auth: { isAuthenticated, isLoading }, onLogin, className }
           >
             <LuLogIn className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
             <div className="flex flex-col items-start">
-              <span className="whitespace-nowrap">Registrar</span>
+              <span className="whitespace-nowrap">Administrar</span>
               <span className="text-xs opacity-90">Mi parqueadero</span>
             </div>
           </Button>

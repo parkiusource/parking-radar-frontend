@@ -32,25 +32,49 @@ const DEFAULT_RECENT_SEARCHES = ["Zona G", "Chapinero Alto"];
 const MemoizedSearchBox = memo(forwardRef(function MemoizedSearchBox(props, ref) {
   return (
     <div className="relative w-full">
-      <div className="relative overflow-hidden rounded-full group shadow-lg hover:shadow-xl transition-all duration-300">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary-500/30 to-primary-700/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-        <SearchBox
-          {...props}
-          ref={ref}
-          useSearchHook={useSearchPlaces}
-          className={`pl-12 pr-12 py-4 w-full bg-white/95 backdrop-blur-md transition-all duration-300 group-hover:bg-white/98 border-0 font-medium ${props.className || ''}`}
-        />
-        <div className="absolute left-0 top-0 bottom-0 bg-primary rounded-l-full w-10 flex items-center justify-center">
-          <span className="text-white text-xl pl-2">
-            <LuSearch />
-          </span>
-        </div>
-        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center space-x-1">
-          <div className="text-xs text-gray-400 bg-gray-100/80 rounded-full px-2 py-0.5 hidden sm:flex items-center">
-            <span className="font-bold mr-1">⌘</span>K
+      <div className="relative overflow-hidden rounded-2xl group shadow-2xl hover:shadow-[0_0_30px_rgba(14,165,233,0.3)] transition-all duration-500">
+        {/* Gradient border animation */}
+        <div className="absolute inset-0 bg-gradient-to-r from-primary-400 via-amber-400 to-primary-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500 animate-gradient-xy" />
+
+        {/* Glass effect container */}
+        <div className="relative bg-white/90 backdrop-blur-xl m-[1px] rounded-2xl overflow-hidden">
+          <SearchBox
+            {...props}
+            ref={ref}
+            useSearchHook={useSearchPlaces}
+            className={`pl-14 pr-20 py-5 w-full bg-transparent transition-all duration-300 text-lg font-medium placeholder-gray-400 focus:placeholder-gray-300 ${props.className || ''}`}
+          />
+
+          {/* Animated search icon */}
+          <div className="absolute left-0 top-0 bottom-0 flex items-center">
+            <div className="ml-4 p-2 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 text-white transform group-hover:scale-110 transition-all duration-500">
+              <LuSearch className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
+            </div>
+          </div>
+
+          {/* Right side elements */}
+          <div className="absolute right-0 top-0 bottom-0 flex items-center pr-4">
+            {/* Keyboard shortcut pill */}
+            <div className="hidden sm:flex items-center gap-2 mr-2">
+              <div className="flex items-center space-x-1 bg-gray-100/80 hover:bg-gray-100 px-2 py-1 rounded-lg transition-colors">
+                <kbd className="text-xs font-semibold text-gray-500 bg-white/80 px-1.5 py-0.5 rounded-md shadow-sm">⌘</kbd>
+                <kbd className="text-xs font-semibold text-gray-500 bg-white/80 px-1.5 py-0.5 rounded-md shadow-sm">K</kbd>
+              </div>
+            </div>
+
+            {/* Separator */}
+            <div className="hidden sm:block w-px h-8 bg-gray-200 mx-2" />
+
+            {/* Location button */}
+            <button className="p-2 rounded-xl hover:bg-gray-100/80 text-primary-500 transition-colors" onClick={props.onLocationClick}>
+              <LuCompass className="w-5 h-5" />
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Search suggestions animation enhancement */}
+      <div className="absolute -inset-x-4 -inset-y-4 z-[-1] bg-gradient-to-r from-primary-500/20 via-amber-400/20 to-primary-600/20 opacity-0 group-hover:opacity-100 blur-2xl transition-all duration-500 animate-pulse" />
     </div>
   );
 }));
@@ -60,8 +84,34 @@ MemoizedSearchBox.propTypes = {
   children: PropTypes.node,
   placeholder: PropTypes.string,
   onResultSelected: PropTypes.func,
-  onFocus: PropTypes.func
+  onFocus: PropTypes.func,
+  onLocationClick: PropTypes.func
 };
+
+// Add this to your existing styles or create a new animation
+const styles = `
+  @keyframes gradient-xy {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  .animate-gradient-xy {
+    background-size: 400% 400%;
+    animation: gradient-xy 15s ease infinite;
+  }
+`;
+
+// Inject styles
+const styleSheet = document.createElement("style");
+styleSheet.innerText = styles;
+document.head.appendChild(styleSheet);
 
 // Componente para renderizar un Feature en el hero con animación
 const HeroFeature = ({ icon, text, index }) => (
@@ -359,7 +409,7 @@ const HomePage = () => {
   }, [showRecentSearches, isSearching, recentSearches, handlePlaceSelected, t]);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       <Helmet>
         <title>{SEO_META.title}</title>
         <meta name="description" content={SEO_META.description} />
@@ -376,53 +426,70 @@ const HomePage = () => {
 
       <Header />
       <main className="flex flex-col">
-        {/* Hero Section - Optimizing for better performance */}
+        {/* Hero Section - Enhanced with parallax and interactive elements */}
         <motion.section
           initial={{ opacity: 0 }}
           animate={{ opacity: heroImageLoaded ? 1 : 0 }}
-          transition={{ duration: 0.4 }}
-          className="min-h-[90vh] md:min-h-screen flex flex-col items-center justify-center relative pt-20 pb-12 md:py-12 bg-primary-700 text-white overflow-hidden"
-          style={{
-            backgroundImage: heroImageLoaded ?
-              `linear-gradient(to bottom ,rgba(7, 89, 133, 0.6), rgba(7, 89, 133, 0.7)), url(${bgMapHero})` :
-              'linear-gradient(to bottom ,rgba(7, 89, 133, 0.6), rgba(7, 89, 133, 0.7))',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-          }}
+          transition={{ duration: 0.6 }}
+          className="relative min-h-[90vh] md:min-h-screen flex flex-col items-center justify-center pt-20 pb-12 md:py-12 overflow-hidden"
         >
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-primary/30 pointer-events-none" />
+          {/* Dynamic Background with Parallax */}
+          <div
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-1000"
+            style={{
+              backgroundImage: heroImageLoaded ?
+                `linear-gradient(to bottom, rgba(7, 89, 133, 0.85), rgba(7, 89, 133, 0.9)), url(${bgMapHero})` :
+                'linear-gradient(to bottom ,rgba(7, 89, 133, 0.85), rgba(7, 89, 133, 0.9))',
+              transform: 'scale(1.1)',
+            }}
+          >
+            {/* Animated Patterns - Reduced density */}
+            <div className="absolute inset-0 opacity-5">
+              <div
+                className="absolute inset-0"
+                style={{
+                  backgroundImage: `url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDYwIDYwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxnIGZpbGw9Im5vbmUiIGZpbGwtcnVsZT0iZXZlbm9kZCI+PHBhdGggZD0iTTM2IDE4YzMuMzE0IDAgNiAyLjY4NiA2IDZzLTIuNjg2IDYtNiA2LTYtMi42ODYtNi02IDIuNjg2LTYgNi02IiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMiIvPjwvZz48L3N2Zz4=')`,
+                  backgroundSize: '120px 120px',
+                  opacity: 0.5
+                }}
+              />
+            </div>
+          </div>
 
-          <div className="relative z-10 w-full max-w-4xl mx-auto px-4 md:px-6 flex flex-col items-center">
-            <motion.h1
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2, duration: 0.4 }}
-              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-center mb-4 md:mb-6 tracking-tight mx-auto max-w-3xl text-white drop-shadow-md"
-            >
-              {t('hero.title', 'Encuentra el parqueadero ideal en segundos')}
-            </motion.h1>
-
-            <motion.p
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.3, duration: 0.4 }}
-              className="text-lg sm:text-xl md:text-2xl mb-10 md:mb-12 text-gray-100 max-w-2xl text-center drop-shadow"
-            >
-              {t('hero.subtitle', 'Información en tiempo real sobre disponibilidad, tarifas y seguridad')}
-            </motion.p>
-
+          <div className="relative z-10 w-full max-w-6xl mx-auto px-4 md:px-6 flex flex-col items-center">
+            {/* Main Hero Content - Enhanced */}
             <motion.div
-              initial={{ y: 20, opacity: 0 }}
+              initial={{ y: 30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.4, duration: 0.4 }}
-              className="flex flex-col items-center w-full gap-6 max-w-xl mx-auto"
+              transition={{ delay: 0.2, duration: 0.6 }}
+              className="text-center mb-16"
             >
-              <div className="relative w-full" ref={searchBoxRef}>
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-8 tracking-tight leading-tight">
+                <span className="block mb-2">Encuentra el parqueadero</span>
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-amber-400 to-amber-200">
+                  ideal en segundos
+                </span>
+              </h1>
+              <p className="text-xl sm:text-2xl md:text-3xl text-gray-100 max-w-3xl mx-auto leading-relaxed">
+                Información en tiempo real sobre disponibilidad,
+                <span className="block">tarifas y seguridad</span>
+              </p>
+            </motion.div>
+
+            {/* Search Section - Refined */}
+            <motion.div
+              initial={{ y: 30, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.6 }}
+              className="w-full max-w-2xl mx-auto mb-20"
+            >
+              <div className="relative mb-6" ref={searchBoxRef}>
                 <MemoizedSearchBox
-                  className="text-gray-700 text-base"
+                  className="text-gray-700 text-lg"
                   placeholder={t('search.placeholder', 'Buscar por zona, dirección o referencia')}
                   onResultSelected={handlePlaceSelected}
                   onFocus={handleSearchFocus}
+                  onLocationClick={handleNearbySearch}
                   ref={searchInputRef}
                 />
 
@@ -437,7 +504,6 @@ const HomePage = () => {
                   </div>
                 )}
 
-                {/* Búsquedas recientes - usando componente memoizado */}
                 <AnimatePresence>
                   {RecentSearchesPanel}
                 </AnimatePresence>
@@ -447,15 +513,13 @@ const HomePage = () => {
                 initial={{ y: 10, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.7 }}
-                className="w-full flex justify-center"
+                className="flex flex-col sm:flex-row gap-4 justify-center items-center"
               >
                 <Button
                   variant="outline"
                   onClick={handleNearbySearch}
                   disabled={isSearching}
-                  className="relative overflow-hidden max-w-[440px] w-full flex items-center justify-center gap-x-3 bg-amber-500 text-white hover:bg-amber-600 px-7 py-4 text-lg font-semibold transition-all duration-300 transform hover:scale-105 group rounded-full shadow-lg hover:shadow-xl"
-                  title="Utiliza tu ubicación actual para encontrar parqueaderos cercanos"
-                  aria-label="Buscar parqueaderos cercanos utilizando tu ubicación actual"
+                  className="relative overflow-hidden w-full sm:w-auto flex items-center justify-center gap-x-3 bg-amber-500 text-white hover:bg-amber-600 px-8 py-4 text-lg font-semibold transition-all duration-300 transform hover:scale-105 group rounded-full shadow-lg hover:shadow-xl"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-amber-400/50 to-amber-600/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   <div className="relative z-10 flex items-center justify-center gap-x-3">
@@ -467,107 +531,146 @@ const HomePage = () => {
                     ) : (
                       <>
                         <LuCompass className="text-2xl group-hover:animate-pulse" />
-                        <span className="whitespace-nowrap tracking-wide uppercase">{t('hero.findNow', 'Encontrar cerca de mí')}</span>
+                        <span className="whitespace-nowrap">{t('hero.findNow', 'Encontrar cerca de mí')}</span>
                       </>
                     )}
                   </div>
                 </Button>
-              </motion.div>
 
-              {/* Diálogo de confirmación de ubicación */}
-              <AnimatePresence>
-                {showLocationDialog && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+                <Link to="/parking" className="w-full sm:w-auto">
+                  <Button
+                    variant="light"
+                    className="w-full px-8 py-4 bg-white/10 backdrop-blur-sm text-white border border-white/20 hover:bg-white/20 transition-all duration-300 rounded-full font-medium flex items-center justify-center gap-2"
                   >
-                    {/* Modal content */}
-                    <motion.div
-                      initial={{ scale: 0.95, y: 20, opacity: 0 }}
-                      animate={{ scale: 1, y: 0, opacity: 1 }}
-                      exit={{ scale: 0.95, y: 20, opacity: 0 }}
-                      transition={{ duration: 0.2, type: "spring", stiffness: 300 }}
-                      className="relative bg-white/95 backdrop-blur-sm rounded-2xl p-6 max-w-sm mx-4 shadow-lg border border-white/20 pointer-events-auto"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="text-center">
-                        <div className="mx-auto w-12 h-12 bg-primary-50 rounded-xl flex items-center justify-center mb-4">
-                          <LuParkingSquare className="text-primary text-2xl" />
-                        </div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">{t('locationDialog.title', '¿Por qué necesitamos tu ubicación?')}</h3>
-                        <p className="text-gray-600 mb-2">
-                          {t('locationDialog.description', 'Para mostrarte los parqueaderos más cercanos a tu ubicación actual.')}
-                        </p>
-                        <p className="text-xs text-gray-500 mb-4">
-                          {t('locationDialog.privacy', 'No almacenamos tu ubicación, solo la usamos para esta búsqueda.')}
-                        </p>
-                      </div>
-                      <div className="flex gap-2 justify-center">
-                        <Button
-                          onClick={() => setShowLocationDialog(false)}
-                          className="px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg text-sm font-medium"
-                          variant="light"
-                        >
-                          {t('locationDialog.cancelButton', 'Cancelar')}
-                        </Button>
-                        <Button
-                          onClick={confirmLocationAccess}
-                          className="px-4 py-2 bg-primary text-white hover:bg-primary-600 rounded-lg text-sm font-medium"
-                        >
-                          {t('locationDialog.allowButton', 'Permitir')}
-                        </Button>
-                      </div>
-                    </motion.div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <div className="flex flex-wrap justify-center items-center gap-4 mt-12 md:mt-14">
-                {HERO_FEATURES.map((feature, index) => (
-                  <HeroFeature
-                    key={index}
-                    icon={feature.icon}
-                    text={feature.text}
-                    index={index}
-                  />
-                ))}
-              </div>
+                    <LuSearch className="text-xl" />
+                    <span>Ver todos los parqueaderos</span>
+                  </Button>
+                </Link>
+              </motion.div>
             </motion.div>
+
+            {/* Features Grid - Simplified */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-6xl mx-auto">
+              {HERO_FEATURES.map((feature, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.8 + index * 0.1 }}
+                  className="group relative"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-white/5 rounded-2xl transform group-hover:scale-105 transition-transform duration-300 border border-white/20" />
+                  <div className="relative bg-white/5 backdrop-blur-sm rounded-2xl p-6 h-full overflow-hidden flex items-center gap-4">
+                    <div className="bg-gradient-to-br from-primary-400 to-primary-600 w-14 h-14 rounded-xl flex items-center justify-center shrink-0 shadow-lg group-hover:scale-110 transition-transform">
+                      <span className="text-white text-2xl">
+                        {feature.icon}
+                      </span>
+                    </div>
+                    <h3 className="text-white font-semibold text-lg group-hover:text-white/90 transition-colors">
+                      {feature.text}
+                    </h3>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
           </div>
         </motion.section>
 
-        {/* Admin Section - With optimized animation triggers */}
-        <section className="py-16 md:py-20 bg-gradient-to-b from-primary-600 via-primary-800 to-white">
-          <div className="container mx-auto px-4 md:px-6">
+        {/* Stats Section - Enhanced with realistic numbers and better design */}
+        <section className="py-24 bg-white relative overflow-hidden">
+          <div className="absolute inset-0">
+            <div className="absolute inset-0 bg-gradient-to-b from-primary-50/30 to-transparent" />
+            <div className="absolute inset-0" style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M54.627 0l.83.828-1.415 1.415L51.8 0h2.827zM5.373 0l-.83.828L5.96 2.243 8.2 0H5.374zM48.97 0l3.657 3.657-1.414 1.414L46.143 0h2.828zM11.03 0L7.372 3.657 8.787 5.07 13.857 0H11.03zm32.284 0L49.8 6.485 48.384 7.9l-7.9-7.9h2.83zM16.686 0L10.2 6.485 11.616 7.9l7.9-7.9h-2.83zM22.343 0L13.857 8.485 15.272 9.9l7.9-7.9h-.83zm5.657 0L19.514 8.485 20.93 9.9l8.485-8.485h-1.415zM32.372 0L26.9 5.485 28.314 6.9 34.2 1.015 32.37 0zm-3.314 0l6.485 6.485L36.96 7.9l-7.9-7.9h.828zm-6.656 0l-1.414 1.414 6.485 6.485 1.414-1.414L22.4 0zm-4.242 0L6.686 11.472l1.415 1.414 11.314-11.314h-1.414zm2.828 0l11.313 11.313-1.414 1.414L19.514 1.414 20.93 0zM30.2 0l13.142 13.142-1.414 1.414L29.514 2.142 30.2 0zm2.83 0l13.14 13.142-1.414 1.414L32.342 2.142 33.03 0zm2.827 0l13.142 13.142-1.414 1.414L35.17 2.142 35.857 0zM38.03 0L25.9 12.142 27.314 13.56 33.2 7.675 38.03 0zm-3.314 0l6.485 6.485L36.96 7.9l-7.9-7.9h.828zm-6.656 0l-1.414 1.414 6.485 6.485 1.414-1.414L22.4 0zm-4.242 0L6.686 11.472l1.415 1.414 11.314-11.314h-1.414zm2.828 0l11.313 11.313-1.414 1.414L19.514 1.414 20.93 0zM30.2 0l13.142 13.142-1.414 1.414L29.514 2.142 30.2 0zm2.83 0l13.14 13.142-1.414 1.414L32.342 2.142 33.03 0zm2.827 0l13.142 13.142-1.414 1.414L35.17 2.142 35.857 0z' fill='%230EA5E9' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E")`,
+              backgroundSize: '60px 60px'
+            }} />
+          </div>
+          <div className="container mx-auto px-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-6xl mx-auto relative z-10">
+              {[
+                {
+                  value: "500+",
+                  label: "Parqueaderos",
+                  description: "registrados en Bogotá",
+                  icon: <LuParkingSquare className="w-8 h-8" />
+                },
+                {
+                  value: "15K+",
+                  label: "Usuarios",
+                  description: "activos mensuales",
+                  icon: <FaUsers className="w-8 h-8" />
+                },
+                {
+                  value: "95%",
+                  label: "Satisfacción",
+                  description: "de nuestros usuarios",
+                  icon: <FaAward className="w-8 h-8" />
+                },
+                {
+                  value: "24/7",
+                  label: "Disponibilidad",
+                  description: "servicio ininterrumpido",
+                  icon: <FaShieldAlt className="w-8 h-8" />
+                }
+              ].map((stat, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                  className="relative group"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary-50 to-transparent rounded-2xl transform group-hover:scale-105 transition-transform duration-300" />
+                  <div className="relative p-8 text-center">
+                    <div className="inline-flex items-center justify-center w-16 h-16 mb-4 rounded-2xl bg-primary/10 text-primary group-hover:scale-110 transition-transform">
+                      {stat.icon}
+                    </div>
+                    <div className="text-4xl md:text-5xl font-bold text-primary mb-2 group-hover:scale-110 transition-transform">
+                      {stat.value}
+                    </div>
+                    <div className="text-gray-900 font-semibold mb-1">{stat.label}</div>
+                    <div className="text-sm text-gray-600">{stat.description}</div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Admin Section - Enhanced */}
+        <section className="py-24 bg-gradient-to-b from-primary-600 to-primary-800 relative overflow-hidden">
+          <div className="absolute inset-0">
+            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMzLjMxNCAwIDYgMi42ODYgNiA2cy0yLjY4NiA2LTYgNi02LTIuNjg2LTYtNiAyLjY4Ni02IDYtNiIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48L2c+PC9zdmc+')] opacity-5" />
+          </div>
+
+          <div className="container mx-auto px-4 relative z-10">
             <motion.div
               initial={{ y: 50, opacity: 0 }}
               whileInView={{ y: 0, opacity: 1 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.4 }}
-              className="flex flex-col md:flex-row justify-between items-center max-w-6xl mx-auto gap-10 md:gap-12"
+              viewport={{ once: true }}
+              className="flex flex-col md:flex-row justify-between items-center max-w-6xl mx-auto gap-12 md:gap-16"
             >
-              <div className="flex flex-col justify-center items-center max-w-xl gap-y-6">
-                <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 text-white text-center md:text-left drop-shadow-md">
-                  {t('admin.sectionTitle', 'Potencia tu negocio con ParkiÜ')}
+              <div className="flex-1 max-w-xl">
+                <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
+                  Potencia tu negocio con{' '}
+                  <span className="text-amber-400">ParkiÜ</span>
                 </h2>
-                <p className="text-lg md:text-xl leading-relaxed max-w-lg text-center md:text-left text-white/90 drop-shadow-md">
-                  {t('admin.description', 'Aumenta tus ingresos y mejora la experiencia de tus clientes con nuestra plataforma especializada para administradores de parqueaderos')}
+                <p className="text-xl md:text-2xl text-white/90 mb-8 leading-relaxed">
+                  Únete a la red de parqueaderos más grande y moderna. Optimiza tus operaciones y aumenta tus ingresos.
                 </p>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
                   {ADMIN_BENEFITS.map((benefit, index) => (
                     <motion.div
                       key={index}
-                      className="flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-lg p-3 md:p-4 shadow-md"
                       initial={{ opacity: 0, x: -20 }}
                       whileInView={{ opacity: 1, x: 0 }}
                       viewport={{ once: true }}
                       transition={{ delay: index * 0.1 }}
+                      className="flex items-center gap-4 bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20"
                     >
-                      <div className="bg-white/20 p-2 rounded-md">
+                      <div className="bg-white/20 p-3 rounded-lg">
                         {benefit.icon}
                       </div>
                       <span className="text-white font-medium">{benefit.text}</span>
@@ -575,23 +678,21 @@ const HomePage = () => {
                   ))}
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-6 items-center justify-center md:justify-start">
-                  <Link to="/admin-landing">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <Link to="/admin-landing" className="flex-1">
                     <Button
                       variant="light"
-                      className="px-4 md:px-6 py-3 md:py-4 font-semibold text-base md:text-lg shadow-xl transition-all duration-200 hover:scale-105 hover:shadow-2xl rounded-full"
-                      aria-label="Registra tu parqueadero en nuestra plataforma"
+                      className="w-full px-6 py-4 bg-white text-primary hover:bg-white/90 transition-all duration-300 rounded-xl font-semibold text-lg shadow-xl hover:shadow-2xl transform hover:scale-105"
                     >
-                      {t('admin.registerButton', 'Registrar mi parqueadero')}
+                      Administrar mi parqueadero
                     </Button>
                   </Link>
-                  <Link to="/login" >
+                  <Link to="/login" className="flex-1">
                     <Button
                       variant="dark"
-                      className="flex-wrap px-4 md:px-6 py-3 md:py-4 font-semibold text-base md:text-lg shadow-xl transition-all duration-200 hover:scale-105 hover:shadow-2xl rounded-full"
-                      aria-label="Iniciar sesión"
+                      className="w-full px-6 py-4 bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-all duration-300 rounded-xl font-semibold text-lg"
                     >
-                      {t('admin.loginButton', '¿Ya tienes cuenta?')} <span className="underline ml-2 font-medium">{t('admin.loginButtonAction', 'Iniciar sesión')}</span>
+                      Iniciar sesión
                     </Button>
                   </Link>
                 </div>
@@ -602,87 +703,109 @@ const HomePage = () => {
                 whileInView={{ scale: 1, opacity: 1 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5 }}
-                className="w-full md:w-1/2 aspect-square max-w-md mt-6 md:mt-0"
+                className="flex-1 max-w-lg"
               >
-                <img
-                  src={imgParkiu}
-                  alt={t('admin.platformImage', 'Plataforma de administración de parqueaderos ParkiÜ')}
-                  className="w-full h-full object-cover rounded-3xl shadow-2xl transform hover:scale-105 transition-transform duration-300 border-4 border-white/20"
-                  loading="lazy"
-                />
+                <div className="relative">
+                  <div className="absolute -inset-4 bg-gradient-to-r from-amber-400 to-amber-600 rounded-3xl opacity-30 blur-xl animate-pulse" />
+                  <img
+                    src={imgParkiu}
+                    alt="Plataforma de administración ParkiÜ"
+                    className="relative rounded-2xl shadow-2xl border-4 border-white/20 transform hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
+                  />
+                </div>
               </motion.div>
             </motion.div>
           </div>
         </section>
 
-        {/* How It Works Section - With optimized animation triggers */}
-        <section className="py-16 md:py-24 bg-white" id="como-funciona">
-          <div className="container mx-auto px-4 md:px-6">
-            <motion.h2
-              initial={{ y: 20, opacity: 0 }}
-              whileInView={{ y: 0, opacity: 1 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.3 }}
-              className="text-center text-3xl md:text-4xl font-bold mb-10 md:mb-16 text-gray-900"
-            >
-              {t('howItWorks.sectionTitle', 'Cómo funciona ParkiÜ')}
-            </motion.h2>
+        {/* How It Works - Enhanced */}
+        <section className="py-24 bg-white relative overflow-hidden" id="como-funciona">
+          <div className="absolute inset-0 bg-gradient-to-b from-gray-50 to-white" />
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 max-w-5xl mx-auto">
-              {HOW_IT_WORKS_STEPS.map((feature, index) => (
+          <div className="container mx-auto px-4 relative z-10">
+            <motion.div
+              initial={{ y: 30, opacity: 0 }}
+              whileInView={{ y: 0, opacity: 1 }}
+              viewport={{ once: true }}
+              className="text-center max-w-3xl mx-auto mb-16"
+            >
+              <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900">
+                Cómo funciona <span className="text-primary">ParkiÜ</span>
+              </h2>
+              <p className="text-xl text-gray-600">
+                Encuentra, compara y reserva parqueaderos de forma rápida y segura
+              </p>
+            </motion.div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 max-w-6xl mx-auto">
+              {HOW_IT_WORKS_STEPS.map((step, index) => (
                 <motion.div
-                  key={feature.title}
+                  key={step.title}
                   initial={{ y: 30, opacity: 0 }}
                   whileInView={{ y: 0, opacity: 1 }}
-                  viewport={{ once: true, margin: "-50px" }}
-                  transition={{ delay: index * 0.1, duration: 0.3 }}
-                  className="flex flex-col items-center text-center group"
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.2 }}
+                  className="relative group"
                 >
-                  <div className="w-20 h-20 md:w-24 md:h-24 bg-primary rounded-2xl flex items-center justify-center mb-5 md:mb-6 transform group-hover:scale-110 transition-all duration-300 shadow-lg">
-                    <span className="text-4xl md:text-5xl text-white">{feature.icon}</span>
+                  <div className="absolute -inset-4 bg-gradient-to-r from-primary-500/20 to-primary-600/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-xl" />
+                  <div className="relative bg-white rounded-2xl p-8 shadow-xl border border-gray-100 hover:border-primary/20 transition-all duration-300">
+                    <div className="w-16 h-16 bg-primary/10 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform text-primary text-3xl">
+                      {step.icon}
+                    </div>
+                    <h3 className="text-2xl font-bold mb-4 text-gray-900">{step.title}</h3>
+                    <p className="text-gray-600 leading-relaxed">{step.description}</p>
                   </div>
-                  <h3 className="text-xl md:text-2xl font-semibold mb-3 md:mb-4 text-gray-900">{feature.title}</h3>
-                  <p className="text-gray-600 text-base md:text-lg leading-relaxed px-2">
-                    {feature.description}
-                  </p>
                 </motion.div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* Testimonials Section - With optimized animation triggers */}
-        <section className="py-14 md:py-16 bg-gray-50">
-          <div className="container mx-auto px-4 md:px-6">
-            <motion.h2
-              initial={{ y: 20, opacity: 0 }}
-              whileInView={{ y: 0, opacity: 1 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.3 }}
-              className="text-center text-3xl md:text-4xl font-bold mb-8 md:mb-12 text-gray-900"
-            >
-              {t('testimonials.sectionTitle', 'Lo que dicen nuestros usuarios')}
-            </motion.h2>
+        {/* Testimonials - Enhanced */}
+        <section className="py-24 bg-gray-50 relative overflow-hidden">
+          <div className="absolute inset-0">
+            <div className="absolute inset-0 bg-gradient-to-b from-white to-transparent" />
+          </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto">
+          <div className="container mx-auto px-4 relative z-10">
+            <motion.div
+              initial={{ y: 30, opacity: 0 }}
+              whileInView={{ y: 0, opacity: 1 }}
+              viewport={{ once: true }}
+              className="text-center max-w-3xl mx-auto mb-16"
+            >
+              <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900">
+                Lo que dicen nuestros usuarios
+              </h2>
+              <p className="text-xl text-gray-600">
+                Miles de conductores y administradores confían en ParkiÜ
+              </p>
+            </motion.div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
               {TESTIMONIALS.map((testimonial, index) => (
                 <motion.div
                   key={testimonial.name}
-                  initial={{ y: 20, opacity: 0 }}
+                  initial={{ y: 30, opacity: 0 }}
                   whileInView={{ y: 0, opacity: 1 }}
-                  viewport={{ once: true, margin: "-50px" }}
-                  transition={{ delay: index * 0.1, duration: 0.3 }}
-                  className="bg-white p-5 md:p-6 rounded-xl shadow-md border border-gray-100"
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.2 }}
+                  className="group"
                 >
-                  <p className="text-gray-700 mb-4 italic text-base md:text-lg">&ldquo;{testimonial.testimonial}&rdquo;</p>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary font-bold text-lg">
-                      {testimonial.name.charAt(0)}
+                  <div className="bg-white rounded-2xl p-8 shadow-xl border border-gray-100 hover:border-primary/20 transition-all duration-300 h-full">
+                    <div className="flex items-center gap-4 mb-6">
+                      <div className="w-12 h-12 bg-primary text-white rounded-xl flex items-center justify-center text-lg font-bold group-hover:scale-110 transition-transform">
+                        {testimonial.name.charAt(0)}
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900">{testimonial.name}</h4>
+                        <p className="text-primary">{testimonial.role}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-semibold text-gray-900">{testimonial.name}</h4>
-                      <p className="text-sm text-gray-500">{testimonial.role}</p>
-                    </div>
+                    <p className="text-gray-600 leading-relaxed">
+                      &ldquo;{testimonial.testimonial}&rdquo;
+                    </p>
                   </div>
                 </motion.div>
               ))}
@@ -692,22 +815,219 @@ const HomePage = () => {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="mt-12 text-center"
+              className="mt-16 text-center"
             >
               <Link to="/parking">
                 <Button
-                  className="group text-base md:text-lg px-6 py-3 bg-primary text-white hover:bg-primary-600 transition-colors inline-flex items-center gap-2 rounded-full"
+                  className="group px-8 py-4 bg-primary text-white hover:bg-primary-600 transition-all duration-300 rounded-xl text-lg font-semibold shadow-xl hover:shadow-2xl transform hover:scale-105 inline-flex items-center gap-3"
                 >
-                  {t('cta.findParkings', 'Comenzar a buscar parqueaderos')}
+                  Comenzar a buscar parqueaderos
                   <LuArrowRight className="group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
             </motion.div>
           </div>
         </section>
+
+        {/* CTA Section - New */}
+        <section className="py-20 bg-primary-900 relative overflow-hidden">
+          <div className="absolute inset-0">
+            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMzLjMxNCAwIDYgMi42ODYgNiA2cy0yLjY4NiA2LTYgNi02LTIuNjg2LTYtNiAyLjY4Ni02IDYtNiIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48L2c+PC9zdmc+')] opacity-5" />
+          </div>
+
+          <div className="container mx-auto px-4 relative z-10">
+            <div className="max-w-4xl mx-auto text-center">
+              <motion.h2
+                initial={{ y: 30, opacity: 0 }}
+                whileInView={{ y: 0, opacity: 1 }}
+                viewport={{ once: true }}
+                className="text-4xl md:text-5xl font-bold text-white mb-6"
+              >
+                ¿Listo para encontrar tu{' '}
+                <span className="text-amber-400">parqueadero ideal</span>?
+              </motion.h2>
+              <motion.p
+                initial={{ y: 30, opacity: 0 }}
+                whileInView={{ y: 0, opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2 }}
+                className="text-xl text-white/90 mb-8"
+              >
+                Únete a miles de conductores que ya disfrutan de una experiencia de parqueo sin estrés
+              </motion.p>
+              <motion.div
+                initial={{ y: 30, opacity: 0 }}
+                whileInView={{ y: 0, opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.3 }}
+                className="flex flex-col sm:flex-row gap-4 justify-center"
+              >
+                <Button
+                  onClick={handleNearbySearch}
+                  className="px-8 py-4 bg-amber-500 text-white hover:bg-amber-600 transition-all duration-300 rounded-xl text-lg font-semibold shadow-xl hover:shadow-2xl transform hover:scale-105 flex items-center justify-center gap-2"
+                >
+                  <LuCompass className="text-2xl" />
+                  Encontrar parqueaderos cercanos
+                </Button>
+                <Link to="/admin-landing">
+                  <Button
+                    variant="light"
+                    className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white border border-white/20 hover:bg-white/20 transition-all duration-300 rounded-xl text-lg font-semibold"
+                  >
+                    Administrar mi parqueadero
+                  </Button>
+                </Link>
+              </motion.div>
+            </div>
+          </div>
+        </section>
+
+        {/* Expansion Section - Cities */}
+        <section className="py-24 bg-white relative overflow-hidden">
+          <div className="absolute inset-0">
+            <div className="absolute inset-0 bg-gradient-to-b from-gray-50/50 to-white" />
+          </div>
+
+          <div className="container mx-auto px-4 relative z-10">
+            <div className="flex flex-col lg:flex-row items-center justify-between max-w-6xl mx-auto gap-12">
+              <div className="flex-1">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  className="max-w-xl"
+                >
+                  <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900">
+                    Encuentra parqueaderos en{' '}
+                    <span className="text-primary">Colombia</span>
+                  </h2>
+                  <p className="text-xl text-gray-600 mb-8 leading-relaxed">
+                    Iniciamos en Bogotá y estamos expandiéndonos a las principales ciudades del país para brindarte la mejor experiencia de parqueo donde quiera que vayas.
+                  </p>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 text-primary">
+                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <FaMapMarkerAlt className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-xl">Disponible ahora</h3>
+                        <p className="text-gray-600">Bogotá D.C.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 text-gray-400">
+                      <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center">
+                        <FaMapMarkerAlt className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-xl">Próximamente</h3>
+                        <p className="text-gray-600">Medellín • Cali • Barranquilla</p>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                className="flex-1"
+              >
+                <div className="relative">
+                  <div className="absolute -inset-4 bg-gradient-to-r from-primary-500/20 to-primary-600/20 rounded-3xl opacity-30 blur-xl" />
+                  <div className="relative bg-white rounded-2xl p-8 shadow-xl border border-gray-100">
+                    <div className="aspect-[4/3] relative overflow-hidden rounded-lg bg-gray-100">
+                      <svg className="absolute inset-0 w-full h-full text-primary/10" viewBox="0 0 800 600">
+                        <path d="M400,150 Q550,150 550,300 T400,450 T250,300 T400,150" fill="none" stroke="currentColor" strokeWidth="2"/>
+                        <circle cx="400" cy="300" r="8" fill="currentColor"/>
+                        <circle cx="400" cy="150" r="8" fill="currentColor"/>
+                        <circle cx="550" cy="300" r="8" fill="currentColor"/>
+                        <circle cx="400" cy="450" r="8" fill="currentColor"/>
+                        <circle cx="250" cy="300" r="8" fill="currentColor"/>
+                        <text x="400" y="140" textAnchor="middle" fill="currentColor" fontSize="14">Bogotá</text>
+                        <text x="560" y="300" textAnchor="start" fill="currentColor" fontSize="14">Medellín</text>
+                        <text x="400" y="470" textAnchor="middle" fill="currentColor" fontSize="14">Cali</text>
+                        <text x="240" y="300" textAnchor="end" fill="currentColor" fontSize="14">Barranquilla</text>
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-24 h-24 bg-primary/20 rounded-full flex items-center justify-center animate-pulse">
+                          <div className="w-16 h-16 bg-primary/30 rounded-full flex items-center justify-center">
+                            <div className="w-8 h-8 bg-primary rounded-full" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-6 grid grid-cols-2 gap-4">
+                      <div className="bg-gray-50 rounded-xl p-4">
+                        <div className="text-3xl font-bold text-primary mb-1">4+</div>
+                        <div className="text-gray-600 text-sm">Ciudades principales</div>
+                      </div>
+                      <div className="bg-gray-50 rounded-xl p-4">
+                        <div className="text-3xl font-bold text-primary mb-1">1M+</div>
+                        <div className="text-gray-600 text-sm">Conductores potenciales</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </section>
       </main>
 
       <DarkFooter />
+
+      {/* Location Dialog - Enhanced */}
+      <AnimatePresence>
+        {showLocationDialog && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="bg-white rounded-2xl p-8 max-w-md mx-4 relative"
+            >
+              <div className="absolute -top-12 left-1/2 -translate-x-1/2">
+                <div className="w-24 h-24 bg-primary rounded-2xl flex items-center justify-center text-white text-4xl transform rotate-12 shadow-xl">
+                  <LuParkingSquare />
+                </div>
+              </div>
+
+              <div className="text-center mt-8">
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                  ¿Por qué necesitamos tu ubicación?
+                </h3>
+                <p className="text-gray-600 mb-3">
+                  Para mostrarte los parqueaderos más cercanos a tu ubicación actual y brindarte la mejor experiencia posible.
+                </p>
+                <p className="text-sm text-gray-500 mb-6">
+                  No almacenamos tu ubicación, solo la usamos para esta búsqueda.
+                </p>
+
+                <div className="flex gap-3 justify-center">
+                  <Button
+                    onClick={() => setShowLocationDialog(false)}
+                    className="px-6 py-3 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-xl text-base font-medium"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={confirmLocationAccess}
+                    className="px-6 py-3 bg-primary text-white hover:bg-primary-600 rounded-xl text-base font-medium shadow-lg hover:shadow-xl transition-all"
+                  >
+                    Permitir acceso
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

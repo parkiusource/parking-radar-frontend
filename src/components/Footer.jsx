@@ -86,7 +86,7 @@ const DarkFooter = ({ className }) => (
         <FooterSection title="Enlaces rápidos">
           <FooterLink to="/">Inicio</FooterLink>
           <FooterLink to="/parking">Buscar parqueaderos</FooterLink>
-          <FooterLink to="/admin-landing">Registrar parqueadero</FooterLink>
+          <FooterLink to="/admin-landing">Administrar parqueadero</FooterLink>
           <FooterLink to="/about">Acerca de nosotros</FooterLink>
         </FooterSection>
 

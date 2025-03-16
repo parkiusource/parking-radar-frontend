@@ -4,7 +4,8 @@ import { useAuth0 } from '@auth0/auth0-react';
 import { useAdminProfile, useAdminParkingLots } from '@/api/hooks/useAdminOnboarding';
 import { LoadingOverlay } from '@/components/common/LoadingOverlay';
 import { Button } from '@/components/common/Button/Button';
-import { LuLogIn } from 'react-icons/lu';
+import { LuLogIn, LuParkingSquare } from 'react-icons/lu';
+import { Logo } from '@/components/Logo';
 
 export const Gateway = () => {
   const navigate = useNavigate();
@@ -46,25 +47,48 @@ export const Gateway = () => {
   // Si no está autenticado, mostrar botón de login
   if (!isAuthenticated) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-secondary-950 p-4">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-4">¡Bienvenido a ParkiÜ!</h1>
-          <p className="text-secondary-200 max-w-md">
-            Inicia sesión para administrar tus parqueaderos y gestionar tus espacios disponibles.
-          </p>
+      <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-900">
+        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]"></div>
+
+        <div className="relative isolate px-6 pt-14 lg:px-8">
+          <div className="mx-auto max-w-2xl py-32 sm:py-48 lg:py-56">
+            <div className="text-center">
+              <Logo variant="white" className="mx-auto w-48 mb-8" />
+
+              <h1 className="text-4xl font-bold tracking-tight text-white sm:text-6xl mb-8">
+                Panel de Administración
+              </h1>
+
+              <div className="flex flex-col items-center space-y-6">
+                <div className="flex items-center space-x-4 text-white/80">
+                  <LuParkingSquare className="w-6 h-6" />
+                  <span>Gestiona tus parqueaderos de forma eficiente</span>
+                </div>
+
+                <Button
+                  onClick={() => {
+                    loginWithRedirect({
+                      appState: { returnTo: '/admin/onboarding' }
+                    });
+                  }}
+                  className="flex items-center gap-2 bg-white text-primary-900 hover:bg-white/90 px-8 py-3 text-base font-semibold shadow-sm transition-all duration-200 ease-in-out transform hover:scale-105"
+                >
+                  <LuLogIn className="w-5 h-5" />
+                  Iniciar Sesión
+                </Button>
+
+                <p className="text-sm text-white/60">
+                  Accede a todas las funcionalidades de administración
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Decorative elements */}
+          <div className="absolute inset-x-0 top-[calc(100%-13rem)] -z-10 transform-gpu overflow-hidden blur-3xl sm:top-[calc(100%-30rem)]">
+            <div className="relative left-[calc(50%+3rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 bg-gradient-to-tr from-primary-500 to-primary-300 opacity-20 sm:left-[calc(50%+36rem)] sm:w-[72.1875rem]"></div>
+          </div>
         </div>
-        <Button
-          onClick={() => {
-            console.log('Iniciando login...');
-            loginWithRedirect({
-              appState: { returnTo: '/admin/onboarding' }
-            });
-          }}
-          className="flex items-center gap-2 bg-primary-500 hover:bg-primary-600"
-        >
-          <LuLogIn className="w-5 h-5" />
-          Iniciar Sesión
-        </Button>
       </div>
     );
   }
