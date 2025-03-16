@@ -75,7 +75,7 @@ const Footer = () => {
                   </li>
                   <li>
                     <Link to="/admin-landing" className="text-gray-500 hover:text-primary transition-colors text-sm">
-                      Registrar Parqueadero
+                      Administrar Parqueadero
                     </Link>
                   </li>
                   <li>

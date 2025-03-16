@@ -65,7 +65,7 @@ const resources = {
       admin: {
         sectionTitle: 'Potencia tu negocio con ParkiÜ',
         description: 'Aumenta tus ingresos y mejora la experiencia de tus clientes con nuestra plataforma especializada para administradores de parqueaderos',
-        registerButton: 'Registrar mi parqueadero',
+        registerButton: 'Administrar mi parqueadero',
         loginButton: '¿Ya tienes cuenta?',
         loginButtonAction: 'Iniciar sesión',
         platformImage: 'Plataforma de administración de parqueaderos ParkiÜ',
@@ -188,19 +188,19 @@ const resources = {
           description: 'Profesionales apasionados por resolver problemas urbanos.',
           members: {
             ana: {
-              name: 'Ana Martínez',
+              name: 'Camilo León',
               role: 'CEO & Fundadora',
               bio: 'Especialista en soluciones de movilidad urbana.'
             },
             carlos: {
-              name: 'Carlos Rodríguez',
+              name: 'David Bautista',
               role: 'CTO',
               bio: 'Desarrollador especializado en aplicaciones geoespaciales.'
             },
             sofia: {
-              name: 'Sofía Valencia',
-              role: 'Directora de Operaciones',
-              bio: 'Experta en logística urbana y optimización.'
+              name: 'Pedro Castiblanco',
+              role: 'Director de Operaciones',
+              bio: 'Experto en logística urbana y optimización.'
             }
           }
         },
@@ -208,7 +208,7 @@ const resources = {
           title: '¿Listo para olvidar el estrés?',
           description: 'Únete a miles de usuarios con una experiencia de estacionamiento sin complicaciones.',
           findButton: 'Encontrar Parqueadero',
-          registerButton: 'Registrar mi Parqueadero'
+          registerButton: 'Administrar mi Parqueadero'
         }
       },
       // Añadimos traducciones para la página de parqueaderos
@@ -408,17 +408,17 @@ const resources = {
           description: 'Professionals passionate about solving urban problems.',
           members: {
             ana: {
-              name: 'Ana Martínez',
+              name: 'Camilo León',
               role: 'CEO & Founder',
               bio: 'Specialist in urban mobility solutions.'
             },
             carlos: {
-              name: 'Carlos Rodríguez',
+              name: 'David Bautista',
               role: 'CTO',
               bio: 'Developer specialized in geospatial applications.'
             },
             sofia: {
-              name: 'Sofía Valencia',
+              name: 'Pedro Castiblanco',
               role: 'Operations Director',
               bio: 'Expert in urban logistics and optimization.'
             }

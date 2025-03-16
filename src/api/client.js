@@ -33,6 +33,25 @@ const createClient = () => {
         return Promise.reject(new Error('No token available'));
       }
 
+      // Debug detallado del token
+      try {
+        const parts = token.split('.');
+        const payload = JSON.parse(atob(parts[1]));
+        console.log('Token detallado:', {
+          audiences: payload.aud,
+          scope: payload.scope,
+          issuer: payload.iss,
+          permissions: payload.permissions,
+          roles: payload.roles,
+          exp: payload.exp,
+          iat: payload.iat,
+          azp: payload.azp,
+          gty: payload.gty
+        });
+      } catch (error) {
+        console.error('Error decodificando token:', error);
+      }
+
       config.headers.Authorization = `Bearer ${token}`;
       return config;
     } catch (error) {
