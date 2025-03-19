@@ -71,14 +71,14 @@ const SupportForm = () => {
 
       <Header />
 
-      <main className="bg-secondary-50 min-h-[calc(100vh-64px)] flex flex-col justify-center py-8 md:py-12">
-        <div className="container mx-auto px-4 sm:px-6">
-          <h1 className="text-3xl font-bold text-center text-gray-800 mb-6 md:mb-8">
+      <main className="bg-secondary-50 min-h-[calc(100vh-64px)] flex flex-col py-8 md:py-12">
+        <div className="w-full flex flex-col items-center">
+          <h1 className="text-3xl font-bold text-center text-gray-800 mb-6 md:mb-8 px-4">
             Centro de Soporte
           </h1>
 
-          {/* Form Card - Centered with proper max-width */}
-          <div className="max-w-2xl mx-auto w-full">
+          {/* Form Card - Perfectly centered */}
+          <div className="w-full max-w-lg mx-auto px-4">
             <Card className="bg-white rounded-xl shadow-md overflow-hidden">
               <CardContent className="p-0">
                 {/* Header section with image */}
