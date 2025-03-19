@@ -48,7 +48,6 @@ const SupportForm = () => {
       setSubmitStatus('success');
       reset();
 
-      // Auto-clear success message after 5 seconds
       setTimeout(() => {
         setSubmitStatus(null);
       }, 5000);
@@ -67,11 +66,15 @@ const SupportForm = () => {
         <title>Centro de Soporte - ParkiÜ</title>
         <meta name="description" content="Envía tus peticiones, quejas, sugerencias o reclamos a nuestro equipo de soporte de ParkiÜ" />
         <meta name="keywords" content="soporte, ayuda, contacto, parkiü, estacionamiento, parqueadero" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="preload" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" as="style" />
+        <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
       </Helmet>
 
       <Header />
 
-      <main className="bg-secondary-50 min-h-[calc(100vh-64px)] flex items-center py-12">
+      <main className="bg-secondary-50 min-h-full flex items-center pt-24 pb-12">
         <div className="w-full max-w-4xl mx-auto px-4 sm:px-6">
           <h1 className="text-3xl font-bold text-center text-gray-800 mb-8">
             Centro de Soporte
@@ -79,7 +82,7 @@ const SupportForm = () => {
 
           {/* Form Card - Perfectly centered */}
           <div className="w-full max-w-xl mx-auto">
-            <Card className="bg-white rounded-xl shadow-md overflow-hidden">
+            <Card className="bg-white rounded-xl shadow-md overflow-hidden" size='xl'>
               <CardContent className="p-0">
                 {/* Header section with image */}
                 <div className="bg-primary-600 text-white p-5 sm:p-6">
@@ -94,6 +97,8 @@ const SupportForm = () => {
                       src={iconsupport}
                       alt="Soporte ParkiÜ"
                       className="w-16 h-16 object-contain"
+                      width="64"
+                      height="64"
                     />
                   </div>
                 </div>
@@ -213,7 +218,7 @@ const SupportForm = () => {
                       id="description"
                       rows="5"
                       className={`w-full px-3 py-2 rounded-lg border ${errors.description ? 'border-red-500' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-primary-500`}
-                      placeholder="Describe detalladamente tu petición, queja, sugerencia o reclamo..."
+                      placeholder="Describe detalladamente tu petición, queja, sugerencia o reclamo"
                       {...register("description", {
                         required: "La descripción es obligatoria",
                         minLength: {
