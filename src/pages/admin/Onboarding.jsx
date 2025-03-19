@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
 import { useNavigate } from 'react-router-dom';
-import { LuCheckCircle, LuUser, LuParkingSquare, LuShieldCheck } from 'react-icons/lu';
+import { LuCheckCircle, LuUser, LuShieldCheck } from 'react-icons/lu';
+import { CircleParking } from 'lucide-react';
 
 import { Button } from '@/components/common';
 import {
@@ -33,7 +34,7 @@ const containerVariants = {
 
 const stepIcons = {
   1: LuUser,
-  2: LuParkingSquare,
+  2: CircleParking,
   3: LuShieldCheck,
 };
 

@@ -1,7 +1,8 @@
 import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LuParkingSquare, LuLogIn, LuSearch } from 'react-icons/lu';
+import { LuLogIn, LuSearch } from 'react-icons/lu';
+import { CircleParking } from 'lucide-react';
 import { Button } from '@/components/common';
 import { twMerge } from 'tailwind-merge';
 import { useAdminProfile } from '@/api/hooks/useAdminOnboarding';
@@ -71,7 +72,7 @@ const CtaButtons = ({ auth: { isAuthenticated, isLoading }, onLogin, className }
               className="w-full flex items-center justify-center gap-2 px-3 md:px-4 py-2 text-sm font-medium bg-white text-primary hover:bg-white/90"
               disabled={profileLoading}
             >
-              <LuParkingSquare className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
+              <CircleParking className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
               <span className="whitespace-nowrap">Mi Panel</span>
             </Button>
           </Link>

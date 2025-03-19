@@ -4,7 +4,7 @@ import { useAuth0 } from '@auth0/auth0-react';
 import { useAdminProfile, useAdminParkingLots } from '@/api/hooks/useAdminOnboarding';
 import { LoadingOverlay } from '@/components/common/LoadingOverlay';
 import { Button } from '@/components/common/Button/Button';
-import { LuLogIn, LuParkingSquare } from 'react-icons/lu';
+import { LuLogIn, CircleParking } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 
 export const Gateway = () => {
@@ -61,7 +61,7 @@ export const Gateway = () => {
 
               <div className="flex flex-col items-center space-y-6">
                 <div className="flex items-center space-x-4 text-white/80">
-                  <LuParkingSquare className="w-6 h-6" />
+                  <CircleParking className="w-6 h-6" />
                   <span>Gestiona tus parqueaderos de forma eficiente</span>
                 </div>
 
