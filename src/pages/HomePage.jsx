@@ -5,7 +5,7 @@ import { FaAward, FaCalendarCheck, FaMoneyBillWave, FaComments, FaShieldAlt, FaC
 import { FaSquareParking } from 'react-icons/fa6';
 import DarkFooter from '@/components/Footer';
 import { Button } from '@/components/common/Button/Button';
-import { LuSearch, LuParkingSquare, LuLoader2, LuArrowRight, LuCompass } from "react-icons/lu";
+import { LuSearch, LuArrowRight, LuCompass } from "react-icons/lu";
 import { motion, AnimatePresence } from "framer-motion";
 import imgParkiu from '@/images/img_parkiu.webp';
 import bgMapHero from '@/images/bg_map_hero.webp';
@@ -14,6 +14,7 @@ import { useSearchPlaces } from '@/api/hooks/useSearchPlaces';
 import { SearchBox } from '@/components/SearchBox';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
+import { CircleParking, Loader2 } from 'lucide-react';
 
 // Prefetch de la imagen de fondo del hero para evitar CLS (Cumulative Layout Shift)
 const prefetchImage = (src) => {
@@ -499,7 +500,7 @@ const HomePage = () => {
                       animate={{ rotate: 360 }}
                       transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
                     >
-                      <LuLoader2 className="text-primary-600 text-xl" />
+                      <Loader2 className="text-primary-600 text-xl" />
                     </motion.div>
                   </div>
                 )}
@@ -525,7 +526,7 @@ const HomePage = () => {
                   <div className="relative z-10 flex items-center justify-center gap-x-3">
                     {isSearching ? (
                       <>
-                        <LuLoader2 className="animate-spin text-2xl" />
+                        <Loader2 className="animate-spin text-2xl" />
                         <span>Obteniendo ubicación...</span>
                       </>
                     ) : (
@@ -581,7 +582,7 @@ const HomePage = () => {
           <div className="absolute inset-0">
             <div className="absolute inset-0 bg-gradient-to-b from-primary-50/30 to-transparent" />
             <div className="absolute inset-0" style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M54.627 0l.83.828-1.415 1.415L51.8 0h2.827zM5.373 0l-.83.828L5.96 2.243 8.2 0H5.374zM48.97 0l3.657 3.657-1.414 1.414L46.143 0h2.828zM11.03 0L7.372 3.657 8.787 5.07 13.857 0H11.03zm32.284 0L49.8 6.485 48.384 7.9l-7.9-7.9h2.83zM16.686 0L10.2 6.485 11.616 7.9l7.9-7.9h-2.83zM22.343 0L13.857 8.485 15.272 9.9l7.9-7.9h-.83zm5.657 0L19.514 8.485 20.93 9.9l8.485-8.485h-1.415zM32.372 0L26.9 5.485 28.314 6.9 34.2 1.015 32.37 0zm-3.314 0l6.485 6.485L36.96 7.9l-7.9-7.9h.828zm-6.656 0l-1.414 1.414 6.485 6.485 1.414-1.414L22.4 0zm-4.242 0L6.686 11.472l1.415 1.414 11.314-11.314h-1.414zm2.828 0l11.313 11.313-1.414 1.414L19.514 1.414 20.93 0zM30.2 0l13.142 13.142-1.414 1.414L29.514 2.142 30.2 0zm2.83 0l13.14 13.142-1.414 1.414L32.342 2.142 33.03 0zm2.827 0l13.142 13.142-1.414 1.414L35.17 2.142 35.857 0zM38.03 0L25.9 12.142 27.314 13.56 33.2 7.675 38.03 0zm-3.314 0l6.485 6.485L36.96 7.9l-7.9-7.9h.828zm-6.656 0l-1.414 1.414 6.485 6.485 1.414-1.414L22.4 0zm-4.242 0L6.686 11.472l1.415 1.414 11.314-11.314h-1.414zm2.828 0l11.313 11.313-1.414 1.414L19.514 1.414 20.93 0zM30.2 0l13.142 13.142-1.414 1.414L29.514 2.142 30.2 0zm2.83 0l13.14 13.142-1.414 1.414L32.342 2.142 33.03 0zm2.827 0l13.142 13.142-1.414 1.414L35.17 2.142 35.857 0z' fill='%230EA5E9' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E")`,
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M54.627 0l.83.828-1.415 1.415L51.8 0h2.827zM5.373 0l-.83.828L5.96 2.243 8.2 0H5.374zM48.97 0l3.657 3.657-1.414 1.414L46.143 0h2.828zM11.03 0L7.372 3.657 8.787 5.07 13.857 0H11.03zm32.284 0L49.8 6.485 48.384 7.9l-7.9-7.9h2.83zM16.686 0L10.2 6.485 11.616 7.9l7.9-7.9h-2.83zM22.343 0L13.857 8.485 15.272 9.9l7.9-7.9h-.83zm5.657 0L19.514 8.485 20.93 9.9l8.485-8.485h-1.415zM32.372 0L26.9 5.485 28.314 6.9 34.2 1.015 32.37 0zm-3.314 0l6.485 6.485L36.96 7.9l-7.9-7.9h.828zm-6.656 0l-1.414 1.414 6.485 6.485 1.414-1.414L22.4 0zm-4.242 0L6.686 11.472l1.415 1.414 11.314-11.314h-1.414zm2.828 0l11.313 11.313-1.414 1.414L19.514 1.414 20.93 0zM30.2 0l13.142 13.142-1.414 1.414L29.514 2.142 30.2 0zm2.83 0l13.14 13.142-1.414 1.414L32.342 2.142 33.03 0zm2.827 0l13.142 13.142-1.414 1.414L35.17 2.142 35.857 0zM38.03 0L25.9 12.142 27.314 13.56 33.2 7.675 38.03 0zm-3.314 0l6.485 6.485L36.96 7.9l-7.9-7.9h.828zm-6.656 0l-1.414 1.414 6.485 6.485 1.414-1.414L22.4 0zm-4.242 0L6.686 11.472l1.415 1.414 11.314-11.314h-1.414zm2.828 0l11.313 11.313-1.414 1.414L19.514 1.414 20.93 0zM30.2 0l13.142 13.142-1.414 1.414L29.514 2.142 30.2 0zm2.83 0l13.14 13.142-1.414 1.414L32.342 2.142 33.03 0zm2.827 0l13.142 13.142-1.414 1.414L35.17 2.142 35.857 0zM38.03 0L25.9 12.142 27.314 13.56 33.2 7.675 38.03 0zm-3.314 0l6.485 6.485L36.96 7.9l-7.9-7.9h.828zm-6.656 0l-1.414 1.414 6.485 6.485 1.414-1.414L22.4 0zm-4.242 0L6.686 11.472l1.415 1.414 11.314-11.314h-1.414zm2.828 0l11.313 11.313-1.414 1.414L19.514 1.414 20.93 0zM30.2 0l13.142 13.142-1.414 1.414L29.514 2.142 30.2 0zm2.83 0l13.14 13.142-1.414 1.414L32.342 2.142 33.03 0zm2.827 0l13.142 13.142-1.414 1.414L35.17 2.142 35.857 0z' fill='%230EA5E9' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E")`,
               backgroundSize: '60px 60px'
             }} />
           </div>
@@ -592,7 +593,7 @@ const HomePage = () => {
                   value: "500+",
                   label: "Parqueaderos",
                   description: "registrados en Bogotá",
-                  icon: <LuParkingSquare className="w-8 h-8" />
+                  icon: <CircleParking className="w-8 h-8" />
                 },
                 {
                   value: "15K+",
@@ -994,7 +995,7 @@ const HomePage = () => {
             >
               <div className="absolute -top-12 left-1/2 -translate-x-1/2">
                 <div className="w-24 h-24 bg-primary rounded-2xl flex items-center justify-center text-white text-4xl transform rotate-12 shadow-xl">
-                  <LuParkingSquare />
+                  <CircleParking />
                 </div>
               </div>
 

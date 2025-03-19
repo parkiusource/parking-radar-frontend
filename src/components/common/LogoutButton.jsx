@@ -1,7 +1,7 @@
 import { useState, useCallback, memo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useQueryClient } from '@tanstack/react-query';
-import { LuLogOut } from 'react-icons/lu';
+import { LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
 import PropTypes from 'prop-types';
@@ -54,7 +54,7 @@ const LogoutButtonComponent = ({ className, variant = 'icon' }) => {
         disabled={isLoading}
         aria-label="Cerrar sesión"
       >
-        <LuLogOut className={variant === 'icon' ? 'w-5 h-5' : 'w-4 h-4'} />
+        <LogOut className={variant === 'icon' ? 'w-5 h-5' : 'w-4 h-4'} />
         {variant === 'text' && <span>Cerrar sesión</span>}
       </button>
 
@@ -94,7 +94,7 @@ const LogoutButtonComponent = ({ className, variant = 'icon' }) => {
                     </>
                   ) : (
                     <>
-                      <LuLogOut className="w-4 h-4" />
+                      <LogOut className="w-4 h-4" />
                       <span>Cerrar sesión</span>
                     </>
                   )}

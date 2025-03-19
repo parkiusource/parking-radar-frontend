@@ -1,8 +1,9 @@
-import { LuPlus, LuLayoutDashboard, LuParkingSquare, LuSettings, LuLogOut, LuMapPin, LuCar, LuSearch, LuTrendingUp, LuUsers } from 'react-icons/lu';
+import { LuPlus, LuLayoutDashboard, LuSettings, LuLogOut, LuMapPin, LuCar, LuSearch, LuTrendingUp, LuUsers } from 'react-icons/lu';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useState } from 'react';
+import { CircleParking } from 'lucide-react';
 
 import { Button } from '@/components/common/Button/Button';
 import { LoadingOverlay } from '@/components/common/LoadingOverlay';
@@ -99,7 +100,7 @@ export default function AdminDashboard() {
             to="/admin/parkings"
             className="flex items-center space-x-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
           >
-            <LuParkingSquare className="w-5 h-5" />
+            <CircleParking className="w-5 h-5" />
             <span>Parqueaderos</span>
           </Link>
           <Link
@@ -207,7 +208,7 @@ export default function AdminDashboard() {
               <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
                 <div className="flex items-center space-x-3">
                   <div className="p-3 bg-blue-50 rounded-lg">
-                    <LuParkingSquare className="w-6 h-6 text-blue-600" />
+                    <CircleParking className="w-6 h-6 text-blue-600" />
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-600">Total Parqueaderos</p>
@@ -296,7 +297,7 @@ export default function AdminDashboard() {
             {/* Parking List with Filtered Results */}
             {filteredParkings?.length === 0 ? (
               <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
-                <LuParkingSquare className="mx-auto h-12 w-12 text-gray-400" />
+                <CircleParking className="mx-auto h-12 w-12 text-gray-400" />
                 <h3 className="mt-2 text-sm font-medium text-gray-900">
                   {searchTerm ? 'No se encontraron resultados' : 'No hay parqueaderos'}
                 </h3>

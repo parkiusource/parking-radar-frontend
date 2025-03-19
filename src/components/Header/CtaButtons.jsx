@@ -1,7 +1,8 @@
 import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LuParkingSquare, LuLogIn, LuSearch } from 'react-icons/lu';
+import { LogIn, Search } from 'lucide-react';
+import { CircleParking } from 'lucide-react';
 import { Button } from '@/components/common';
 import { twMerge } from 'tailwind-merge';
 import { useAdminProfile } from '@/api/hooks/useAdminOnboarding';
@@ -41,7 +42,7 @@ const CtaButtons = ({ auth: { isAuthenticated, isLoading }, onLogin, className }
             variant="ghost"
             className="w-full flex items-center justify-center gap-2 px-3 md:px-4 py-2 text-sm font-medium text-white border-white hover:bg-white/10"
           >
-            <LuSearch className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
+            <Search className="w-4 h-4 md:w-5 md:h-5" />
             <span className="whitespace-nowrap">Buscar</span>
           </Button>
         </Link>
@@ -59,7 +60,7 @@ const CtaButtons = ({ auth: { isAuthenticated, isLoading }, onLogin, className }
             className="w-full flex items-center justify-center gap-2 px-3 md:px-4 py-2 text-sm font-medium bg-white text-primary hover:bg-white/90 transition-colors"
             disabled={isLoading}
           >
-            <LuLogIn className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
+            <LogIn className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
             <div className="flex flex-col items-start">
               <span className="whitespace-nowrap">Administrar</span>
               <span className="text-xs opacity-90">Mi parqueadero</span>
@@ -71,7 +72,7 @@ const CtaButtons = ({ auth: { isAuthenticated, isLoading }, onLogin, className }
               className="w-full flex items-center justify-center gap-2 px-3 md:px-4 py-2 text-sm font-medium bg-white text-primary hover:bg-white/90"
               disabled={profileLoading}
             >
-              <LuParkingSquare className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
+              <CircleParking className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
               <span className="whitespace-nowrap">Mi Panel</span>
             </Button>
           </Link>
