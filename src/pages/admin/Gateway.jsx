@@ -4,7 +4,7 @@ import { useAuth0 } from '@auth0/auth0-react';
 import { useAdminProfile, useAdminParkingLots } from '@/api/hooks/useAdminOnboarding';
 import { LoadingOverlay } from '@/components/common/LoadingOverlay';
 import { Button } from '@/components/common/Button/Button';
-import { LuLogIn, CircleParking } from 'lucide-react';
+import { CircleParking, LogIn } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 
 export const Gateway = () => {
@@ -73,7 +73,7 @@ export const Gateway = () => {
                   }}
                   className="flex items-center gap-2 bg-white text-primary-900 hover:bg-white/90 px-8 py-3 text-base font-semibold shadow-sm transition-all duration-200 ease-in-out transform hover:scale-105"
                 >
-                  <LuLogIn className="w-5 h-5" />
+                  <LogIn className="w-6 h-6" />
                   Iniciar Sesión
                 </Button>
 

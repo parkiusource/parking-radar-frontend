@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
 import { useNavigate } from 'react-router-dom';
-import { LuCheckCircle, LuUser, LuShieldCheck } from 'react-icons/lu';
+import { CheckCircle, User, ShieldCheck } from 'lucide-react';
 import { CircleParking } from 'lucide-react';
 
 import { Button } from '@/components/common';
@@ -33,9 +33,9 @@ const containerVariants = {
 };
 
 const stepIcons = {
-  1: LuUser,
+  1: User,
   2: CircleParking,
-  3: LuShieldCheck,
+  3: ShieldCheck,
 };
 
 export default function AdminOnboarding() {
@@ -238,7 +238,7 @@ export default function AdminOnboarding() {
                         )}
                       >
                         {isCompleted ? (
-                          <LuCheckCircle className="w-6 h-6" />
+                          <CheckCircle className="w-6 h-6" />
                         ) : (
                           <StepIcon className="w-6 h-6" />
                         )}
