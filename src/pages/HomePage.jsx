@@ -26,10 +26,8 @@ const prefetchImage = (src) => {
   });
 };
 
-// Datos constantes para evitar valores quemados en el código
 const DEFAULT_RECENT_SEARCHES = ["Zona G", "Chapinero Alto"];
 
-// Componente optimizado del SearchBox para evitar re-renderizados innecesarios
 const MemoizedSearchBox = memo(forwardRef(function MemoizedSearchBox(props, ref) {
   return (
     <div className="relative w-full">
@@ -43,7 +41,7 @@ const MemoizedSearchBox = memo(forwardRef(function MemoizedSearchBox(props, ref)
             {...props}
             ref={ref}
             useSearchHook={useSearchPlaces}
-            className={`pl-14 pr-20 py-5 w-full bg-transparent transition-all duration-300 text-lg font-medium placeholder-gray-400 focus:placeholder-gray-300 ${props.className || ''}`}
+            className={`pl-16 pr-16 py-5 w-full bg-transparent transition-all duration-300 text-lg font-medium placeholder-gray-400 focus:placeholder-gray-300 ${props.className || ''}`}
           />
 
           {/* Animated search icon */}
@@ -56,7 +54,7 @@ const MemoizedSearchBox = memo(forwardRef(function MemoizedSearchBox(props, ref)
           {/* Right side elements */}
           <div className="absolute right-0 top-0 bottom-0 flex items-center pr-4">
             {/* Keyboard shortcut pill */}
-            <div className="hidden sm:flex items-center gap-2 mr-2">
+            <div className="hidden sm:flex items-center gap-2 mr-4">
               <div className="flex items-center space-x-1 bg-gray-100/80 hover:bg-gray-100 px-2 py-1 rounded-lg transition-colors">
                 <kbd className="text-xs font-semibold text-gray-500 bg-white/80 px-1.5 py-0.5 rounded-md shadow-sm">⌘</kbd>
                 <kbd className="text-xs font-semibold text-gray-500 bg-white/80 px-1.5 py-0.5 rounded-md shadow-sm">K</kbd>
@@ -64,7 +62,7 @@ const MemoizedSearchBox = memo(forwardRef(function MemoizedSearchBox(props, ref)
             </div>
 
             {/* Separator */}
-            <div className="hidden sm:block w-px h-8 bg-gray-200 mx-2" />
+            <div className="hidden sm:block w-px h-8 bg-gray-200 mx-1" />
 
             {/* Location button */}
             <button className="p-2 rounded-xl hover:bg-gray-100/80 text-primary-500 transition-colors" onClick={props.onLocationClick}>
@@ -89,7 +87,6 @@ MemoizedSearchBox.propTypes = {
   onLocationClick: PropTypes.func
 };
 
-// Add this to your existing styles or create a new animation
 const styles = `
   @keyframes gradient-xy {
     0% {
@@ -144,13 +141,12 @@ const HomePage = () => {
   const [heroImageLoaded, setHeroImageLoaded] = useState(false);
   const { t } = useTranslation();
 
-  // Prefetch de la imagen de fondo
   useEffect(() => {
     prefetchImage(bgMapHero)
       .then(() => setHeroImageLoaded(true))
       .catch(err => {
         console.error('Error loading hero background:', err);
-        setHeroImageLoaded(true); // Set to true even on error to avoid blocking UI
+        setHeroImageLoaded(true);
       });
   }, []);
 
@@ -174,7 +170,6 @@ const HomePage = () => {
     }
   ], [t]);
 
-  // Beneficios para administradores con traducciones
   const ADMIN_BENEFITS = useMemo(() => [
     {
       icon: <FaChartLine className="text-white text-xl" />,
@@ -194,7 +189,6 @@ const HomePage = () => {
     }
   ], [t]);
 
-  // Pasos de cómo funciona la app con traducciones
   const HOW_IT_WORKS_STEPS = useMemo(() => [
     {
       icon: <FaSquareParking />,
@@ -213,7 +207,6 @@ const HomePage = () => {
     }
   ], [t]);
 
-  // Testimonios de usuarios con traducciones
   const TESTIMONIALS = useMemo(() => [
     {
       name: t('testimonials.carlos.name', 'Carlos Ramírez'),
@@ -232,7 +225,6 @@ const HomePage = () => {
     }
   ], [t]);
 
-  // Meta información para SEO con traducciones
   const SEO_META = useMemo(() => ({
     title: t('seo.title', 'ParkiÜ - Encuentra el mejor parqueadero cerca de ti | Información en tiempo real'),
     description: t('seo.description', 'ParkiÜ te ayuda a encontrar parqueaderos disponibles en tiempo real. Consulta tarifas, disponibilidad, horarios y reseñas de parqueaderos cercanos a tu ubicación.'),
@@ -266,13 +258,11 @@ const HomePage = () => {
   }, [navigate, recentSearches]);
 
   const handleNearbySearch = useCallback(() => {
-    // Mostrar diálogo de confirmación en lugar de solicitar directamente la ubicación
     setShowLocationDialog(true);
   }, []);
 
   const confirmLocationAccess = useCallback(() => {
     if (navigator.geolocation) {
-      // Mostrar estado de carga
       setIsSearching(true);
       setShowLocationDialog(false);
 
@@ -307,7 +297,7 @@ const HomePage = () => {
           alert(errorMessage);
         },
         {
-          enableHighAccuracy: false, // Cambiado a false para usar ubicación aproximada
+          enableHighAccuracy: false,
           timeout: 8000,
           maximumAge: 0
         }
@@ -325,10 +315,8 @@ const HomePage = () => {
       }
     };
 
-    // Añadir listener para detectar clics fuera del campo
     document.addEventListener('mousedown', handleClickOutside);
 
-    // Limpiar listener al desmontar
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
@@ -337,7 +325,6 @@ const HomePage = () => {
   // Usamos un useEffect separado para las búsquedas recientes para mejor control
   useEffect(() => {
     try {
-      // Cargar búsquedas recientes desde localStorage
       const savedSearches = localStorage.getItem('recentSearches');
 
       if (savedSearches) {
@@ -348,7 +335,6 @@ const HomePage = () => {
           setRecentSearches(DEFAULT_RECENT_SEARCHES);
         }
       } else {
-        // Utilizar valores por defecto si no hay búsquedas guardadas
         setRecentSearches(DEFAULT_RECENT_SEARCHES);
       }
     } catch (error) {
@@ -369,7 +355,6 @@ const HomePage = () => {
     setShowRecentSearches(true);
   }, []);
 
-  // Mejora: Componente de búsquedas recientes optimizado
   const RecentSearchesPanel = useMemo(() => {
     if (!showRecentSearches || isSearching || recentSearches.length === 0) return null;
 
@@ -420,7 +405,6 @@ const HomePage = () => {
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
         <link rel="canonical" href={SEO_META.canonical} />
-        {/* Preconectar y precargar recursos críticos para mejorar el rendimiento */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </Helmet>
@@ -432,7 +416,7 @@ const HomePage = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: heroImageLoaded ? 1 : 0 }}
           transition={{ duration: 0.6 }}
-          className="relative min-h-[90vh] md:min-h-screen flex flex-col items-center justify-center pt-20 pb-12 md:py-12 overflow-hidden"
+          className="relative min-h-[90vh] md:min-h-screen flex flex-col items-center justify-center pt-20 pb-12 md:pt-28 md:pb-20 overflow-hidden"
         >
           {/* Dynamic Background with Parallax */}
           <div
@@ -467,7 +451,7 @@ const HomePage = () => {
             >
               <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-8 tracking-tight leading-tight">
                 <span className="block mb-2">Encuentra el parqueadero</span>
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-amber-400 to-amber-200">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-amber-400 to-amber-600">
                   ideal en segundos
                 </span>
               </h1>
@@ -514,13 +498,13 @@ const HomePage = () => {
                 initial={{ y: 10, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.7 }}
-                className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+                className="flex flex-col sm:flex-row gap-6 justify-center items-center"
               >
                 <Button
                   variant="outline"
                   onClick={handleNearbySearch}
                   disabled={isSearching}
-                  className="relative overflow-hidden w-full sm:w-auto flex items-center justify-center gap-x-3 bg-amber-500 text-white hover:bg-amber-600 px-8 py-4 text-lg font-semibold transition-all duration-300 transform hover:scale-105 group rounded-full shadow-lg hover:shadow-xl"
+                  className="relative overflow-hidden w-full sm:w-auto flex items-center justify-center gap-x-3 bg-amber-500 text-white hover:bg-amber-600 px-8 py-3 text-lg font-semibold transition-all duration-300 transform hover:scale-105 group rounded-full shadow-lg hover:shadow-xl"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-amber-400/50 to-amber-600/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   <div className="relative z-10 flex items-center justify-center gap-x-3">
@@ -561,7 +545,7 @@ const HomePage = () => {
                   className="group relative"
                 >
                   <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-white/5 rounded-2xl transform group-hover:scale-105 transition-transform duration-300 border border-white/20" />
-                  <div className="relative bg-white/5 backdrop-blur-sm rounded-2xl p-6 h-full overflow-hidden flex items-center gap-4">
+                  <div className="relative bg-white/5 backdrop-blur-sm rounded-2xl transform group-hover:scale-105 transition-transform duration-300 p-6 h-full overflow-hidden flex items-center gap-4">
                     <div className="bg-gradient-to-br from-primary-400 to-primary-600 w-14 h-14 rounded-xl flex items-center justify-center shrink-0 shadow-lg group-hover:scale-110 transition-transform">
                       <span className="text-white text-2xl">
                         {feature.icon}
@@ -581,13 +565,9 @@ const HomePage = () => {
         <section className="py-24 bg-white relative overflow-hidden">
           <div className="absolute inset-0">
             <div className="absolute inset-0 bg-gradient-to-b from-primary-50/30 to-transparent" />
-            <div className="absolute inset-0" style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M54.627 0l.83.828-1.415 1.415L51.8 0h2.827zM5.373 0l-.83.828L5.96 2.243 8.2 0H5.374zM48.97 0l3.657 3.657-1.414 1.414L46.143 0h2.828zM11.03 0L7.372 3.657 8.787 5.07 13.857 0H11.03zm32.284 0L49.8 6.485 48.384 7.9l-7.9-7.9h2.83zM16.686 0L10.2 6.485 11.616 7.9l7.9-7.9h-2.83zM22.343 0L13.857 8.485 15.272 9.9l7.9-7.9h-.83zm5.657 0L19.514 8.485 20.93 9.9l8.485-8.485h-1.415zM32.372 0L26.9 5.485 28.314 6.9 34.2 1.015 32.37 0zm-3.314 0l6.485 6.485L36.96 7.9l-7.9-7.9h.828zm-6.656 0l-1.414 1.414 6.485 6.485 1.414-1.414L22.4 0zm-4.242 0L6.686 11.472l1.415 1.414 11.314-11.314h-1.414zm2.828 0l11.313 11.313-1.414 1.414L19.514 1.414 20.93 0zM30.2 0l13.142 13.142-1.414 1.414L29.514 2.142 30.2 0zm2.83 0l13.14 13.142-1.414 1.414L32.342 2.142 33.03 0zm2.827 0l13.142 13.142-1.414 1.414L35.17 2.142 35.857 0zM38.03 0L25.9 12.142 27.314 13.56 33.2 7.675 38.03 0zm-3.314 0l6.485 6.485L36.96 7.9l-7.9-7.9h.828zm-6.656 0l-1.414 1.414 6.485 6.485 1.414-1.414L22.4 0zm-4.242 0L6.686 11.472l1.415 1.414 11.314-11.314h-1.414zm2.828 0l11.313 11.313-1.414 1.414L19.514 1.414 20.93 0zM30.2 0l13.142 13.142-1.414 1.414L29.514 2.142 30.2 0zm2.83 0l13.14 13.142-1.414 1.414L32.342 2.142 33.03 0zm2.827 0l13.142 13.142-1.414 1.414L35.17 2.142 35.857 0zM38.03 0L25.9 12.142 27.314 13.56 33.2 7.675 38.03 0zm-3.314 0l6.485 6.485L36.96 7.9l-7.9-7.9h.828zm-6.656 0l-1.414 1.414 6.485 6.485 1.414-1.414L22.4 0zm-4.242 0L6.686 11.472l1.415 1.414 11.314-11.314h-1.414zm2.828 0l11.313 11.313-1.414 1.414L19.514 1.414 20.93 0zM30.2 0l13.142 13.142-1.414 1.414L29.514 2.142 30.2 0zm2.83 0l13.14 13.142-1.414 1.414L32.342 2.142 33.03 0zm2.827 0l13.142 13.142-1.414 1.414L35.17 2.142 35.857 0z' fill='%230EA5E9' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E")`,
-              backgroundSize: '60px 60px'
-            }} />
           </div>
           <div className="container mx-auto px-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-6xl mx-auto relative z-10">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto relative z-10">
               {[
                 {
                   value: "500+",
@@ -622,7 +602,7 @@ const HomePage = () => {
                   transition={{ delay: index * 0.1 }}
                   className="relative group"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary-50 to-transparent rounded-2xl transform group-hover:scale-105 transition-transform duration-300" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary-50 to-primary-50/20 rounded-2xl transform group-hover:scale-105 transition-transform duration-300" />
                   <div className="relative p-8 text-center">
                     <div className="inline-flex items-center justify-center w-16 h-16 mb-4 rounded-2xl bg-primary/10 text-primary group-hover:scale-110 transition-transform">
                       {stat.icon}
@@ -641,25 +621,24 @@ const HomePage = () => {
 
         {/* Admin Section - Enhanced */}
         <section className="py-24 bg-gradient-to-b from-primary-600 to-primary-800 relative overflow-hidden">
-          <div className="absolute inset-0">
-            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMzLjMxNCAwIDYgMi42ODYgNiA2cy0yLjY4NiA2LTYgNi02LTIuNjg2LTYtNiAyLjY4Ni02IDYtNiIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48L2c+PC9zdmc+')] opacity-5" />
-          </div>
 
           <div className="container mx-auto px-4 relative z-10">
             <motion.div
               initial={{ y: 50, opacity: 0 }}
               whileInView={{ y: 0, opacity: 1 }}
               viewport={{ once: true }}
-              className="flex flex-col md:flex-row justify-between items-center max-w-6xl mx-auto gap-12 md:gap-16"
+              className="flex flex-col md:flex-row justify-between items-center max-w-6xl mx-auto gap-8 lg:gap-16"
             >
               <div className="flex-1 max-w-xl">
-                <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
-                  Potencia tu negocio con{' '}
-                  <span className="text-amber-400">ParkiÜ</span>
-                </h2>
-                <p className="text-xl md:text-2xl text-white/90 mb-8 leading-relaxed">
-                  Únete a la red de parqueaderos más grande y moderna. Optimiza tus operaciones y aumenta tus ingresos.
-                </p>
+                <div>
+                  <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
+                    Potencia tu negocio con{' '}
+                    <span className="text-amber-400">ParkiÜ</span>
+                  </h2>
+                  <p className="text-xl md:text-2xl text-white/90 mb-8 leading-relaxed">
+                    Únete a la red de parqueaderos más grande y moderna. Optimiza tus operaciones y aumenta tus ingresos.
+                  </p>
+                </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
                   {ADMIN_BENEFITS.map((benefit, index) => (
@@ -669,9 +648,9 @@ const HomePage = () => {
                       whileInView={{ opacity: 1, x: 0 }}
                       viewport={{ once: true }}
                       transition={{ delay: index * 0.1 }}
-                      className="flex items-center gap-4 bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20"
+                      className="flex items-center gap-4 sm:gap-2 lg:gap-4 bg-white/10 backdrop-blur-sm rounded-xl p-2 mb:p-4 border border-white/20"
                     >
-                      <div className="bg-white/20 p-3 rounded-lg">
+                      <div className="bg-white/20 p-2 mb:p-3 rounded-lg">
                         {benefit.icon}
                       </div>
                       <span className="text-white font-medium">{benefit.text}</span>
@@ -679,11 +658,11 @@ const HomePage = () => {
                   ))}
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex flex-col sm:flex-row gap-6">
                   <Link to="/admin-landing" className="flex-1">
                     <Button
                       variant="light"
-                      className="w-full px-6 py-4 bg-white text-primary hover:bg-white/90 transition-all duration-300 rounded-xl font-semibold text-lg shadow-xl hover:shadow-2xl transform hover:scale-105"
+                      className="w-full px-4 lg:px-6 py-4 bg-white text-primary hover:bg-white/90 transition-all duration-300 rounded-xl font-semibold text-lg shadow-xl hover:shadow-2xl transform hover:scale-105"
                     >
                       Administrar mi parqueadero
                     </Button>
@@ -691,7 +670,7 @@ const HomePage = () => {
                   <Link to="/login" className="flex-1">
                     <Button
                       variant="dark"
-                      className="w-full px-6 py-4 bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-all duration-300 rounded-xl font-semibold text-lg"
+                      className="w-full px-4 lg:px-6 py-4 bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-all duration-300 rounded-xl font-semibold text-lg"
                     >
                       Iniciar sesión
                     </Button>
@@ -739,7 +718,7 @@ const HomePage = () => {
               </p>
             </motion.div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 max-w-6xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-6 md:gap-8 lg:gap-12 max-w-6xl mx-auto">
               {HOW_IT_WORKS_STEPS.map((step, index) => (
                 <motion.div
                   key={step.title}
@@ -749,8 +728,8 @@ const HomePage = () => {
                   transition={{ delay: index * 0.2 }}
                   className="relative group"
                 >
-                  <div className="absolute -inset-4 bg-gradient-to-r from-primary-500/20 to-primary-600/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-xl" />
-                  <div className="relative bg-white rounded-2xl p-8 shadow-xl border border-gray-100 hover:border-primary/20 transition-all duration-300">
+                  <div className="absolute -inset-4 bg-gradient-to-r from-primary-500/20 to-primary-600/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-lg" />
+                  <div className="relative flex flex-col items-center bg-white rounded-2xl p-6 lg:p-8 shadow-lg border border-gray-100 hover:border-primary/20 transition-all duration-300 h-full">
                     <div className="w-16 h-16 bg-primary/10 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform text-primary text-3xl">
                       {step.icon}
                     </div>
@@ -784,7 +763,7 @@ const HomePage = () => {
               </p>
             </motion.div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-6 md:gap-8 lg:gap-12 max-w-6xl mx-auto">
               {TESTIMONIALS.map((testimonial, index) => (
                 <motion.div
                   key={testimonial.name}
@@ -794,7 +773,7 @@ const HomePage = () => {
                   transition={{ delay: index * 0.2 }}
                   className="group"
                 >
-                  <div className="bg-white rounded-2xl p-8 shadow-xl border border-gray-100 hover:border-primary/20 transition-all duration-300 h-full">
+                  <div className="bg-white rounded-2xl p-6 lg:p-8 shadow-xl border border-gray-100 hover:border-primary/20 transition-all duration-300 h-full">
                     <div className="flex items-center gap-4 mb-6">
                       <div className="w-12 h-12 bg-primary text-white rounded-xl flex items-center justify-center text-lg font-bold group-hover:scale-110 transition-transform">
                         {testimonial.name.charAt(0)}
@@ -831,11 +810,8 @@ const HomePage = () => {
         </section>
 
         {/* CTA Section - New */}
-        <section className="py-20 bg-primary-900 relative overflow-hidden">
-          <div className="absolute inset-0">
-            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMzLjMxNCAwIDYgMi42ODYgNiA2cy0yLjY4NiA2LTYgNi02LTIuNjg2LTYtNiAyLjY4Ni02IDYtNiIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjIiLz48L2c+PC9zdmc+')] opacity-5" />
-          </div>
-
+        <section className="py-20 bg-gradient-to-b from-primary-600 to-primary-800 relative overflow-hidden">
+          
           <div className="container mx-auto px-4 relative z-10">
             <div className="max-w-4xl mx-auto text-center">
               <motion.h2
@@ -861,11 +837,11 @@ const HomePage = () => {
                 whileInView={{ y: 0, opacity: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.3 }}
-                className="flex flex-col sm:flex-row gap-4 justify-center"
+                className="flex flex-col sm:flex-row gap-8 justify-center"
               >
                 <Button
                   onClick={handleNearbySearch}
-                  className="px-8 py-4 bg-amber-500 text-white hover:bg-amber-600 transition-all duration-300 rounded-xl text-lg font-semibold shadow-xl hover:shadow-2xl transform hover:scale-105 flex items-center justify-center gap-2"
+                  className="px-8 py-4 bg-amber-400 text-white hover:bg-amber-600 transition-all duration-300 rounded-xl text-lg font-semibold shadow-xl hover:shadow-2xl transform hover:scale-105 flex items-center justify-center gap-2"
                 >
                   <LuCompass className="text-2xl" />
                   Encontrar parqueaderos cercanos
