@@ -1,7 +1,6 @@
 /* global process */
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
-import { splitVendorChunkPlugin } from 'vite';
 import compression from 'vite-plugin-compression';
 import { ViteImageOptimizer } from 'vite-plugin-image-optimizer';
 import { VitePWA } from 'vite-plugin-pwa';
@@ -15,7 +14,6 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       react(),
-      splitVendorChunkPlugin(),
       ViteImageOptimizer({
         jpg: {
           quality: 80,
@@ -33,30 +31,25 @@ export default defineConfig(({ mode }) => {
       }),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
+        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
         manifest: {
-          name: 'ParkiÜ',
+          name: 'ParkiÜ - Encuentra parqueaderos en tiempo real',
           short_name: 'ParkiÜ',
           description: 'Encuentra parqueaderos disponibles en tiempo real',
-          theme_color: '#0284c7',
+          theme_color: '#075985',
           icons: [
             {
-              src: 'favicon.ico',
-              sizes: '64x64 32x32 24x24 16x16',
-              type: 'image/x-icon'
-            },
-            {
-              src: 'icons/temp-icon.png',
+              src: 'pwa-192x192.png',
               sizes: '192x192',
               type: 'image/png'
             },
             {
-              src: 'icons/temp-icon.png',
+              src: 'pwa-512x512.png',
               sizes: '512x512',
               type: 'image/png'
             },
             {
-              src: 'icons/temp-icon.png',
+              src: 'pwa-512x512.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any maskable'
@@ -118,23 +111,34 @@ export default defineConfig(({ mode }) => {
         },
         '/ws': {
           target: backendUrl,
-          ws: true, // Enable WebSocket proxy
+          ws: true,
           changeOrigin: true,
         },
       },
     },
     build: {
       rollupOptions: {
-        input: '/index.html',
         output: {
-          manualChunks: {
-            'react-vendor': ['react', 'react-dom'],
-            'auth0': ['@auth0/auth0-react'],
-            'maps': ['@react-google-maps/api'],
-            'query': ['@tanstack/react-query'],
-            'ui': ['framer-motion', 'lucide-react', 'react-icons'],
-          },
-        },
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('react') || id.includes('react-dom')) {
+                return 'react-vendor';
+              }
+              if (id.includes('@auth0')) {
+                return 'auth0';
+              }
+              if (id.includes('@react-google-maps')) {
+                return 'maps';
+              }
+              if (id.includes('@tanstack/react-query')) {
+                return 'query';
+              }
+              if (id.includes('framer-motion') || id.includes('lucide-react') || id.includes('react-icons')) {
+                return 'ui';
+              }
+            }
+          }
+        }
       },
       target: 'esnext',
       minify: 'terser',
