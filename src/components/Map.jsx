@@ -19,6 +19,9 @@ import { UserContext } from '@/context/UserContext';
 
 const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
+// Debug: Verificar si la API key está cargada correctamente
+console.log('Google Maps API Key loaded:', apiKey ? 'Yes (length: ' + apiKey.length + ')' : 'No');
+
 // Mover las constantes fuera del componente para evitar recreación en cada renderizado
 // https://react-google-maps-api-docs.netlify.app/#loadscript
 const LIBRARIES = ['marker'];
@@ -120,6 +123,20 @@ const ParkingMap = forwardRef(({
 }, ref) => {
   const { parkingSpots, targetLocation: contextTargetLocation, setTargetLocation } =
     useContext(ParkingContext);
+
+  // Debug: Verificar datos de parkingSpots
+  useEffect(() => {
+    console.log('Map component - parkingSpots:', parkingSpots);
+    if (Array.isArray(parkingSpots)) {
+      console.log('  Cantidad de spots:', parkingSpots.length);
+      if (parkingSpots.length > 0) {
+        console.log('  Primer spot:', parkingSpots[0]);
+      }
+    } else {
+      console.log('  parkingSpots no es un array:', parkingSpots);
+    }
+  }, [parkingSpots]);
+
   const [infoWindowOpen, setInfoWindowOpen] = useState(false);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
@@ -368,6 +385,10 @@ const ParkingMap = forwardRef(({
     }
 
     try {
+      // Debug: Verificar si la biblioteca de marcadores está disponible
+      const markerLibraryAvailable = 'marker' in window.google.maps;
+      console.log('¿Biblioteca de marcadores disponible?', markerLibraryAvailable);
+
       // Verificar si necesitamos recrear los marcadores completamente
       const needsFullRefresh = forceFull || !markersRef.current.length || spotsHaveChanged();
       console.log('¿Necesita actualización completa?', needsFullRefresh, 'marcadores actuales:', markersRef.current.length);
@@ -409,7 +430,16 @@ const ParkingMap = forwardRef(({
       spotMarkerMapRef.current.clear();
 
       // Cargar la biblioteca de marcadores
-      const { AdvancedMarkerElement } = await window.google.maps.importLibrary('marker');
+      console.log('Intentando importar biblioteca de marcadores...');
+      let AdvancedMarkerElement;
+      try {
+        const markerLibrary = await window.google.maps.importLibrary('marker');
+        AdvancedMarkerElement = markerLibrary.AdvancedMarkerElement;
+        console.log('Biblioteca de marcadores importada correctamente, AdvancedMarkerElement:', !!AdvancedMarkerElement);
+      } catch (error) {
+        console.error('Error al importar biblioteca de marcadores:', error);
+        return;
+      }
 
       // Verificar que parkingSpots es un array válido
       if (!Array.isArray(parkingSpots) || parkingSpots.length === 0) {
@@ -432,33 +462,42 @@ const ParkingMap = forwardRef(({
         // Crear el elemento HTML para el marcador
         const markerContent = createMarkerElement(spot);
 
-        // Crear el marcador avanzado
-        const marker = new AdvancedMarkerElement({
-          position: { lat: spot.latitude, lng: spot.longitude },
-          map: mapRef.current,
-          title: spot.name,
-          content: markerContent,
-          zIndex: 1
-        });
+        try {
+          // Crear el marcador avanzado
+          const marker = new AdvancedMarkerElement({
+            position: { lat: spot.latitude, lng: spot.longitude },
+            map: mapRef.current,
+            title: spot.name,
+            content: markerContent,
+            zIndex: 1
+          });
 
-        // Agrega un listener para manejar clics en el marcador
-        marker.addListener('gmp-click', () => {
-          handleCardClick(spot);
+          console.log('Marcador creado correctamente para:', spot.name);
 
-          if (onParkingSpotSelected && typeof onParkingSpotSelected === 'function') {
-            onParkingSpotSelected({
-              spot,
-              navigate: () => openNavigation(spot.latitude, spot.longitude)
-            });
-          }
-        });
+          // Agrega un listener para manejar clics en el marcador
+          marker.addListener('gmp-click', () => {
+            // Manejar la selección visual del spot
+            handleCardClick(spot);
 
-        // Guardar marcador en el array
-        newMarkers.push(marker);
+            // Mostrar el popup solo cuando se hace clic directamente en el marcador del mapa
+            // Esta es la única forma en que el popup debe aparecer
+            if (onParkingSpotSelected && typeof onParkingSpotSelected === 'function') {
+              onParkingSpotSelected({
+                spot,
+                navigate: () => openNavigation(spot.latitude, spot.longitude)
+              });
+            }
+          });
 
-        // Guardar en el mapa auxiliar para búsqueda rápida
-        if (spot.id) spotMarkerMapRef.current.set(spot.id, marker);
-        if (spot.name) spotMarkerMapRef.current.set(spot.name, marker);
+          // Guardar marcador en el array
+          newMarkers.push(marker);
+
+          // Guardar en el mapa auxiliar para búsqueda rápida
+          if (spot.id) spotMarkerMapRef.current.set(spot.id, marker);
+          if (spot.name) spotMarkerMapRef.current.set(spot.name, marker);
+        } catch (error) {
+          console.error('Error al crear marcador para:', spot.name, error);
+        }
       }
 
       console.log('Creados', newMarkers.length, 'marcadores nuevos');
@@ -586,12 +625,37 @@ const ParkingMap = forwardRef(({
     handleCardClick,
 
     // Exponer la función para centrar el mapa en un spot específico
-    centerOnSpot: (spot) => {
+    centerOnSpot: (spot, showPopup = false) => {
       if (!spot) return;
 
-      console.log('Centrando en spot mediante la referencia externa:', spot.name);
+      console.log('Centrando en spot mediante la referencia externa:', spot.name, showPopup ? 'con popup' : 'sin popup');
 
       if (mapRef.current && mapInitializedRef.current) {
+        centerOnSelectedSpot(spot);
+
+        // Solo mostrar popup si se solicita explícitamente
+        if (showPopup) {
+          // Disparar el evento de selección del spot
+          if (onParkingSpotSelected && typeof onParkingSpotSelected === 'function') {
+            onParkingSpotSelected({
+              spot,
+              navigate: () => openNavigation(spot.latitude, spot.longitude)
+            });
+          }
+        }
+      } else {
+        console.warn('El mapa no está inicializado, no se puede centrar');
+      }
+    },
+
+    // Método específico para centrar sin mostrar popup
+    centerOnSpotWithoutPopup: (spot) => {
+      if (!spot) return;
+
+      console.log('Centrando en spot sin mostrar popup:', spot.name);
+
+      if (mapRef.current && mapInitializedRef.current) {
+        // Solo centrar el mapa sin activar el popup
         centerOnSelectedSpot(spot);
       } else {
         console.warn('El mapa no está inicializado, no se puede centrar');
@@ -600,7 +664,7 @@ const ParkingMap = forwardRef(({
 
     // Dar acceso a la referencia al mapa directamente
     getMapRef: () => mapRef.current
-  }), [handleCardClick, centerOnSelectedSpot]);
+  }), [handleCardClick, centerOnSelectedSpot, onParkingSpotSelected]);
 
   if (loadError) return <div className="w-full h-full flex items-center justify-center bg-gray-100">Error al cargar el mapa. Intente recargar la página.</div>;
   if (!isLoaded) return <div className="w-full h-full flex items-center justify-center bg-gray-100">Cargando mapa...</div>;
