@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null, errorInfo: null };
+    this.state = { hasError: false, error: null };
   }
 
   static getDerivedStateFromError(error) {
@@ -12,43 +12,21 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    this.setState({
-      error,
-      errorInfo
-    });
-
-    // Aquí podrías enviar el error a un servicio de logging
-    if (import.meta.env.MODE !== 'production') {
-      console.error('Error caught by ErrorBoundary:', error, errorInfo);
-    }
+    console.error('Error caught by boundary:', error, errorInfo);
   }
-
-  handleReload = () => {
-    window.location.reload();
-  };
 
   render() {
     if (this.state.hasError) {
       return (
-        <div className="error-boundary-container" role="alert">
-          <div className="error-boundary-content">
-            <h2>¡Ups! Algo salió mal</h2>
-            <p>Lo sentimos, ha ocurrido un error inesperado.</p>
-            <button
-              onClick={this.handleReload}
-              className="error-boundary-button"
-              aria-label="Recargar la página"
-            >
-              Recargar página
-            </button>
-            {import.meta.env.MODE !== 'production' && (
-              <details className="error-details">
-                <summary>Detalles del error</summary>
-                <pre>{this.state.error?.toString()}</pre>
-                <pre>{this.state.errorInfo?.componentStack}</pre>
-              </details>
-            )}
-          </div>
+        <div className="flex flex-col items-center justify-center min-h-[400px] p-4 bg-red-50 rounded-lg">
+          <h2 className="text-xl font-semibold text-red-800 mb-2">Algo salió mal</h2>
+          <p className="text-red-600 mb-4">Por favor, intenta recargar la página</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+          >
+            Recargar página
+          </button>
         </div>
       );
     }
@@ -58,7 +36,7 @@ class ErrorBoundary extends React.Component {
 }
 
 ErrorBoundary.propTypes = {
-  children: PropTypes.node.isRequired
+  children: PropTypes.node.isRequired,
 };
 
 export default ErrorBoundary;
