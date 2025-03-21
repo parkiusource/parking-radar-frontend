@@ -7,7 +7,7 @@ const getHeaderClassName = ({ className, showShadow = true }) => {
     'min-h-[64px] md:min-h-[64px]',
     'px-4 sm:px-4 md:px-5 lg:px-6',
     'py-2 md:py-1.5',
-    'bg-secondary',
+    'bg-secondary-900',
     showShadow ? 'shadow-md' : '',
     'flex flex-col justify-between items-center',
     'text-white',
