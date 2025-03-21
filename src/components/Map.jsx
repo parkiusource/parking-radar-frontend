@@ -8,9 +8,7 @@ import {
   useRef,
   useState,
   forwardRef,
-  useImperativeHandle,
-  memo,
-  useReducer
+  useImperativeHandle
 } from 'react';
 import { BiTargetLock } from 'react-icons/bi';
 import { LuNavigation, LuMapPin, LuCar, LuDollarSign } from 'react-icons/lu';
@@ -18,7 +16,6 @@ import { LuNavigation, LuMapPin, LuCar, LuDollarSign } from 'react-icons/lu';
 import { Button } from '@/components/common';
 import { ParkingContext } from '@/context/ParkingContext';
 import { UserContext } from '@/context/UserContext';
-import MapSkeleton from '@/components/MapSkeleton';
 
 const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
@@ -46,78 +43,81 @@ const createMarkerElement = (spot) => {
   element.style.height = '38px';
   element.style.transition = 'all 0.3s ease';
 
-  // Crear el SVG como HTML
+  // Crear el SVG como HTML con efectos mejorados
   element.innerHTML = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="30" height="38" viewBox="0 0 40 50" style="filter: drop-shadow(0px 3px 3px rgba(0,0,0,0.3));">
-      <path fill="${iconColor}" d="M20 0C9 0 0 9 0 20c0 11 9 20 20 20s20-9 20-20S31 0 20 0m0 33.3c-7.3 0-13.3-6-13.3-13.3 0-7.3 6-13.3 13.3-13.3 7.3 0 13.3 6 13.3 13.3 0 7.3-6 13.3-13.3 13.3"/>
-      <path fill="${iconColor}" d="M20 2.5c9.7 0 17.5 7.8 17.5 17.5 0 3.5-1 6.7-2.7 9.4l-3.1 5-6.3 10.4c-1.3 2.1-3.5 3.7-6.1 4.2-.9.2-1.6.2-2.4.1-3-.4-5.3-2.1-6.7-4.3l-6.3-10.4-3.1-5C.9 26.7 0 23.5 0 20 0 10.3 7.8 2.5 17.5 2.5h2.5z"/>
-      <circle fill="white" cx="20" cy="20" r="8"/>
-      <text x="20" y="24" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="12" fill="${iconColor}">P</text>
+    <svg xmlns="http://www.w3.org/2000/svg" width="30" height="38" viewBox="0 0 40 50">
+      <!-- Definición de gradientes y filtros -->
+      <defs>
+        <!-- Gradiente para el fondo del marcador -->
+        <linearGradient id="markerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:${iconColor};stop-opacity:1" />
+          <stop offset="100%" style="stop-color:${iconColor};stop-opacity:0.8" />
+        </linearGradient>
+        <!-- Filtro para sombra suave -->
+        <filter id="shadowFilter">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+          <feOffset dx="0" dy="2" result="offsetblur"/>
+          <feFlood flood-color="rgba(0,0,0,0.3)"/>
+          <feComposite in2="offsetblur" operator="in"/>
+          <feMerge>
+            <feMergeNode/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+        <!-- Efecto de brillo interno -->
+        <filter id="glowFilter">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur"/>
+          <feOffset in="blur" dx="0" dy="0" result="offsetBlur"/>
+          <feFlood flood-color="#ffffff" flood-opacity="0.3"/>
+          <feComposite in2="offsetBlur" operator="in" result="glowResult"/>
+          <feMerge>
+            <feMergeNode in="glowResult"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+
+      <!-- Forma principal del marcador con gradiente y sombra -->
+      <path
+        fill="url(#markerGradient)"
+        d="M20 2.5c9.7 0 17.5 7.8 17.5 17.5 0 3.5-1 6.7-2.7 9.4l-3.1 5-6.3 10.4c-1.3 2.1-3.5 3.7-6.1 4.2-.9.2-1.6.2-2.4.1-3-.4-5.3-2.1-6.7-4.3l-6.3-10.4-3.1-5C.9 26.7 0 23.5 0 20 0 10.3 7.8 2.5 17.5 2.5h2.5z"
+        filter="url(#shadowFilter)"
+      />
+
+      <!-- Círculo interior con efecto de brillo -->
+      <circle
+        cx="20"
+        cy="20"
+        r="10"
+        fill="white"
+        opacity="0.95"
+        filter="url(#glowFilter)"
+      />
+
+      <!-- Letra P con estilo mejorado -->
+      <text
+        x="20"
+        y="24"
+        text-anchor="middle"
+        font-family="Arial, sans-serif"
+        font-weight="bold"
+        font-size="11"
+        fill="${iconColor}"
+        style="text-shadow: 0 1px 2px rgba(0,0,0,0.1);"
+      >P</text>
     </svg>
   `;
 
   return element;
 };
 
-// Reducer para manejar estados complejos del mapa
-const mapReducer = (state, action) => {
-  switch (action.type) {
-    case 'SET_LOADING':
-      return { ...state, isLoading: action.payload };
-    case 'SET_ERROR':
-      return { ...state, error: action.payload };
-    case 'SET_SELECTED_SPOT':
-      return { ...state, selectedSpot: action.payload };
-    default:
-      return state;
-  }
-};
-
-const initialState = {
-  isLoading: false,
-  error: null,
-  selectedSpot: null
-};
-
-// Componente Marker memoizado
-const Marker = memo(({ spot, onClick, isSelected }) => {
-  const markerElement = useMemo(() => createMarkerElement(spot), [spot]);
-
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      aria-label={`Parqueadero ${spot.name} - ${spot.available_spaces} espacios disponibles`}
-      onClick={() => onClick(spot)}
-      onKeyPress={(e) => e.key === 'Enter' && onClick(spot)}
-      className={`cursor-pointer transition-transform duration-300 ${
-        isSelected ? 'scale-110 z-10' : 'scale-100 z-0'
-      }`}
-    >
-      {markerElement}
-    </div>
-  );
-});
-
-Marker.displayName = 'Marker';
-
-Marker.propTypes = {
-  spot: PropTypes.shape({
-    name: PropTypes.string.isRequired,
-    available_spaces: PropTypes.number.isRequired
-  }).isRequired,
-  onClick: PropTypes.func.isRequired,
-  isSelected: PropTypes.bool.isRequired
-};
-
+// Convertir a forwardRef para poder recibir la ref desde el componente padre
 const ParkingMap = forwardRef(({
   selectedSpot,
   setSelectedSpot,
   targetLocation: targetLocationProp,
   onParkingSpotSelected
 }, ref) => {
-  const [state, dispatch] = useReducer(mapReducer, initialState);
-  const [forceMapUpdate, setForceMapUpdate] = useState(false);
   const { parkingSpots, targetLocation: contextTargetLocation, setTargetLocation } =
     useContext(ParkingContext);
   const [infoWindowOpen, setInfoWindowOpen] = useState(false);
@@ -125,34 +125,18 @@ const ParkingMap = forwardRef(({
   const markersRef = useRef([]);
   const userCircleRef = useRef(null);
   const prevParkingSpotsRef = useRef(null);
+
+  // Mantener un mapa auxiliar para buscar marcadores por ID o nombre
   const spotMarkerMapRef = useRef(new Map());
+
+  // Referencia para rastrear si el mapa está inicializado
   const mapInitializedRef = useRef(false);
+
   const { user, updateUser } = useContext(UserContext);
   const { location: userLocation } = user || {};
 
-  // Detectar si estamos en móvil
-  const isMobile = useMemo(() => window.innerWidth < 768, []);
-
-  // Memoizar las opciones del mapa para evitar recreaciones
-  const mapOptions = useMemo(() => ({
-    mapId: MAP_ID,
-    zoomControlOptions: {
-      position: 3,
-    },
-    fullscreenControl: !isMobile,
-    fullscreenControlOptions: {
-      position: 7,
-    },
-    streetViewControl: false,
-    disableDefaultUI: false,
-    scaleControl: true,
-    scaleControlOptions: {
-      position: 5,
-    },
-    zoomControl: !isMobile,
-    mapTypeControl: false,
-    gestureHandling: isMobile ? 'greedy' : 'cooperative',
-  }), [isMobile]);
+  // Reducir recargas completas usando marcador de inicialización en lugar de mapKey
+  const [forceMapUpdate, setForceMapUpdate] = useState(false);
 
   // Memoizar efectiveTargetLocation para evitar recálculos innecesarios
   const effectiveTargetLocation = useMemo(() => {
@@ -169,6 +153,27 @@ const ParkingMap = forwardRef(({
     return effectiveTargetLocation || userLocation || DEFAULT_LOCATION;
   }, [effectiveTargetLocation, userLocation]);
 
+  // Memoizar las opciones del mapa para evitar recreaciones
+  const mapOptions = useMemo(() => ({
+    mapId: MAP_ID,
+    zoomControlOptions: {
+      position: 3, // LEFT_BOTTOM
+    },
+    fullscreenControl: true,
+    fullscreenControlOptions: {
+      position: 7, // RIGHT_BOTTOM
+    },
+    streetViewControl: false,
+    disableDefaultUI: false,
+    scaleControl: true,
+    scaleControlOptions: {
+      position: 5,
+    },
+    zoomControl: true,
+    mapTypeControl: false,
+    gestureHandling: 'greedy',
+  }), []);
+
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: apiKey,
     libraries: LIBRARIES,
@@ -177,15 +182,8 @@ const ParkingMap = forwardRef(({
   // Función mejorada para centrar el mapa con animación suave
   const centerMapOnLocation = useCallback((location) => {
     if (mapRef.current && location) {
-      dispatch({ type: 'SET_LOADING', payload: true });
-      try {
-        mapRef.current.panTo(location);
-        mapRef.current.setZoom(16);
-      } catch (error) {
-        dispatch({ type: 'SET_ERROR', payload: error.message });
-      } finally {
-        dispatch({ type: 'SET_LOADING', payload: false });
-      }
+      mapRef.current.panTo(location);
+      mapRef.current.setZoom(16);
     }
   }, []);
 
@@ -582,22 +580,6 @@ const ParkingMap = forwardRef(({
     }
   }, [forceMapUpdate, effectiveTargetLocation, centerMapOnLocation]);
 
-  // Función para limpiar recursos al desmontar el mapa
-  const onMapUnmount = useCallback(() => {
-    if (mapRef.current) {
-      if (mapRef.current.clickListener) {
-        window.google.maps.event.removeListener(mapRef.current.clickListener);
-      }
-      if (userCircleRef.current) {
-        userCircleRef.current.setMap(null);
-      }
-      markersRef.current.forEach(marker => {
-        if (marker) marker.setMap(null);
-      });
-      markersRef.current = [];
-    }
-  }, []);
-
   // Exponer métodos para que el componente padre pueda acceder a ellos
   useImperativeHandle(ref, () => ({
     // Exponer la función handleCardClick para que el componente padre pueda llamarla
@@ -624,39 +606,22 @@ const ParkingMap = forwardRef(({
   if (!isLoaded) return <div className="w-full h-full flex items-center justify-center bg-gray-100">Cargando mapa...</div>;
 
   return (
-    <div
-      className="relative w-full h-full"
-      role="region"
-      aria-label="Mapa de parqueaderos"
-      tabIndex="0"
-    >
-      {state.isLoading && <MapSkeleton />}
-
-      {state.error && (
-        <div
-          className="absolute top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded"
-          role="alert"
-        >
-          <p>{state.error}</p>
-        </div>
-      )}
-
-      {isLoaded ? (
+    <div className="w-full h-[60vh] md:h-[70vh] lg:h-[80vh] xl:h-[85vh] overflow-hidden relative">
+      <div className="w-full h-full md:rounded-md overflow-hidden">
         <GoogleMap
           mapContainerClassName="w-full h-full"
           center={mapCenter}
-          zoom={16}
-          options={mapOptions}
+          zoom={15}
           onLoad={handleMapLoad}
-          onUnmount={onMapUnmount}
-          ref={mapRef}
+          onClick={handleMapClick}
+          options={mapOptions}
         >
           <button
             onClick={locateUser}
-            className="absolute bottom-4 right-4 bg-white p-2 rounded-full shadow-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            aria-label="Ubicar mi posición"
+            className="absolute bottom-4 left-4 p-3 bg-primary text-white rounded-full shadow-lg hover:bg-primary-600 transition-all duration-300 hover:scale-105 z-10"
+            aria-label="Localizar mi ubicación"
           >
-            <BiTargetLock className="w-6 h-6" />
+            <BiTargetLock size={24} />
           </button>
 
           {selectedSpot && infoWindowOpen && (
@@ -725,9 +690,7 @@ const ParkingMap = forwardRef(({
             </InfoWindowF>
           )}
         </GoogleMap>
-      ) : (
-        <MapSkeleton />
-      )}
+      </div>
     </div>
   );
 });
