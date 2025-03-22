@@ -84,10 +84,24 @@ export function MobileBottomSheet({
             exit={{ y: window.innerHeight }}
             style={{ y }}
             className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-xl md:hidden overflow-hidden"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="bottom-sheet-title"
           >
             {/* Barra de arrastre */}
-            <div className="absolute top-0 left-0 right-0 h-8 flex justify-center items-center cursor-grab active:cursor-grabbing">
-              <div className="w-12 h-1 bg-gray-300 rounded-full" />
+            <div
+              className="absolute top-0 left-0 right-0 h-8 flex justify-center items-center cursor-grab active:cursor-grabbing"
+              role="button"
+              tabIndex={0}
+              aria-label="Arrastrar para ajustar vista"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setIsExpanded(!isExpanded);
+                }
+              }}
+            >
+              <div className="w-12 h-1 bg-gray-300 rounded-full" aria-hidden="true" />
             </div>
 
             {/* Contenido del bottom sheet */}
@@ -97,21 +111,26 @@ export function MobileBottomSheet({
                 <div className="h-full flex flex-col">
                   <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
                     <div>
-                      <h2 className="text-lg font-semibold">{title}</h2>
+                      <h2 id="bottom-sheet-title" className="text-lg font-semibold">{title}</h2>
                       {description && (
                         <p className="text-sm text-gray-600 mt-1">{description}</p>
                       )}
                     </div>
                     <button
                       onClick={() => setIsExpanded(false)}
-                      className="text-sm text-gray-500"
+                      className="text-sm text-gray-500 px-3 py-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                      aria-label="Minimizar lista"
                     >
                       Ver menos
                     </button>
                   </div>
 
                   {/* Filtros */}
-                  <div className="flex gap-2 p-4 overflow-x-auto hide-scrollbar border-b border-gray-100">
+                  <div
+                    className="flex gap-2 p-4 overflow-x-auto hide-scrollbar border-b border-gray-100"
+                    role="toolbar"
+                    aria-label="Opciones de filtrado"
+                  >
                     <button
                       onClick={() => onSortChange('distance')}
                       className={`flex items-center px-3 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${
@@ -119,8 +138,9 @@ export function MobileBottomSheet({
                           ? 'bg-primary text-white'
                           : 'bg-gray-100 text-gray-700'
                       }`}
+                      aria-pressed={sortBy === 'distance'}
                     >
-                      <LuArrowUpDown className="w-4 h-4 mr-1" />
+                      <LuArrowUpDown className="w-4 h-4 mr-1" aria-hidden="true" />
                       Más cercanos
                     </button>
                     <button
@@ -130,6 +150,7 @@ export function MobileBottomSheet({
                           ? 'bg-primary text-white'
                           : 'bg-gray-100 text-gray-700'
                       }`}
+                      aria-pressed={sortBy === 'price'}
                     >
                       Menor precio
                     </button>
@@ -140,19 +161,23 @@ export function MobileBottomSheet({
                           ? 'bg-primary text-white'
                           : 'bg-gray-100 text-gray-700'
                       }`}
+                      aria-pressed={sortBy === 'availability'}
                     >
                       Disponibilidad
                     </button>
                   </div>
 
                   {/* Lista vertical de spots */}
-                  <div className="flex-1 overflow-y-auto">
+                  <div
+                    className="flex-1 overflow-y-auto"
+                    role="list"
+                    aria-label="Lista de parqueaderos"
+                  >
                     <ParkingSpotList
                       spots={spots}
                       selectedSpot={selectedSpot}
                       onSpotSelect={onSpotSelect}
                     />
-                    {/* Espacio adicional al final */}
                     <div className="h-safe-area" />
                   </div>
                 </div>
@@ -160,14 +185,15 @@ export function MobileBottomSheet({
                 <div className="px-4">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
-                      <LuMapPin className="w-5 h-5 text-primary" />
+                      <LuMapPin className="w-5 h-5 text-primary" aria-hidden="true" />
                       <span className="text-sm font-medium text-gray-600">
                         {spots.length} {spots.length === 1 ? 'disponible' : 'disponibles'}
                       </span>
                     </div>
                     <button
                       onClick={() => setIsExpanded(true)}
-                      className="text-sm text-primary font-medium"
+                      className="text-sm text-primary font-medium px-3 py-1.5 hover:bg-primary/5 rounded-lg transition-colors"
+                      aria-label="Expandir lista completa"
                     >
                       Ver lista completa
                     </button>
@@ -177,18 +203,52 @@ export function MobileBottomSheet({
                   <div
                     ref={carouselRef}
                     className="flex gap-3 overflow-x-auto pb-4 snap-x snap-mandatory hide-scrollbar"
+                    role="listbox"
+                    aria-label="Carrusel de parqueaderos"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      const items = carouselRef.current?.children;
+                      if (!items?.length) return;
+
+                      if (e.key === 'ArrowRight') {
+                        e.preventDefault();
+                        const nextIndex = Array.from(items).findIndex(
+                          item => item.getBoundingClientRect().right > carouselRef.current.getBoundingClientRect().left
+                        );
+                        if (nextIndex >= 0 && nextIndex < items.length) {
+                          items[nextIndex].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        }
+                      } else if (e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        const prevIndex = Array.from(items).reverse().findIndex(
+                          item => item.getBoundingClientRect().left < carouselRef.current.getBoundingClientRect().right
+                        );
+                        if (prevIndex >= 0) {
+                          items[items.length - 1 - prevIndex].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        }
+                      }
+                    }}
                   >
                     {spots.map((spot) => (
                       <div
                         key={spot.id}
                         className="flex-none w-[280px] snap-start"
+                        role="option"
+                        aria-selected={selectedSpot?.id === spot.id}
+                        tabIndex={0}
                         onClick={() => handleSpotClick(spot)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleSpotClick(spot);
+                          }
+                        }}
                       >
                         <div className={`p-4 rounded-xl border ${
                           selectedSpot?.id === spot.id
                             ? 'border-primary bg-primary/5'
                             : 'border-gray-200 bg-white'
-                        } shadow-sm`}>
+                        } shadow-sm hover:border-primary/30 transition-colors`}>
                           <div className="flex items-start justify-between mb-2">
                             <h3 className="font-semibold text-gray-900">{spot.name}</h3>
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${

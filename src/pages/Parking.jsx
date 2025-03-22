@@ -612,7 +612,13 @@ export default function Parking() {
               role="button"
               aria-label="Deslizar para ver lista de parqueaderos"
               tabIndex={0}
-              onClick={() => setIsMobileListVisible(prev => !prev)}
+              onClick={() => setIsMobileListVisible(!isMobileListVisible)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setIsMobileListVisible(!isMobileListVisible);
+                }
+              }}
             >
               <div className="w-10 h-1 bg-gray-200 rounded-full" />
             </div>
