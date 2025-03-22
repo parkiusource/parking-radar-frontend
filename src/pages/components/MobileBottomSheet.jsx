@@ -51,14 +51,18 @@ export function MobileBottomSheet({
       setIsExpanded(false);
     } else if (velocity < -500 || offset < -100) {
       setIsExpanded(true);
-    } else {
-      setIsExpanded(isExpanded);
     }
+    // Si no cumple ninguna condición, mantener el estado actual
   };
 
   const handleSpotClick = (spot) => {
     onSpotSelect(spot);
     setIsExpanded(true);
+  };
+
+  const handleOverlayClick = () => {
+    onVisibilityChange(false);
+    setIsExpanded(false);
   };
 
   return (
@@ -70,7 +74,7 @@ export function MobileBottomSheet({
             animate={{ opacity: 0.5 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/50 md:hidden backdrop-blur-sm"
-            onClick={() => onVisibilityChange(false)}
+            onClick={handleOverlayClick}
             style={{ opacity }}
           />
 
@@ -94,10 +98,11 @@ export function MobileBottomSheet({
               role="button"
               tabIndex={0}
               aria-label="Arrastrar para ajustar vista"
+              onClick={() => setIsExpanded(true)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  setIsExpanded(!isExpanded);
+                  setIsExpanded(true);
                 }
               }}
             >
