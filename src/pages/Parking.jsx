@@ -15,7 +15,7 @@ import { Logo } from '@/components/Logo';
 import { useInView } from 'react-intersection-observer';
 
 // Lazy load components that are not immediately needed
-const Map = lazy(() => import('@/components/Map'));
+const ParkingMap = lazy(() => import('@/components/Map'));
 const SearchBox = lazy(() => import('@/components/SearchBox').then(module => ({ default: module.SearchBox })));
 
 // Constantes
@@ -566,7 +566,7 @@ export default function Parking() {
                     <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent" />
                   </div>
                 }>
-                  <Map
+                  <ParkingMap
                     ref={mapRef}
                     onParkingSpotSelected={handleParkingSpotSelected}
                     selectedSpot={selectedSpot}
