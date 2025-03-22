@@ -1,5 +1,5 @@
-import { AnimatePresence, motion } from 'framer-motion';
-import React, { useCallback, useContext, useState, useEffect, useRef, useMemo, memo } from 'react';
+import { AnimatePresence, motion, LazyMotion, domAnimation } from 'framer-motion';
+import React, { useCallback, useContext, useState, useEffect, useRef, useMemo, memo, lazy, Suspense } from 'react';
 import { Car, DollarSign, Search, ArrowLeft, Info, MapPin, X, Navigation } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useSwipeable } from 'react-swipeable';
@@ -7,14 +7,16 @@ import { useSwipeable } from 'react-swipeable';
 import { useSearchPlaces } from '@/api/hooks/useSearchPlaces';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import Map from '@/components/Map';
-import { SearchBox } from '@/components/SearchBox';
 import { ParkingContext } from '@/context/ParkingContext';
 import { UserContext } from '@/context/UserContext';
 import { useNearbyParkingSpots } from '@/hooks/useNearbySpots';
 import { getHeaderClassName } from '@/components/Header';
 import { Logo } from '@/components/Logo';
 import { useInView } from 'react-intersection-observer';
+
+// Lazy load components that are not immediately needed
+const Map = lazy(() => import('@/components/Map'));
+const SearchBox = lazy(() => import('@/components/SearchBox').then(module => ({ default: module.SearchBox })));
 
 // Constantes
 const DEFAULT_MAX_DISTANCE = 1000;
@@ -79,9 +81,6 @@ const ParkingSpotSkeleton = memo(() => (
 ));
 
 ParkingSpotSkeleton.displayName = 'ParkingSpotSkeleton';
-
-// Optimizar el formatDistance para evitar recálculos
-const MemoizedSearchBox = React.memo(SearchBox);
 
 // Componente ParkingSpotList optimizado con gestos táctiles y mejor accesibilidad
 const ParkingSpotList = React.memo(({
@@ -262,8 +261,6 @@ export default function Parking() {
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [showConnectionMessage, setShowConnectionMessage] = useState(false);
   const [isMobileListVisible, setIsMobileListVisible] = useState(false);
-
-  const searchRef = useRef(null);
   const [selectedSpot, setSelectedSpot] = useState(null);
   const mapRef = useRef(null);
 
@@ -472,235 +469,244 @@ export default function Parking() {
   );
 
   return (
-    <div className="flex flex-col min-h-screen bg-white">
-      <header className={getHeaderClassName({
-        showShadow: true,
-        className: 'z-10 backdrop-blur-md sticky top-0 bg-white/95 border-b border-gray-100/50 flex items-center h-14 transition-all duration-300'
-      })}>
-        <div className="w-full max-w-screen-2xl mx-auto px-2 flex items-center gap-2">
-          <Link to="/" className="flex items-center group shrink-0" aria-label="Volver al inicio">
-            <motion.div
-              initial={{ x: -10, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              className="mr-1 md:hidden hover:text-primary transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4 text-gray-600 group-hover:text-primary transition-colors" aria-hidden="true" />
-            </motion.div>
-            <Logo variant="secondary" className="scale-75 md:scale-90" />
-          </Link>
-
-          <div className="relative flex-1 max-w-xl">
-            <MemoizedSearchBox
-              ref={searchRef}
-              className="w-full"
-              placeholder="Busca cerca a tu destino..."
-              useSearchHook={useSearchPlaces}
-              onResultSelected={handleCustomPlaceSelected}
-              value={searchTerm}
-              aria-label="Buscar ubicación"
-            >
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 w-3.5 h-3.5" aria-hidden="true" />
-            </MemoizedSearchBox>
-          </div>
-
-          <div className="shrink-0">
-            <ConnectionIndicator isConnected={isConnected} />
-          </div>
-        </div>
-      </header>
-
-      <ErrorBoundary>
-        <main className="flex-grow grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 p-2 md:p-4 relative bg-white">
-          {/* Connection status messages */}
-          <AnimatePresence>
-            {showConnectionMessage && (
+    <LazyMotion features={domAnimation}>
+      <div className="flex flex-col min-h-screen bg-white">
+        <header className={getHeaderClassName({
+          showShadow: true,
+          className: 'z-10 backdrop-blur-md sticky top-0 bg-white/95 border-b border-gray-100/50 flex items-center h-14 transition-all duration-300'
+        })}>
+          <div className="w-full max-w-screen-2xl mx-auto px-2 flex items-center gap-2">
+            <Link to="/" className="flex items-center group shrink-0" aria-label="Volver al inicio">
               <motion.div
-                key={isConnected ? "connected" : "disconnected"}
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="absolute top-4 left-1/2 -translate-x-1/2 z-20"
+                initial={{ x: -10, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                className="mr-1 md:hidden hover:text-primary transition-colors"
               >
-                {isConnected ? (
-                  <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-2 rounded-xl shadow-lg flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="font-medium">En línea</span>
-                  </div>
-                ) : (
-                  <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-2 rounded-xl shadow-lg flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                    <span className="font-medium">Sin conexión</span>
-                  </div>
-                )}
+                <ArrowLeft className="w-4 h-4 text-gray-600 group-hover:text-primary transition-colors" aria-hidden="true" />
               </motion.div>
-            )}
-          </AnimatePresence>
+              <Logo variant="secondary" className="scale-75 md:scale-90" />
+            </Link>
 
-          {/* Loading overlay */}
-          <AnimatePresence mode="wait">
-            {isLoadingLocation && (
-              <motion.div
-                key="loading"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 z-10 flex items-center justify-center bg-white/90 backdrop-blur-sm"
-              >
-                <div className="flex flex-col items-center bg-white p-6 rounded-2xl shadow-lg">
-                  <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-                  <p className="text-gray-700 font-medium">Obteniendo ubicación...</p>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Map Section */}
-          <motion.section
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.4 }}
-            className="relative col-span-1 md:col-span-8 rounded-xl md:rounded-2xl shadow-lg h-[70vh] md:h-[calc(100vh-8rem)] overflow-hidden"
-          >
-            <div className="absolute inset-0">
-              <Map
-                ref={mapRef}
-                onParkingSpotSelected={handleParkingSpotSelected}
-                selectedSpot={selectedSpot}
-                setSelectedSpot={setSelectedSpot}
-                targetLocation={initialLocation || targetLocation}
-              />
-            </div>
-          </motion.section>
-
-          {/* Desktop Parking List */}
-          <motion.section
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3, duration: 0.4 }}
-            className="hidden md:block md:col-span-4 h-[calc(100vh-8rem)] bg-white rounded-2xl shadow-lg border border-gray-100/50 overflow-hidden"
-          >
-            <div className="p-4 border-b border-gray-100 bg-white/95 backdrop-blur-sm sticky top-0 z-10">
-              <h2 className="text-lg font-semibold text-gray-800">
-                {getSectionTitle}
-              </h2>
-              <p className="text-sm text-gray-600 mt-1">
-                {getDescriptiveMessage}
-              </p>
+            <div className="relative flex-1 max-w-xl">
+              <Suspense fallback={<div className="h-10 bg-gray-100 rounded-lg animate-pulse" />}>
+                <SearchBox
+                  className="w-full"
+                  placeholder="Busca cerca a tu destino..."
+                  useSearchHook={useSearchPlaces}
+                  onResultSelected={handleCustomPlaceSelected}
+                  value={searchTerm}
+                  aria-label="Buscar ubicación"
+                >
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 w-3.5 h-3.5" aria-hidden="true" />
+                </SearchBox>
+              </Suspense>
             </div>
 
-            <div className="overflow-y-auto h-[calc(100%-5rem)] p-4">
-              <AnimatePresence>
-                <ParkingSpotList
-                  spots={nearbySpots}
-                  selectedSpot={selectedSpot}
-                  onSpotClick={handleParkingCardClick}
-                />
-              </AnimatePresence>
+            <div className="shrink-0">
+              <ConnectionIndicator isConnected={isConnected} />
             </div>
-          </motion.section>
+          </div>
+        </header>
 
-          {/* Mobile Bottom Sheet */}
-          <motion.div
-            className="md:hidden fixed bottom-0 left-0 right-0 bg-white rounded-t-xl shadow-2xl z-50"
-            initial={{ y: "100%" }}
-            animate={{ y: isMobileListVisible ? "40%" : "92%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            {...swipeHandlers}
-          >
-            <div
-              className="flex flex-col items-center py-1 border-b border-gray-100"
-              role="button"
-              aria-label="Deslizar para ver lista de parqueaderos"
-              tabIndex={0}
-              onClick={() => setIsMobileListVisible(!isMobileListVisible)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  setIsMobileListVisible(!isMobileListVisible);
-                }
-              }}
+        <ErrorBoundary>
+          <main className="flex-grow grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 p-2 md:p-4 relative bg-white">
+            {/* Connection status messages */}
+            <AnimatePresence>
+              {showConnectionMessage && (
+                <motion.div
+                  key={isConnected ? "connected" : "disconnected"}
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="absolute top-4 left-1/2 -translate-x-1/2 z-20"
+                >
+                  {isConnected ? (
+                    <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-2 rounded-xl shadow-lg flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="font-medium">En línea</span>
+                    </div>
+                  ) : (
+                    <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-2 rounded-xl shadow-lg flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                      <span className="font-medium">Sin conexión</span>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Loading overlay */}
+            <AnimatePresence mode="wait">
+              {isLoadingLocation && (
+                <motion.div
+                  key="loading"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 z-10 flex items-center justify-center bg-white/90 backdrop-blur-sm"
+                >
+                  <div className="flex flex-col items-center bg-white p-6 rounded-2xl shadow-lg">
+                    <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+                    <p className="text-gray-700 font-medium">Obteniendo ubicación...</p>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Map Section */}
+            <motion.section
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.4 }}
+              className="relative col-span-1 md:col-span-8 rounded-xl md:rounded-2xl shadow-lg h-[70vh] md:h-[calc(100vh-8rem)] overflow-hidden"
             >
-              <div className="w-10 h-1 bg-gray-200 rounded-full" />
-            </div>
+              <div className="absolute inset-0">
+                <Suspense fallback={
+                  <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent" />
+                  </div>
+                }>
+                  <Map
+                    ref={mapRef}
+                    onParkingSpotSelected={handleParkingSpotSelected}
+                    selectedSpot={selectedSpot}
+                    setSelectedSpot={setSelectedSpot}
+                    targetLocation={initialLocation || targetLocation}
+                  />
+                </Suspense>
+              </div>
+            </motion.section>
 
-            <div className="px-2 overflow-y-auto" style={{
-              maxHeight: isMobileListVisible ? '60vh' : '70vh'
-            }}>
-              <div className="sticky top-0 bg-white/95 backdrop-blur-sm py-2 z-10">
-                <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-base font-semibold text-gray-800">
-                    {getSectionTitle}
-                  </h2>
-                  <span className="text-xs text-gray-500">
-                    {getDescriptiveMessage}
-                  </span>
-                </div>
-
-                {/* Filtros simples y elegantes */}
-                <div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2">
-                  <button
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-sm whitespace-nowrap"
-                    onClick={() => {/* Implementar filtro */}}
-                  >
-                    <Car className="w-4 h-4" />
-                    <span>Disponibles</span>
-                  </button>
-                  <button
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm whitespace-nowrap"
-                    onClick={() => {/* Implementar filtro */}}
-                  >
-                    <DollarSign className="w-4 h-4" />
-                    <span>Precio</span>
-                  </button>
-                  <button
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm whitespace-nowrap"
-                    onClick={() => {/* Implementar filtro */}}
-                  >
-                    <MapPin className="w-4 h-4" />
-                    <span>Cercanos</span>
-                  </button>
-                </div>
+            {/* Desktop Parking List */}
+            <motion.section
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3, duration: 0.4 }}
+              className="hidden md:block md:col-span-4 h-[calc(100vh-8rem)] bg-white rounded-2xl shadow-lg border border-gray-100/50 overflow-hidden"
+            >
+              <div className="p-4 border-b border-gray-100 bg-white/95 backdrop-blur-sm sticky top-0 z-10">
+                <h2 className="text-lg font-semibold text-gray-800">
+                  {getSectionTitle}
+                </h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  {getDescriptiveMessage}
+                </p>
               </div>
 
-              <AnimatePresence>
-                <ParkingSpotList
-                  spots={nearbySpots}
-                  selectedSpot={selectedSpot}
-                  onSpotClick={handleParkingCardClick}
-                />
-              </AnimatePresence>
-            </div>
+              <div className="overflow-y-auto h-[calc(100%-5rem)] p-4">
+                <AnimatePresence>
+                  <ParkingSpotList
+                    spots={nearbySpots}
+                    selectedSpot={selectedSpot}
+                    onSpotClick={handleParkingCardClick}
+                  />
+                </AnimatePresence>
+              </div>
+            </motion.section>
 
-            {/* Location Button */}
-            <motion.button
-              className="fixed right-3 bottom-20 bg-primary text-white p-2.5 rounded-lg shadow-lg hover:bg-primary/90 transition-all duration-300 active:scale-95"
-              whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                if (mapRef.current && userLocation) {
-                  mapRef.current.centerOnSpot({
-                    location: userLocation,
-                    zoom: 15
-                  });
-                }
-              }}
-              aria-label="Centrar en mi ubicación"
+            {/* Mobile Bottom Sheet */}
+            <motion.div
+              className="md:hidden fixed bottom-0 left-0 right-0 bg-white rounded-t-xl shadow-2xl z-50"
+              initial={{ y: "100%" }}
+              animate={{ y: isMobileListVisible ? "40%" : "92%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              {...swipeHandlers}
             >
-              <Navigation className="w-5 h-5" />
-            </motion.button>
-          </motion.div>
-        </main>
-      </ErrorBoundary>
+              <div
+                className="flex flex-col items-center py-1 border-b border-gray-100"
+                role="button"
+                aria-label="Deslizar para ver lista de parqueaderos"
+                tabIndex={0}
+                onClick={() => setIsMobileListVisible(!isMobileListVisible)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setIsMobileListVisible(!isMobileListVisible);
+                  }
+                }}
+              >
+                <div className="w-10 h-1 bg-gray-200 rounded-full" />
+              </div>
 
-      <footer className="hidden md:block py-4 px-4 bg-white border-t border-gray-100/50 text-center text-sm text-gray-500">
-        <div className="container mx-auto flex flex-wrap justify-center items-center gap-4">
-          <div className="font-medium">© {new Date().getFullYear()} ParkiÜ</div>
-          <nav className="flex items-center gap-4">
-            <Link to="/about" className="hover:text-primary transition-colors">Nosotros</Link>
-            <Link to="/terms" className="hover:text-primary transition-colors">Términos</Link>
-            <Link to="/privacy" className="hover:text-primary transition-colors">Privacidad</Link>
-          </nav>
-        </div>
-      </footer>
-    </div>
+              <div className="px-2 overflow-y-auto" style={{
+                maxHeight: isMobileListVisible ? '60vh' : '70vh'
+              }}>
+                <div className="sticky top-0 bg-white/95 backdrop-blur-sm py-2 z-10">
+                  <div className="flex items-center justify-between mb-2">
+                    <h2 className="text-base font-semibold text-gray-800">
+                      {getSectionTitle}
+                    </h2>
+                    <span className="text-xs text-gray-500">
+                      {getDescriptiveMessage}
+                    </span>
+                  </div>
+
+                  {/* Filtros simples y elegantes */}
+                  <div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2">
+                    <button
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-sm whitespace-nowrap"
+                      onClick={() => {/* Implementar filtro */}}
+                    >
+                      <Car className="w-4 h-4" />
+                      <span>Disponibles</span>
+                    </button>
+                    <button
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm whitespace-nowrap"
+                      onClick={() => {/* Implementar filtro */}}
+                    >
+                      <DollarSign className="w-4 h-4" />
+                      <span>Precio</span>
+                    </button>
+                    <button
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm whitespace-nowrap"
+                      onClick={() => {/* Implementar filtro */}}
+                    >
+                      <MapPin className="w-4 h-4" />
+                      <span>Cercanos</span>
+                    </button>
+                  </div>
+                </div>
+
+                <AnimatePresence>
+                  <ParkingSpotList
+                    spots={nearbySpots}
+                    selectedSpot={selectedSpot}
+                    onSpotClick={handleParkingCardClick}
+                  />
+                </AnimatePresence>
+              </div>
+
+              {/* Location Button */}
+              <motion.button
+                className="fixed right-3 bottom-20 bg-primary text-white p-2.5 rounded-lg shadow-lg hover:bg-primary/90 transition-all duration-300 active:scale-95"
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  if (mapRef.current && userLocation) {
+                    mapRef.current.centerOnSpot({
+                      location: userLocation,
+                      zoom: 15
+                    });
+                  }
+                }}
+                aria-label="Centrar en mi ubicación"
+              >
+                <Navigation className="w-5 h-5" />
+              </motion.button>
+            </motion.div>
+          </main>
+        </ErrorBoundary>
+
+        <footer className="hidden md:block py-4 px-4 bg-white border-t border-gray-100/50 text-center text-sm text-gray-500">
+          <div className="container mx-auto flex flex-wrap justify-center items-center gap-4">
+            <div className="font-medium">© {new Date().getFullYear()} ParkiÜ</div>
+            <nav className="flex items-center gap-4">
+              <Link to="/about" className="hover:text-primary transition-colors">Nosotros</Link>
+              <Link to="/terms" className="hover:text-primary transition-colors">Términos</Link>
+              <Link to="/privacy" className="hover:text-primary transition-colors">Privacidad</Link>
+            </nav>
+          </div>
+        </footer>
+      </div>
+    </LazyMotion>
   );
 }
