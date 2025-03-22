@@ -1,5 +1,4 @@
-/* eslint-disable react/display-name */
-import { forwardRef } from 'react';
+import { forwardRef, memo, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { LuCar, LuInfo, LuMapPin, LuClock, LuMotorcycle, LuBike, LuTarget } from 'react-icons/lu';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -71,25 +70,21 @@ ParkingSpotList.propTypes = {
   onSelect: PropTypes.func.isRequired,
 };
 
-function ParkingSpotCard({ parking, onClick, index }) {
-  const formatPrice = (price) => {
+const ParkingSpotCard = memo(({ parking, onClick, index }) => {
+  const formatPrice = useCallback((price) => {
     return Number(price).toLocaleString('es-CO', {
       style: 'currency',
       currency: 'COP',
       maximumFractionDigits: 0,
     });
-  };
+  }, []);
 
-  const getStatusBadge = () => {
+  const getStatusBadge = useCallback(() => {
     if (parking.isActive) {
-      return (
-        <Badge variant="success" size="small">Abierto</Badge>
-      );
+      return <Badge variant="success" size="small">Abierto</Badge>;
     }
-    return (
-      <Badge variant="error" size="small">Cerrado</Badge>
-    );
-  };
+    return <Badge variant="error" size="small">Cerrado</Badge>;
+  }, [parking.isActive]);
 
   return (
     <motion.div
@@ -156,7 +151,13 @@ function ParkingSpotCard({ parking, onClick, index }) {
       </div>
     </motion.div>
   );
-}
+}, (prevProps, nextProps) => {
+  return prevProps.parking.id === nextProps.parking.id &&
+         prevProps.parking.isActive === nextProps.parking.isActive &&
+         prevProps.index === nextProps.index;
+});
+
+ParkingSpotCard.displayName = 'ParkingSpotCard';
 
 ParkingSpotCard.propTypes = {
   parking: PropTypes.object.isRequired,
