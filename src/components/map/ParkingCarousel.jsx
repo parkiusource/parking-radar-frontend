@@ -68,7 +68,7 @@ const ParkingCarousel = memo(({ parkingSpots, onSelect }) => {
   const renderCards = useMemo(() => {
     return filteredAndSortedSpots.map((spot, index) => (
       <motion.div
-        key={spot.id}
+        key={`${spot.id}-${index}`}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, delay: index * 0.05 }}
@@ -81,11 +81,11 @@ const ParkingCarousel = memo(({ parkingSpots, onSelect }) => {
               {spot.name}
             </h3>
             <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${
-              spot.available_spaces > 0
+              typeof spot.available_spaces === 'number' && spot.available_spaces > 0
                 ? 'bg-green-50 text-green-700'
                 : 'bg-red-50 text-red-700'
             }`}>
-              {spot.available_spaces > 0 ? 'Disponible' : 'Lleno'}
+              {typeof spot.available_spaces === 'number' && spot.available_spaces > 0 ? 'Disponible' : 'Lleno'}
             </span>
           </div>
 
@@ -102,7 +102,7 @@ const ParkingCarousel = memo(({ parkingSpots, onSelect }) => {
           <div className="grid grid-cols-2 gap-2 mt-auto">
             <div className="flex items-center text-gray-700 text-xs bg-gray-50 px-2.5 py-2 rounded">
               <LuCar className="mr-1.5 text-primary w-3.5 h-3.5" />
-              <span>{spot.available_spaces} espacios</span>
+              <span>{typeof spot.available_spaces === 'number' ? spot.available_spaces : '?'} espacios</span>
             </div>
             <div className="flex items-center text-gray-700 text-xs bg-gray-50 px-2.5 py-2 rounded">
               <LuClock className="mr-1.5 text-primary w-3.5 h-3.5" />
@@ -234,7 +234,7 @@ ParkingCarousel.propTypes = {
       id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
       name: PropTypes.string.isRequired,
       address: PropTypes.string.isRequired,
-      available_spaces: PropTypes.number.isRequired,
+      available_spaces: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
       distance: PropTypes.number.isRequired,
       min_price: PropTypes.number,
       max_price: PropTypes.number,

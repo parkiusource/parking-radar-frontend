@@ -1,11 +1,11 @@
 import { AnimatePresence, motion, LazyMotion, domAnimation } from 'framer-motion';
-import React, { useCallback, useContext, useState, useRef, Suspense, useMemo } from 'react';
+import React, { useCallback, useContext, useState, useRef, Suspense, useMemo, useEffect } from 'react';
 import { Car, DollarSign, Search, ArrowLeft, Info, MapPin } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 import { useSearchPlaces } from '@/api/hooks/useSearchPlaces';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import { ParkingContext } from '@/context/ParkingContext';
+import { ParkingContext } from '@/context/parkingContextUtils';
 import { UserContext } from '@/context/UserContext';
 import { useNearbyParkingSpots } from '@/hooks/useNearbySpots';
 import { getHeaderClassName } from '@/components/Header';
@@ -107,6 +107,26 @@ export default function Parking() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSpot, setSelectedSpot] = useState(null);
   const mapRef = useRef(null);
+  const [searchParams] = useSearchParams();
+
+  // Efecto para manejar los parámetros de búsqueda de la URL
+  useEffect(() => {
+    const lat = searchParams.get('lat');
+    const lng = searchParams.get('lng');
+    const search = searchParams.get('search');
+
+    if (lat && lng) {
+      const newLocation = {
+        lat: parseFloat(lat),
+        lng: parseFloat(lng)
+      };
+      setTargetLocation(newLocation);
+    }
+
+    if (search) {
+      setSearchTerm(decodeURIComponent(search));
+    }
+  }, [searchParams, setTargetLocation]);
 
   // Memoizar el centro para useNearbyParkingSpots
   const spotCenter = useMemo(() => targetLocation || user?.location, [targetLocation, user?.location]);

@@ -4,7 +4,7 @@ import { Auth0Provider } from '@auth0/auth0-react';
 import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
 
-import { ParkingProvider } from '@/context/ParkingContext';
+import { ParkingProvider } from '@/context/ParkingProvider';
 import { QueryClientContextProvider } from '@/context/QueryClientContext';
 import { UserProvider } from '@/context/UserContext';
 import AppRoutes from '@/routes/AppRoutes';
