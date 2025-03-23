@@ -377,40 +377,6 @@ const ParkingMap = memo(forwardRef(({
     }
   }, []);
 
-  // Función para generar un ID único para spots de Google Places
-  const generateUniqueGooglePlaceId = useCallback((placeId) => {
-    // Generar parte única usando timestamp y número aleatorio
-    const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 1000);
-    const uniquePart = `${timestamp}_${random}`;
-
-    return `google_${placeId}_${uniquePart}`.replace(/\./g, '_');
-  }, []);
-
-  // Función para comparar coordenadas con tolerancia
-  const areCoordinatesEqual = useCallback((coord1, coord2) => {
-    if (!coord1 || !coord2) return false;
-
-    try {
-      const lat1 = parseFloat(coord1.latitude || coord1.lat);
-      const lng1 = parseFloat(coord1.longitude || coord1.lng);
-      const lat2 = parseFloat(coord2.latitude || coord2.lat);
-      const lng2 = parseFloat(coord2.longitude || coord2.lng);
-
-      if (!isFinite(lat1) || !isFinite(lng1) || !isFinite(lat2) || !isFinite(lng2)) {
-        return false;
-      }
-
-      // Aumentar la tolerancia un poco
-      const tolerance = 0.0008;
-      return Math.abs(lat1 - lat2) < tolerance &&
-             Math.abs(lng1 - lng2) < tolerance;
-    } catch (error) {
-      console.error('Error comparando coordenadas:', error);
-      return false;
-    }
-  }, []);
-
   // Actualizar searchNearbyParking para usar la nueva comparación
   const searchNearbyParking = useCallback((location) => {
     console.log('🔍 Iniciando búsqueda de parqueaderos...', { location });
@@ -421,8 +387,8 @@ const ParkingMap = memo(forwardRef(({
     }
 
     try {
-      // Obtener los spots existentes de Parkiu
-      const existingParkiuSpots = parkingSpots.filter(spot => !spot.isGooglePlace);
+      // Obtener los spots existentes de Parkiu (no Google Places)
+      const existingParkiuSpots = (parkingSpots || []).filter(spot => !spot.isGooglePlace);
 
       // Realizar la búsqueda en Google Places
       fetch('https://places.googleapis.com/v1/places:searchNearby', {
@@ -448,57 +414,55 @@ const ParkingMap = memo(forwardRef(({
       })
       .then(response => response.json())
       .then(data => {
-        if (!data.places || !Array.isArray(data.places)) {
-          throw new Error('Formato de respuesta inválido');
+        if (data.places) {
+          // Transformar los resultados de Google Places
+          const googlePlacesSpots = data.places.map(place => ({
+            id: `google_${place.id}`,
+            name: place.displayName?.text || 'Parqueadero',
+            address: place.formattedAddress,
+            latitude: place.location.latitude,
+            longitude: place.location.longitude,
+            isGooglePlace: true,
+            rating: place.rating || 0,
+            userRatingCount: place.userRatingCount || 0,
+            businessStatus: place.businessStatus,
+            // Propiedades requeridas por ParkingCarousel
+            available_spaces: place.businessStatus === 'OPERATIONAL' ? 1 : 0,
+            total_spaces: 1,
+            min_price: 0,
+            max_price: 0,
+            price_per_hour: 0,
+            is_open: place.businessStatus === 'OPERATIONAL',
+            distance: 0, // Se calculará después
+            formattedDistance: '0 km' // Valor por defecto
+          }));
+
+          // Calcular distancias si está disponible la API de geometría
+          if (window.google?.maps?.geometry?.spherical) {
+            const origin = new window.google.maps.LatLng(location.lat, location.lng);
+            googlePlacesSpots.forEach(spot => {
+              const destination = new window.google.maps.LatLng(spot.latitude, spot.longitude);
+              const distanceInMeters = window.google.maps.geometry.spherical.computeDistanceBetween(origin, destination);
+              spot.distance = distanceInMeters / 1000; // Convertir a kilómetros
+              spot.formattedDistance = spot.distance < 1
+                ? `${Math.round(distanceInMeters)}m`
+                : `${spot.distance.toFixed(1)}km`;
+            });
+          }
+
+          // Combinar con los spots existentes de Parkiu
+          const allSpots = [...existingParkiuSpots, ...googlePlacesSpots];
+          console.log('✅ Spots actualizados:', allSpots.length);
+          setParkingSpots(allSpots);
         }
-
-        // Filtrar spots duplicados usando la función de comparación
-        const googlePlacesSpots = data.places
-          .filter(place => {
-            // Verificar si ya existe un spot en las mismas coordenadas
-            const isDuplicate = parkingSpots.some(existingSpot =>
-              areCoordinatesEqual(
-                { latitude: place.location.latitude, longitude: place.location.longitude },
-                existingSpot
-              )
-            );
-            return !isDuplicate;
-          })
-          .map(place => {
-            const latitude = parseFloat(place.location.latitude);
-            const longitude = parseFloat(place.location.longitude);
-            return {
-              id: generateUniqueGooglePlaceId(place.id),
-              isGooglePlace: true,
-              latitude,
-              longitude,
-              name: place.displayName?.text || 'Parqueadero sin nombre',
-              address: place.formattedAddress || 'Dirección no disponible',
-              available_spaces: place.businessStatus === 'OPERATIONAL' ? 1 : 0,
-              rating: place.rating || 0,
-              userRatingCount: place.userRatingCount || 0,
-              isOpenNow: place.businessStatus === 'OPERATIONAL',
-              businessStatus: place.businessStatus,
-              distance: window.google?.maps?.geometry?.spherical?.computeDistanceBetween?.(
-                new window.google.maps.LatLng(location.lat, location.lng),
-                new window.google.maps.LatLng(latitude, longitude)
-              ) / 1000 || 0
-            };
-          });
-
-        // Actualizar el estado solo con spots únicos
-        const updatedSpots = [...existingParkiuSpots, ...googlePlacesSpots]
-          .sort((a, b) => a.distance - b.distance);
-
-        setParkingSpots(updatedSpots);
       })
       .catch(error => {
-        console.error('❌ Error en la búsqueda:', error);
+        console.error('❌ Error en la búsqueda de parqueaderos:', error);
       });
     } catch (error) {
-      console.error('❌ Error general en searchNearbyParking:', error);
+      console.error('❌ Error al procesar la búsqueda:', error);
     }
-  }, [mapRef, parkingSpots, setParkingSpots, generateUniqueGooglePlaceId, areCoordinatesEqual]);
+  }, [parkingSpots, setParkingSpots]);
 
   // Actualizar initializeMarkers para usar la nueva comparación
   const initializeMarkers = useCallback(() => {
@@ -715,21 +679,21 @@ const ParkingMap = memo(forwardRef(({
   }, [setSelectedSpot, centerOnSelectedSpot, onParkingSpotSelected]);
 
   // Comparar si los parkingSpots han cambiado realmente
-  const spotsHaveChanged = useCallback(() => {
-    if (!prevParkingSpotsRef.current || !parkingSpots) return true;
-    if (prevParkingSpotsRef.current.length !== parkingSpots.length) return true;
+  const spotsHaveChanged = useCallback((prevSpots, currentSpots) => {
+    if (!prevSpots || !currentSpots) return true;
+    if (prevSpots.length !== currentSpots.length) return true;
 
     // Comparación superficial de los IDs y available_spaces para determinar si actualizar
-    for (let i = 0; i < parkingSpots.length; i++) {
-      const prev = prevParkingSpotsRef.current[i];
-      const curr = parkingSpots[i];
+    for (let i = 0; i < currentSpots.length; i++) {
+      const prev = prevSpots[i];
+      const curr = currentSpots[i];
       if (!prev || !curr) return true;
       if (prev.id !== curr.id || prev.available_spaces !== curr.available_spaces) {
         return true;
       }
     }
     return false;
-  }, [parkingSpots]);
+  }, []);
 
   // Función para abrir navegación en Google Maps
   const openNavigation = (lat, lng) => {
@@ -765,14 +729,11 @@ const ParkingMap = memo(forwardRef(({
   useEffect(() => {
     if (!mapInitializedRef.current || !isLoaded || !mapRef.current) return;
 
-    const updateMarkers = () => {
-      if (spotsHaveChanged()) {
-        initializeMarkers();
-      }
-    };
-
-    const timer = setTimeout(updateMarkers, 50);
-    return () => clearTimeout(timer);
+    // Usar useRef para mantener una referencia estable a los spots anteriores
+    if (spotsHaveChanged(prevParkingSpotsRef.current, parkingSpots)) {
+      prevParkingSpotsRef.current = parkingSpots;
+      initializeMarkers();
+    }
   }, [parkingSpots, isLoaded, initializeMarkers, spotsHaveChanged]);
 
   // En lugar de renderizar el mapa nuevamente con un key diferente,
@@ -791,15 +752,44 @@ const ParkingMap = memo(forwardRef(({
     }
   }, [effectiveTargetLocation, centerMapOnLocation]);
 
-  // Efecto separado para la búsqueda inicial de parqueaderos
+  // Función memoizada para comparar ubicaciones
+  const areLocationsSignificantlyDifferent = useCallback((loc1, loc2, threshold = 0.01) => {
+    if (!loc1 || !loc2) return true;
+    return Math.abs(loc1.lat - loc2.lat) > threshold ||
+           Math.abs(loc1.lng - loc2.lng) > threshold;
+  }, []);
+
+  // Referencia para la última ubicación de búsqueda
+  const lastSearchLocationRef = useRef(null);
+
+  // Efecto para la búsqueda inicial de parqueaderos
   useEffect(() => {
-    if (effectiveTargetLocation && placesServiceRef.current && mapInitializedRef.current) {
-      const shouldSearch = !parkingSpots.some(spot => spot.isGooglePlace);
-      if (shouldSearch) {
-        searchNearbyParking(effectiveTargetLocation);
-      }
+    if (!effectiveTargetLocation || !mapInitializedRef.current) return;
+
+    // Si ya buscamos en esta ubicación (o muy cerca), no buscar de nuevo
+    if (lastSearchLocationRef.current &&
+        !areLocationsSignificantlyDifferent(lastSearchLocationRef.current, effectiveTargetLocation)) {
+      return;
     }
-  }, [effectiveTargetLocation, searchNearbyParking, parkingSpots]);
+
+    // Actualizar la referencia de la última búsqueda
+    lastSearchLocationRef.current = effectiveTargetLocation;
+
+    // Obtener los spots actuales de Parkiu antes de limpiar
+    const currentParkiuSpots = (parkingSpots || []).filter(spot => !spot.isGooglePlace);
+
+    // Solo actualizar si realmente hay cambios
+    if (parkingSpots?.length !== currentParkiuSpots.length) {
+      setParkingSpots(currentParkiuSpots);
+    }
+
+    // Realizar la nueva búsqueda con debounce
+    const timeoutId = setTimeout(() => {
+      searchNearbyParking(effectiveTargetLocation);
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [effectiveTargetLocation, searchNearbyParking, setParkingSpots, areLocationsSignificantlyDifferent, parkingSpots]);
 
   // Exponer métodos para que el componente padre pueda acceder a ellos
   useImperativeHandle(ref, () => ({

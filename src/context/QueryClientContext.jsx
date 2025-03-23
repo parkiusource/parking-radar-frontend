@@ -9,32 +9,13 @@ const QueryClientContextProvider = ({ children }) => {
   const queryClient = useMemo(() => new QueryClient({
     defaultOptions: {
       queries: {
-        ...CACHE_CONFIG.default,
-        // Función para determinar la configuración de caché basada en el queryKey
-        getNextPageParam: (lastPage) => lastPage?.nextPage,
-        select: (data) => data,
-        onError: (error) => {
-          console.error('Query error:', error);
-        },
-        // Función para determinar la configuración específica basada en el queryKey
-        queryKeyHashFn: (queryKey) => {
-          // Si el queryKey comienza con 'googlePlaces', usar configuración de GoogleMaps
-          if (Array.isArray(queryKey) && queryKey[0] === 'googlePlaces') {
-            return {
-              ...CACHE_CONFIG.GoogleMaps,
-            };
-          }
-          // Si el queryKey comienza con 'parkingSpots', usar configuración de ParkingSpots
-          if (Array.isArray(queryKey) && queryKey[0] === 'parkingSpots') {
-            return {
-              ...CACHE_CONFIG.ParkingSpots,
-            };
-          }
-          // Usar configuración por defecto para otros casos
-          return {
-            ...CACHE_CONFIG.default,
-          };
-        },
+        refetchOnWindowFocus: false,
+        retry: 3,
+        // Configuración por defecto
+        staleTime: CACHE_CONFIG.default.staleTime,
+        cacheTime: CACHE_CONFIG.default.cacheTime,
+        // Usar políticas de caché específicas basadas en queryKey
+        gcTime: CACHE_CONFIG.default.cacheTime,
       },
     },
   }), []);
