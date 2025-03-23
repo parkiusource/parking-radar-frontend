@@ -1,35 +1,48 @@
 # Parkiu
 
-Parkiu es una aplicación web moderna que facilita la gestión y monitoreo de parqueaderos en tiempo real. La plataforma ofrece una interfaz intuitiva para visualizar y administrar espacios de estacionamiento, mejorando la experiencia tanto para administradores como para usuarios.
+Parkiu es una aplicación web moderna que facilita la gestión y monitoreo de parqueaderos en tiempo real. La plataforma ofrece una interfaz intuitiva y elegante para visualizar y administrar espacios de estacionamiento, mejorando la experiencia tanto para administradores como para usuarios.
 
 ## 🚀 Características Principales
 
 - **Visualización en Tiempo Real:** Monitoreo instantáneo del estado de los espacios de parqueo
-- **Interfaz Moderna:** Diseño responsive y amigable construido con React y TypeScript
+- **Interfaz Moderna y Responsive:**
+  - Diseño elegante y minimalista
+  - Animaciones suaves y transiciones fluidas
+  - Interfaz adaptativa para móvil y escritorio
+  - Gestos táctiles intuitivos
 - **Gestión Eficiente:** Sistema integral para la administración de parqueaderos
-- **Experiencia Optimizada:** Interfaz intuitiva para usuarios y administradores
+- **Experiencia Optimizada:**
+  - Búsqueda inteligente de ubicaciones
+  - Filtros dinámicos
+  - Navegación integrada
+  - Indicadores de estado en tiempo real
 
 ## 🛠️ Tecnologías
 
 ### Frontend
-- React 18
-- TypeScript
-- Vite
-- Tailwind CSS
-- React Router DOM
+- React 18 con Hooks
+- TypeScript para type safety
+- Vite para desarrollo rápido
+- Tailwind CSS para estilos modernos
+- React Router DOM para navegación
+- Framer Motion para animaciones fluidas
+- React Query para gestión de estado y caché
+- WebSocket para actualizaciones en tiempo real
+- Google Maps API para visualización de mapas
 - Axios para peticiones HTTP
 
 ### Herramientas de Desarrollo
-- ESLint
-- Prettier
-- Git
-- npm/yarn
+- ESLint para linting
+- Prettier para formateo de código
+- Git para control de versiones
+- npm/yarn para gestión de paquetes
 
 ## 📋 Requisitos Previos
 
 - Node.js (v16 o superior)
 - npm o yarn
 - Git
+- API Key de Google Maps
 
 ## 🚀 Instalación
 
@@ -46,12 +59,38 @@ Parkiu es una aplicación web moderna que facilita la gestión y monitoreo de pa
    yarn install
    ```
 
-3. **Iniciar el servidor de desarrollo**
+3. **Configurar variables de entorno**
+   ```bash
+   cp .env.example .env
+   # Editar .env con tus credenciales
+   ```
+
+4. **Iniciar el servidor de desarrollo**
    ```bash
    npm run dev
    # o
    yarn dev
    ```
+
+## 🎨 Características de la Interfaz
+
+- **Diseño Moderno:**
+  - Paleta de colores profesional
+  - Tipografía clara y legible
+  - Espaciado y jerarquía visual optimizados
+  - Sombras y efectos sutiles
+
+- **Experiencia de Usuario:**
+  - Feedback visual en interacciones
+  - Estados de carga elegantes
+  - Mensajes de error amigables
+  - Transiciones suaves entre estados
+
+- **Accesibilidad:**
+  - Soporte para lectores de pantalla
+  - Navegación por teclado
+  - Contraste adecuado
+  - Textos alternativos
 
 ## 🤝 Contribución
 
