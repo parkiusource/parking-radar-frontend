@@ -1,5 +1,5 @@
 import { AnimatePresence, motion, LazyMotion, domAnimation } from 'framer-motion';
-import React, { useCallback, useContext, useState, useRef, Suspense, useMemo, useEffect } from 'react';
+import React, { useCallback, useContext, useState, useRef, Suspense, useMemo, useEffect, memo } from 'react';
 import { Car, DollarSign, Search, ArrowLeft, Info, MapPin } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 
@@ -17,25 +17,26 @@ import ParkingCarousel from '@/components/map/ParkingCarousel';
 const DEFAULT_MAX_DISTANCE = 1000;
 const DEFAULT_LIMIT = 10;
 
-// Componente ParkingSpotList optimizado
+// Optimizar ParkingSpotList
 const ParkingSpotList = React.memo(({ spots, selectedSpot, onSpotClick }) => {
-  if (!spots?.length) {
-    return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="flex flex-col items-center text-center p-6 bg-white rounded-xl shadow-sm"
-      >
-        <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-          <Info className="h-8 w-8 text-gray-400" />
-        </div>
-        <h3 className="text-gray-700 font-medium mb-2">No encontramos parqueaderos</h3>
-        <p className="text-gray-600 text-sm">
-          No encontramos parqueaderos en esta zona. Intenta buscar en otra ubicación.
-        </p>
-      </motion.div>
-    );
-  }
+  // Memoizar el mensaje de no resultados
+  const NoResultsMessage = useMemo(() => (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="flex flex-col items-center text-center p-6 bg-white rounded-xl shadow-sm"
+    >
+      <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+        <Info className="h-8 w-8 text-gray-400" />
+      </div>
+      <h3 className="text-gray-700 font-medium mb-2">No encontramos parqueaderos</h3>
+      <p className="text-gray-600 text-sm">
+        No encontramos parqueaderos en esta zona. Intenta buscar en otra ubicación.
+      </p>
+    </motion.div>
+  ), []);
+
+  if (!spots?.length) return NoResultsMessage;
 
   return (
     <div>
@@ -51,54 +52,62 @@ const ParkingSpotList = React.memo(({ spots, selectedSpot, onSpotClick }) => {
           }`}
           onClick={() => onSpotClick(parking)}
         >
-          <div className="flex justify-between items-center mb-3">
-            <div className="flex items-center">
-              <div className="bg-primary/10 p-2 rounded-full text-primary mr-3">
-                <Car className="w-5 h-5" />
-              </div>
-              <h3 className="font-semibold text-gray-800">{parking.name}</h3>
-            </div>
-            <span className={`text-xs px-3 py-1 rounded-full font-medium ${
-              parking.available_spaces > 0
-                ? 'bg-green-50 text-green-700'
-                : 'bg-red-50 text-red-700'
-            }`}>
-              {parking.available_spaces > 0 ? 'Disponible' : 'Lleno'}
-            </span>
-          </div>
-
-          <div className="flex items-center text-gray-600 text-sm mb-4">
-            <MapPin className="mr-2 flex-shrink-0 text-gray-400" />
-            <span className="line-clamp-1">{parking.address}</span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex items-center text-gray-700">
-              <Car className="w-5 h-5 mr-2 text-primary" />
-              <span>{parking.available_spaces} espacios</span>
-            </div>
-            <div className="flex items-center text-gray-700">
-              <DollarSign className="w-5 h-5 mr-2 text-primary" />
-              <span>$60 - $100</span>
-            </div>
-          </div>
+          <ParkingSpotCard parking={parking} />
         </motion.div>
       ))}
     </div>
   );
 }, (prevProps, nextProps) => {
-  // Comparación profunda de spots solo por id y available_spaces
-  const spotsEqual = prevProps.spots?.length === nextProps.spots?.length &&
-    prevProps.spots?.every((spot, index) =>
-      spot.id === nextProps.spots[index].id &&
-      spot.available_spaces === nextProps.spots[index].available_spaces
-    );
+  if (prevProps.spots?.length !== nextProps.spots?.length) return false;
+  if (prevProps.selectedSpot?.id !== nextProps.selectedSpot?.id) return false;
+  if (prevProps.onSpotClick !== nextProps.onSpotClick) return false;
 
-  return spotsEqual &&
-         prevProps.selectedSpot?.id === nextProps.selectedSpot?.id &&
-         prevProps.onSpotClick === nextProps.onSpotClick;
+  // Comparación profunda solo de los campos relevantes
+  return prevProps.spots?.every((spot, index) => {
+    const nextSpot = nextProps.spots[index];
+    return spot.id === nextSpot.id &&
+           spot.available_spaces === nextSpot.available_spaces;
+  });
 });
 
+// Extraer ParkingSpotCard como componente separado
+const ParkingSpotCard = memo(({ parking }) => (
+  <>
+    <div className="flex justify-between items-center mb-3">
+      <div className="flex items-center">
+        <div className="bg-primary/10 p-2 rounded-full text-primary mr-3">
+          <Car className="w-5 h-5" />
+        </div>
+        <h3 className="font-semibold text-gray-800">{parking.name}</h3>
+      </div>
+      <span className={`text-xs px-3 py-1 rounded-full font-medium ${
+        parking.available_spaces > 0
+          ? 'bg-green-50 text-green-700'
+          : 'bg-red-50 text-red-700'
+      }`}>
+        {parking.available_spaces > 0 ? 'Disponible' : 'Lleno'}
+      </span>
+    </div>
+
+    <div className="flex items-center text-gray-600 text-sm mb-4">
+      <MapPin className="mr-2 flex-shrink-0 text-gray-400" />
+      <span className="line-clamp-1">{parking.address}</span>
+    </div>
+
+    <div className="grid grid-cols-2 gap-4">
+      <div className="flex items-center text-gray-700">
+        <Car className="w-5 h-5 mr-2 text-primary" />
+        <span>{parking.available_spaces} espacios</span>
+      </div>
+      <div className="flex items-center text-gray-700">
+        <DollarSign className="w-5 h-5 mr-2 text-primary" />
+        <span>$60 - $100</span>
+      </div>
+    </div>
+  </>
+));
+
+ParkingSpotCard.displayName = 'ParkingSpotCard';
 ParkingSpotList.displayName = 'ParkingSpotList';
 
 export default function Parking() {
@@ -108,28 +117,13 @@ export default function Parking() {
   const [selectedSpot, setSelectedSpot] = useState(null);
   const mapRef = useRef(null);
   const [searchParams] = useSearchParams();
+  const [initialSearchDone, setInitialSearchDone] = useState(false);
 
-  // Efecto para manejar los parámetros de búsqueda de la URL
-  useEffect(() => {
-    const lat = searchParams.get('lat');
-    const lng = searchParams.get('lng');
-    const search = searchParams.get('search');
-
-    if (lat && lng) {
-      const newLocation = {
-        lat: parseFloat(lat),
-        lng: parseFloat(lng)
-      };
-      setTargetLocation(newLocation);
-    }
-
-    if (search) {
-      setSearchTerm(decodeURIComponent(search));
-    }
-  }, [searchParams, setTargetLocation]);
-
-  // Memoizar el centro para useNearbyParkingSpots
-  const spotCenter = useMemo(() => targetLocation || user?.location, [targetLocation, user?.location]);
+  // Memoizar el centro y los spots cercanos
+  const spotCenter = useMemo(() =>
+    targetLocation || user?.location,
+    [targetLocation, user?.location]
+  );
 
   const { nearbySpots } = useNearbyParkingSpots({
     spots: parkingSpots,
@@ -138,16 +132,14 @@ export default function Parking() {
     maxRadius: DEFAULT_MAX_DISTANCE,
   });
 
-  // Memoizar el conteo de spots para evitar recálculos
-  const spotsCount = useMemo(() => parkingSpots?.length || 0, [parkingSpots]);
-
+  // Memoizar handlers
   const handleParkingSpotSelected = useCallback((data) => {
     setSelectedSpot(data.spot);
   }, []);
 
   const handleParkingCardClick = useCallback((parking) => {
-    setSelectedSpot(prevSelected => prevSelected?.id === parking?.id ? null : parking);
-    if (mapRef.current && mapRef.current.centerOnSpot) {
+    setSelectedSpot(prev => prev?.id === parking?.id ? null : parking);
+    if (mapRef.current?.centerOnSpot) {
       mapRef.current.centerOnSpot(parking);
     }
   }, []);
@@ -157,12 +149,53 @@ export default function Parking() {
     if (place.displayName) {
       setSearchTerm(place.displayName.text);
     }
-    const newLocation = {
-      lat: place.location.latitude,
-      lng: place.location.longitude,
-    };
-    setTargetLocation(newLocation);
+    if (place.location) {
+      setTargetLocation({
+        lat: place.location.latitude,
+        lng: place.location.longitude,
+      });
+    }
   }, [setTargetLocation]);
+
+  // Efecto mejorado para manejar parámetros de URL
+  useEffect(() => {
+    if (initialSearchDone) return;
+
+    const lat = searchParams.get('lat');
+    const lng = searchParams.get('lng');
+    const search = searchParams.get('search');
+    const nearby = searchParams.get('nearby');
+
+    if (lat && lng) {
+      const parsedLat = parseFloat(lat);
+      const parsedLng = parseFloat(lng);
+
+      if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
+        setTargetLocation({
+          lat: parsedLat,
+          lng: parsedLng
+        });
+
+        // Si es una búsqueda nearby, centrar el mapa inmediatamente
+        if (nearby === 'true' && mapRef.current?.centerOnSpotWithoutPopup) {
+          mapRef.current.centerOnSpotWithoutPopup({
+            latitude: parsedLat,
+            longitude: parsedLng
+          });
+        }
+      }
+    }
+
+    if (search) {
+      const decodedSearch = decodeURIComponent(search);
+      setSearchTerm(decodedSearch);
+    }
+
+    setInitialSearchDone(true);
+  }, [searchParams, setTargetLocation, initialSearchDone]);
+
+  // Memoizar el conteo de spots para evitar recálculos
+  const spotsCount = useMemo(() => parkingSpots?.length || 0, [parkingSpots]);
 
   return (
     <LazyMotion features={domAnimation}>

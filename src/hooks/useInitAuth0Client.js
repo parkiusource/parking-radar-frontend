@@ -9,7 +9,7 @@ export const useInitAuth0Client = () => {
     if (auth0.isAuthenticated) {
       setAuth0Client(auth0);
     }
-  }, [auth0.isAuthenticated]);
+  }, [auth0, auth0.isAuthenticated]);
 
   return auth0;
 };

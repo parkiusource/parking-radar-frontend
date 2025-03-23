@@ -29,6 +29,23 @@ const COLOR_PARKIU = '#34D399';         // Color verde de Parkiu
 // Mayor tolerancia para comparar coordenadas
 const COORDINATE_TOLERANCE = 0.0005;
 
+// Constantes para optimización de búsqueda
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
+const SEARCH_GRID_SIZE = 0.02; // Aproximadamente 2km
+const searchCache = new Map();
+
+// Función para obtener la clave de caché basada en la ubicación
+const getCacheKey = (location) => {
+  const gridCell = getGridCell(location);
+  return `${gridCell.lat},${gridCell.lng}`;
+};
+
+// Función para obtener la celda de la cuadrícula para una ubicación
+const getGridCell = (location) => ({
+  lat: Math.floor(location.lat / SEARCH_GRID_SIZE) * SEARCH_GRID_SIZE,
+  lng: Math.floor(location.lng / SEARCH_GRID_SIZE) * SEARCH_GRID_SIZE
+});
+
 // Componente InfoWindow optimizado y memoizado
 const ParkingInfoWindow = memo(({ spot, onNavigate }) => {
   if (!spot) return null;
@@ -198,7 +215,22 @@ const ParkingMap = memo(forwardRef(({
     },
     zoomControl: true,
     mapTypeControl: false,
-    gestureHandling: 'greedy'
+    gestureHandling: 'greedy',
+    // Optimizaciones de rendimiento
+    clickableIcons: false, // Deshabilitar POIs clickeables para mejor rendimiento
+    optimized: true,
+    // Configuración de eventos táctiles
+    gestureHandlingOptions: {
+      passiveEvents: true // Habilitar eventos pasivos
+    },
+    // Configuración adicional para mejorar el rendimiento
+    tilt: 0,
+    heading: 0,
+    mapTypeId: 'roadmap',
+    draggableCursor: 'default',
+    draggingCursor: 'grab',
+    keyboardShortcuts: false,
+    restriction: null
   }), []);
 
   const { isLoaded, loadError } = useJsApiLoader({
@@ -377,165 +409,218 @@ const ParkingMap = memo(forwardRef(({
     }
   }, []);
 
-  // Actualizar searchNearbyParking para usar la nueva comparación
-  const searchNearbyParking = useCallback((location) => {
-    console.log('🔍 Iniciando búsqueda de parqueaderos...', { location });
+  // Remover funciones redundantes y optimizar las existentes
+  const areLocationsSignificantlyDifferent = useCallback((loc1, loc2, threshold = 0.01) => {
+    if (!loc1 || !loc2) return true;
+    return Math.abs(loc1.lat - loc2.lat) > threshold ||
+           Math.abs(loc1.lng - loc2.lng) > threshold;
+  }, []);
 
-    if (!location?.lat || !location?.lng || !mapRef.current || typeof setParkingSpots !== 'function') {
-      console.error('❌ Parámetros inválidos para la búsqueda');
+  // Optimizar searchNearbyParking para usar caché y optimizar búsquedas
+  const searchNearbyParking = useCallback((location) => {
+    if (!location?.lat || !location?.lng || !mapRef.current || !setParkingSpots) return;
+
+    // Verificar si la ubicación está muy cerca de la última búsqueda
+    if (lastSearchLocationRef.current &&
+        !areLocationsSignificantlyDifferent(lastSearchLocationRef.current, location)) {
+      console.log('🔍 Búsqueda omitida - Ubicación muy cercana a la anterior:', {
+        lastLocation: lastSearchLocationRef.current,
+        newLocation: location
+      });
       return;
     }
 
-    try {
-      // Obtener los spots existentes de Parkiu (no Google Places)
-      const existingParkiuSpots = (parkingSpots || []).filter(spot => !spot.isGooglePlace);
+    // Verificar caché
+    const cacheKey = getCacheKey(location);
+    const cachedResult = searchCache.get(cacheKey);
 
-      // Realizar la búsqueda en Google Places
-      fetch('https://places.googleapis.com/v1/places:searchNearby', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': apiKey,
-          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.businessStatus,places.rating,places.userRatingCount'
-        },
-        body: JSON.stringify({
-          includedTypes: ['parking'],
-          maxResultCount: 20,
-          locationRestriction: {
-            circle: {
-              center: {
-                latitude: parseFloat(location.lat),
-                longitude: parseFloat(location.lng)
-              },
-              radius: 1000.0
-            }
+    if (cachedResult) {
+      const { data, timestamp } = cachedResult;
+      const age = Date.now() - timestamp;
+
+      if (age < CACHE_DURATION) {
+        console.log('🎯 Usando resultados en caché:', {
+          cacheKey,
+          age: `${Math.round(age / 1000)}s`,
+          resultsCount: data.length
+        });
+
+        // Mantener los spots de Parkiu y actualizar solo los de Google Places
+        const parkiuSpots = (parkingSpots || []).filter(spot => !spot.isGooglePlace);
+        setParkingSpots([...parkiuSpots, ...data]);
+        return;
+      } else {
+        searchCache.delete(cacheKey);
+      }
+    }
+
+    console.log('🔍 Iniciando búsqueda en Google Places:', {
+      location,
+      gridCell: getGridCell(location),
+      timestamp: new Date().toISOString()
+    });
+
+    lastSearchLocationRef.current = location;
+
+    // Mantener una referencia a los spots de Parkiu
+    const parkiuSpots = (parkingSpots || []).filter(spot => !spot.isGooglePlace);
+
+    fetch('https://places.googleapis.com/v1/places:searchNearby', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': apiKey,
+        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.businessStatus,places.rating,places.userRatingCount'
+      },
+      body: JSON.stringify({
+        includedTypes: ['parking'],
+        maxResultCount: 20,
+        locationRestriction: {
+          circle: {
+            center: {
+              latitude: parseFloat(location.lat),
+              longitude: parseFloat(location.lng)
+            },
+            radius: 1000.0
           }
-        })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.places) {
-          // Transformar los resultados de Google Places
-          const googlePlacesSpots = data.places.map(place => ({
-            id: `google_${place.id}`,
-            name: place.displayName?.text || 'Parqueadero',
-            address: place.formattedAddress,
-            latitude: place.location.latitude,
-            longitude: place.location.longitude,
-            isGooglePlace: true,
-            rating: place.rating || 0,
-            userRatingCount: place.userRatingCount || 0,
-            businessStatus: place.businessStatus,
-            // Propiedades requeridas por ParkingCarousel
-            available_spaces: place.businessStatus === 'OPERATIONAL' ? 1 : 0,
-            total_spaces: 1,
-            min_price: 0,
-            max_price: 0,
-            price_per_hour: 0,
-            is_open: place.businessStatus === 'OPERATIONAL',
-            distance: 0, // Se calculará después
-            formattedDistance: '0 km' // Valor por defecto
-          }));
-
-          // Calcular distancias si está disponible la API de geometría
-          if (window.google?.maps?.geometry?.spherical) {
-            const origin = new window.google.maps.LatLng(location.lat, location.lng);
-            googlePlacesSpots.forEach(spot => {
-              const destination = new window.google.maps.LatLng(spot.latitude, spot.longitude);
-              const distanceInMeters = window.google.maps.geometry.spherical.computeDistanceBetween(origin, destination);
-              spot.distance = distanceInMeters / 1000; // Convertir a kilómetros
-              spot.formattedDistance = spot.distance < 1
-                ? `${Math.round(distanceInMeters)}m`
-                : `${spot.distance.toFixed(1)}km`;
-            });
-          }
-
-          // Combinar con los spots existentes de Parkiu
-          const allSpots = [...existingParkiuSpots, ...googlePlacesSpots];
-          console.log('✅ Spots actualizados:', allSpots.length);
-          setParkingSpots(allSpots);
         }
       })
-      .catch(error => {
-        console.error('❌ Error en la búsqueda de parqueaderos:', error);
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (!data.places) return;
+
+      const googlePlacesSpots = data.places.map(place => ({
+        id: `google_${place.id}_${Date.now()}`,
+        googlePlaceId: place.id,
+        name: place.displayName?.text || 'Parqueadero',
+        address: place.formattedAddress,
+        latitude: place.location.latitude,
+        longitude: place.location.longitude,
+        isGooglePlace: true,
+        rating: place.rating || 0,
+        userRatingCount: place.userRatingCount || 0,
+        businessStatus: place.businessStatus,
+        available_spaces: place.businessStatus === 'OPERATIONAL' ? 1 : 0,
+        total_spaces: 1,
+        min_price: 0,
+        max_price: 0,
+        price_per_hour: 0,
+        is_open: place.businessStatus === 'OPERATIONAL',
+        lastUpdated: Date.now()
+      }));
+
+      // Calcular distancias
+      if (window.google?.maps?.geometry?.spherical) {
+        const origin = new window.google.maps.LatLng(location.lat, location.lng);
+        googlePlacesSpots.forEach(spot => {
+          const destination = new window.google.maps.LatLng(spot.latitude, spot.longitude);
+          const distanceInMeters = window.google.maps.geometry.spherical.computeDistanceBetween(origin, destination);
+          spot.distance = distanceInMeters / 1000;
+          spot.formattedDistance = spot.distance < 1
+            ? `${Math.round(distanceInMeters)}m`
+            : `${spot.distance.toFixed(1)}km`;
+        });
+      }
+
+      // Filtrar spots duplicados basados en coordenadas
+      const uniqueGoogleSpots = googlePlacesSpots.filter(newSpot => {
+        return !parkiuSpots.some(existingSpot =>
+          Math.abs(existingSpot.latitude - newSpot.latitude) < COORDINATE_TOLERANCE &&
+          Math.abs(existingSpot.longitude - newSpot.longitude) < COORDINATE_TOLERANCE
+        );
       });
-    } catch (error) {
-      console.error('❌ Error al procesar la búsqueda:', error);
-    }
-  }, [parkingSpots, setParkingSpots]);
 
-  // Actualizar initializeMarkers para usar la nueva comparación
+      // Guardar en caché
+      searchCache.set(cacheKey, {
+        data: uniqueGoogleSpots,
+        timestamp: Date.now()
+      });
+
+      // Actualizar estado con los spots únicos
+      setParkingSpots([...parkiuSpots, ...uniqueGoogleSpots]);
+    })
+    .catch(error => {
+      console.error('❌ Error en búsqueda de Google Places:', error);
+    });
+  }, [parkingSpots, setParkingSpots, areLocationsSignificantlyDifferent]);
+
+  // Limpiar caché periódicamente
+  useEffect(() => {
+    const cleanupInterval = setInterval(() => {
+      const now = Date.now();
+      for (const [key, { timestamp }] of searchCache.entries()) {
+        if (now - timestamp > CACHE_DURATION) {
+          searchCache.delete(key);
+        }
+      }
+    }, CACHE_DURATION);
+
+    return () => clearInterval(cleanupInterval);
+  }, []);
+
+  // Optimizar initializeMarkers para reutilizar marcadores existentes
   const initializeMarkers = useCallback(() => {
-    if (!mapRef.current || !parkingSpots) return;
+    if (!mapRef.current || !parkingSpots?.length) return;
 
-    console.log('🔄 Inicializando marcadores...');
-
+    // Crear un mapa de los marcadores existentes usando el ID del spot
     const existingMarkers = new Map(markersRef.current.map(marker => [marker.spotId, marker]));
     const newMarkers = [];
     const updatedSpotMarkerMap = new Map();
+    const processedSpotIds = new Set();
 
-    // Procesar cada spot
     parkingSpots.forEach(spot => {
-      if (!spot.latitude || !spot.longitude) {
-        console.warn('⚠️ Spot sin coordenadas:', spot);
-        return;
+      if (!spot.latitude || !spot.longitude || processedSpotIds.has(spot.id)) return;
+
+      processedSpotIds.add(spot.id);
+
+      const existingMarker = existingMarkers.get(spot.id);
+      let marker;
+
+      if (existingMarker) {
+        // Reutilizar el marcador existente
+        marker = existingMarker;
+        existingMarkers.delete(spot.id);
+      } else {
+        // Crear un nuevo marcador
+        marker = createMapMarker({
+          map: mapRef.current,
+          position: {
+            lat: parseFloat(spot.latitude),
+            lng: parseFloat(spot.longitude)
+          },
+          title: spot.name,
+          content: spot.isGooglePlace ? createGooglePlacesMarkerContent() : createParkiuMarkerContent(spot)
+        });
+
+        marker.isGooglePlace = spot.isGooglePlace;
+        marker.spotId = spot.id;
+
+        const clickEvent = window.google?.maps?.marker?.AdvancedMarkerElement ? 'gmp-click' : 'click';
+        marker.addListener(clickEvent, () => {
+          setSelectedSpot(spot);
+          setInfoWindowOpen(true);
+          if (onParkingSpotSelected) {
+            onParkingSpotSelected({
+              spot,
+              navigate: () => openNavigation(spot.latitude, spot.longitude)
+            });
+          }
+        });
       }
 
-      try {
-        // Verificar si ya existe un marcador para este spot
-        let marker = existingMarkers.get(spot.id);
-
-        if (marker) {
-          // Reutilizar el marcador existente
-          newMarkers.push(marker);
-          updatedSpotMarkerMap.set(spot.id, marker);
-          existingMarkers.delete(spot.id); // Remover de existingMarkers para saber cuáles eliminar después
-        } else {
-          // Crear nuevo marcador solo si no existe
-          const markerContent = spot.isGooglePlace ?
-            createGooglePlacesMarkerContent() :
-            createParkiuMarkerContent(spot);
-
-          marker = createMapMarker({
-            map: mapRef.current,
-            position: {
-              lat: parseFloat(spot.latitude),
-              lng: parseFloat(spot.longitude),
-            },
-            title: spot.name,
-            content: markerContent
-          });
-
-          // Agregar propiedades al marcador
-          marker.isGooglePlace = spot.isGooglePlace;
-          marker.spotId = spot.id;
-
-          // Usar el evento correcto según el tipo de marcador
-          const clickEvent = window.google?.maps?.marker?.AdvancedMarkerElement ? 'gmp-click' : 'click';
-          marker.addListener(clickEvent, () => {
-            setSelectedSpot(spot);
-            setInfoWindowOpen(true);
-          });
-
-          newMarkers.push(marker);
-          updatedSpotMarkerMap.set(spot.id, marker);
-        }
-      } catch (error) {
-        console.error('❌ Error al crear marcador:', error, spot);
-      }
+      newMarkers.push(marker);
+      updatedSpotMarkerMap.set(spot.id, marker);
     });
 
-    // Eliminar los marcadores que ya no se necesitan
+    // Limpiar marcadores no utilizados
     existingMarkers.forEach(marker => {
       marker.setMap(null);
     });
 
-    // Actualizar las referencias
     markersRef.current = newMarkers;
     spotMarkerMapRef.current = updatedSpotMarkerMap;
-
-    console.log('✅ Marcadores actualizados:', newMarkers.length);
-  }, [parkingSpots, setSelectedSpot, setInfoWindowOpen, createParkiuMarkerContent, createGooglePlacesMarkerContent, createMapMarker]);
+  }, [parkingSpots, setSelectedSpot, createParkiuMarkerContent, createGooglePlacesMarkerContent, createMapMarker, onParkingSpotSelected]);
 
   const locateUser = () => {
     console.log('🎯 Iniciando localización del usuario...');
@@ -661,22 +746,12 @@ const ParkingMap = memo(forwardRef(({
   }, [setSelectedSpot]);
 
   // Memoizar el manejador de clics en marcadores y tarjetas
-  const handleCardClick = useCallback((spot) => {
-    if (!spot) return;
-
-    setSelectedSpot(spot);
-
-    if (mapRef.current && mapInitializedRef.current) {
-      centerOnSelectedSpot(spot);
-    }
-
-    if (onParkingSpotSelected) {
-      onParkingSpotSelected({
-        spot,
-        navigate: () => openNavigation(spot.latitude, spot.longitude)
-      });
-    }
-  }, [setSelectedSpot, centerOnSelectedSpot, onParkingSpotSelected]);
+  const handleParkingCardClick = useCallback((parking) => {
+    setSelectedSpot(prev => prev?.id === parking?.id ? null : parking);
+    requestAnimationFrame(() => {
+      mapRef.current?.centerOnSpot(parking);
+    });
+  }, [setSelectedSpot]);
 
   // Comparar si los parkingSpots han cambiado realmente
   const spotsHaveChanged = useCallback((prevSpots, currentSpots) => {
@@ -725,16 +800,43 @@ const ParkingMap = memo(forwardRef(({
     return () => clearTimeout(timer);
   }, [initializeMarkers, selectedSpot, effectiveTargetLocation, centerMapOnLocation, centerOnSelectedSpot, initPlacesService]);
 
-  // Efecto para actualizar marcadores cuando cambian los spots
+  // Optimizar efectos
   useEffect(() => {
     if (!mapInitializedRef.current || !isLoaded || !mapRef.current) return;
 
-    // Usar useRef para mantener una referencia estable a los spots anteriores
-    if (spotsHaveChanged(prevParkingSpotsRef.current, parkingSpots)) {
-      prevParkingSpotsRef.current = parkingSpots;
-      initializeMarkers();
-    }
+    const timer = setTimeout(() => {
+      if (spotsHaveChanged(prevParkingSpotsRef.current, parkingSpots)) {
+        prevParkingSpotsRef.current = parkingSpots;
+        initializeMarkers();
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, [parkingSpots, isLoaded, initializeMarkers, spotsHaveChanged]);
+
+  // Combinar efectos relacionados con la ubicación
+  useEffect(() => {
+    if (!effectiveTargetLocation || !mapInitializedRef.current) return;
+
+    console.log('🎯 Efecto de ubicación disparado:', {
+      effectiveTargetLocation,
+      mapInitialized: mapInitializedRef.current,
+      timestamp: new Date().toISOString()
+    });
+
+    const timeoutId = setTimeout(() => {
+      centerMapOnLocation(effectiveTargetLocation);
+
+      if (!lastSearchLocationRef.current ||
+          areLocationsSignificantlyDifferent(lastSearchLocationRef.current, effectiveTargetLocation)) {
+        searchNearbyParking(effectiveTargetLocation);
+      } else {
+        console.log('🔄 Búsqueda omitida en efecto - Sin cambios significativos en ubicación');
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [effectiveTargetLocation, centerMapOnLocation, searchNearbyParking, areLocationsSignificantlyDifferent]);
 
   // En lugar de renderizar el mapa nuevamente con un key diferente,
   // usamos un efecto que actualiza el estado y centro del mapa
@@ -752,54 +854,18 @@ const ParkingMap = memo(forwardRef(({
     }
   }, [effectiveTargetLocation, centerMapOnLocation]);
 
-  // Función memoizada para comparar ubicaciones
-  const areLocationsSignificantlyDifferent = useCallback((loc1, loc2, threshold = 0.01) => {
-    if (!loc1 || !loc2) return true;
-    return Math.abs(loc1.lat - loc2.lat) > threshold ||
-           Math.abs(loc1.lng - loc2.lng) > threshold;
-  }, []);
-
   // Referencia para la última ubicación de búsqueda
   const lastSearchLocationRef = useRef(null);
 
-  // Efecto para la búsqueda inicial de parqueaderos
-  useEffect(() => {
-    if (!effectiveTargetLocation || !mapInitializedRef.current) return;
-
-    // Si ya buscamos en esta ubicación (o muy cerca), no buscar de nuevo
-    if (lastSearchLocationRef.current &&
-        !areLocationsSignificantlyDifferent(lastSearchLocationRef.current, effectiveTargetLocation)) {
-      return;
-    }
-
-    // Actualizar la referencia de la última búsqueda
-    lastSearchLocationRef.current = effectiveTargetLocation;
-
-    // Obtener los spots actuales de Parkiu antes de limpiar
-    const currentParkiuSpots = (parkingSpots || []).filter(spot => !spot.isGooglePlace);
-
-    // Solo actualizar si realmente hay cambios
-    if (parkingSpots?.length !== currentParkiuSpots.length) {
-      setParkingSpots(currentParkiuSpots);
-    }
-
-    // Realizar la nueva búsqueda con debounce
-    const timeoutId = setTimeout(() => {
-      searchNearbyParking(effectiveTargetLocation);
-    }, 300);
-
-    return () => clearTimeout(timeoutId);
-  }, [effectiveTargetLocation, searchNearbyParking, setParkingSpots, areLocationsSignificantlyDifferent, parkingSpots]);
-
   // Exponer métodos para que el componente padre pueda acceder a ellos
   useImperativeHandle(ref, () => ({
-    handleCardClick,
+    handleCardClick: handleParkingCardClick,
 
     centerOnSpot: (spot, showPopup = false) => {
       if (!spot || !mapRef.current || !mapInitializedRef.current) return;
 
       if (showPopup) {
-        handleCardClick(spot);
+        handleParkingCardClick(spot);
       } else {
         centerOnSelectedSpot(spot, { skipInfoWindow: true });
       }
@@ -811,7 +877,37 @@ const ParkingMap = memo(forwardRef(({
     },
 
     getMapRef: () => mapRef.current
-  }), [handleCardClick, centerOnSelectedSpot]);
+  }), [handleParkingCardClick, centerOnSelectedSpot]);
+
+  // Optimizar el componente GoogleMap con opciones de eventos pasivos
+  const googleMapProps = useMemo(() => ({
+    mapContainerStyle: {
+      width: '100%',
+      height: '100%',
+      backgroundColor: 'white',
+      contentVisibility: 'auto',
+      touchAction: 'pan-x pan-y' // Optimizar para gestos táctiles
+    },
+    center: mapCenter,
+    zoom: 15,
+    onLoad: handleMapLoad,
+    onClick: handleMapClick,
+    options: mapOptions,
+    // Configuración de eventos táctiles
+    onTouchStart: (e) => {
+      e.stopPropagation();
+      if (e.touches.length === 1) {
+        e.preventDefault();
+      }
+    },
+    onTouchMove: (e) => {
+      e.stopPropagation();
+      if (e.touches.length === 1) {
+        e.preventDefault();
+      }
+    },
+    onWheel: { passive: true }
+  }), [mapCenter, handleMapLoad, handleMapClick, mapOptions]);
 
   if (loadError) return (
     <div className="w-full h-full flex items-center justify-center bg-white">
@@ -828,23 +924,12 @@ const ParkingMap = memo(forwardRef(({
     <div className="relative h-full w-full flex flex-col">
       <div className="flex-1 relative w-full h-full">
         {isLoaded ? (
-          <GoogleMap
-            mapContainerStyle={{
-              width: '100%',
-              height: '100%',
-              backgroundColor: 'white',
-              contentVisibility: 'auto'
-            }}
-            center={mapCenter}
-            zoom={15}
-            onLoad={handleMapLoad}
-            onClick={handleMapClick}
-            options={mapOptions}
-          >
+          <GoogleMap {...googleMapProps}>
             <button
               onClick={locateUser}
               className="absolute left-4 p-3 bg-white text-primary rounded-full shadow-lg hover:bg-gray-50 transition-all duration-300 hover:scale-105 z-50 border border-gray-100 bottom-4 md:bottom-4"
               aria-label="Localizar mi ubicación"
+              onTouchStart={(e) => e.stopPropagation()}
             >
               <BiTargetLock size={24} />
             </button>

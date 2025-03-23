@@ -1,8 +1,13 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { ParkingContext } from './parkingContextUtils';
 import { useParkingSpots } from '@/api/hooks/useParkingSpots';
 import { useQueryClient } from '@/context/queryClientUtils';
+
+// Función para generar un ID único y estable
+const generateUniqueId = (placeId, timestamp) => {
+  return `google_${placeId}_${timestamp}`;
+};
 
 export function ParkingProvider({ children }) {
   const [targetLocation, setTargetLocation] = useState(null);
@@ -18,7 +23,7 @@ export function ParkingProvider({ children }) {
     const dbSpots = dbParkingSpots || [];
     const googleSpots = googlePlacesSpots.map(spot => ({
       ...spot,
-      id: `google_${spot.placeId || spot.id || Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: spot.id || generateUniqueId(spot.placeId || 'unknown', spot.timestamp),
       source: 'google'
     }));
 
@@ -26,23 +31,30 @@ export function ParkingProvider({ children }) {
   }, [dbParkingSpots, googlePlacesSpots]);
 
   // Función para actualizar los spots de Google Places
-  const updateParkingSpots = (newSpots) => {
-    const spotsWithUniqueIds = newSpots.map(spot => ({
-      ...spot,
-      id: `google_${spot.placeId || spot.id || Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      source: 'google'
-    }));
-    setGooglePlacesSpots(spotsWithUniqueIds);
-  };
+  const updateParkingSpots = useCallback((newSpots) => {
+    const timestamp = Date.now();
+    const spotsWithUniqueIds = newSpots.map(spot => {
+      // Si el spot ya tiene un ID, lo mantenemos
+      if (spot.id) return { ...spot, source: 'google' };
 
-  const value = {
+      return {
+        ...spot,
+        timestamp,
+        id: generateUniqueId(spot.placeId || 'unknown', timestamp),
+        source: 'google'
+      };
+    });
+    setGooglePlacesSpots(spotsWithUniqueIds);
+  }, []);
+
+  const value = useMemo(() => ({
     parkingSpots,
     setParkingSpots: updateParkingSpots,
     targetLocation,
     setTargetLocation,
     invalidate,
     refetch,
-  };
+  }), [parkingSpots, updateParkingSpots, targetLocation, invalidate, refetch]);
 
   return (
     <ParkingContext.Provider value={value}>

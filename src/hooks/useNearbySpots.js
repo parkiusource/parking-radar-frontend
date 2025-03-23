@@ -37,7 +37,17 @@ export const useNearbyParkingSpots = ({ spots = [], center, limit = 5, maxRadius
       return spots.slice(0, limit);
     }
 
-    const spotsWithDistance = spots
+    // Primero filtrar duplicados
+    const uniqueSpots = spots.filter((spot, index, self) =>
+      index === self.findIndex((s) => (
+        s.id === spot.id ||
+        (Math.abs(s.latitude - spot.latitude) < 0.0005 &&
+         Math.abs(s.longitude - spot.longitude) < 0.0005)
+      ))
+    );
+
+    // Luego calcular distancias y filtrar por radio
+    const spotsWithDistance = uniqueSpots
       .map((spot) => {
         const spotCoordinates = { lat: spot.latitude, lng: spot.longitude };
         const distance = haversineDistance(center, spotCoordinates);
