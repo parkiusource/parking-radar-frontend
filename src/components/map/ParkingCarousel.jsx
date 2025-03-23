@@ -72,15 +72,15 @@ const ParkingCarousel = memo(({ parkingSpots, onSelect }) => {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, delay: index * 0.05 }}
-        className="flex-none w-[300px] snap-center"
+        className="flex-none w-[260px] snap-center"
         onClick={() => onSelect(spot)}
       >
-        <div className="bg-white h-full border border-gray-100 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start gap-2 mb-3">
+        <div className="bg-white h-[165px] border border-gray-100 rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow flex flex-col">
+          <div className="flex justify-between items-start gap-1 mb-2">
             <h3 className="font-semibold text-gray-900 text-sm line-clamp-1 flex-1">
               {spot.name}
             </h3>
-            <span className={`text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap ${
+            <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${
               spot.available_spaces > 0
                 ? 'bg-green-50 text-green-700'
                 : 'bg-red-50 text-red-700'
@@ -91,21 +91,21 @@ const ParkingCarousel = memo(({ parkingSpots, onSelect }) => {
 
           <div className="flex items-center justify-between text-gray-600 text-xs mb-3">
             <div className="flex items-center flex-1 min-w-0">
-              <LuMapPin className="mr-1.5 flex-shrink-0 text-gray-400 w-4 h-4" />
-              <span className="line-clamp-1">{spot.address}</span>
+              <LuMapPin className="mr-1.5 flex-shrink-0 text-gray-400 w-3.5 h-3.5" />
+              <span className="line-clamp-2">{spot.address}</span>
             </div>
-            <span className="text-xs text-primary font-medium ml-2">
+            <span className="text-xs text-primary font-medium ml-2 whitespace-nowrap">
               {formatDistance(spot.distance)}
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-2.5">
-            <div className="flex items-center text-gray-700 text-xs bg-gray-50 p-2.5 rounded-lg">
-              <LuCar className="mr-1.5 text-primary w-4 h-4" />
+          <div className="grid grid-cols-2 gap-2 mt-auto">
+            <div className="flex items-center text-gray-700 text-xs bg-gray-50 px-2.5 py-2 rounded">
+              <LuCar className="mr-1.5 text-primary w-3.5 h-3.5" />
               <span>{spot.available_spaces} espacios</span>
             </div>
-            <div className="flex items-center text-gray-700 text-xs bg-gray-50 p-2.5 rounded-lg">
-              <LuClock className="mr-1.5 text-primary w-4 h-4" />
+            <div className="flex items-center text-gray-700 text-xs bg-gray-50 px-2.5 py-2 rounded">
+              <LuClock className="mr-1.5 text-primary w-3.5 h-3.5" />
               <span className="font-medium">
                 ${spot.min_price || 0}
                 {spot.max_price ? ` - $${spot.max_price}` : ''}
@@ -121,39 +121,38 @@ const ParkingCarousel = memo(({ parkingSpots, onSelect }) => {
     <motion.div
       initial={{ y: 20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 md:hidden pb-safe"
-      style={{ height: '260px' }}
+      className="bg-white border-t border-gray-100 md:hidden h-full"
     >
       {/* Header reorganizado */}
-      <div className="flex flex-col px-4 pt-3 pb-2 border-b border-gray-100 bg-white">
-        <div className="flex items-center justify-between mb-2.5">
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-semibold text-gray-900">Parqueaderos cercanos</h2>
-            <span className="px-1.5 py-0.5 bg-gray-100 text-xs font-medium text-gray-600 rounded-md">
+      <div className="flex flex-col px-3 pt-2 pb-1.5 border-b border-gray-100 bg-white">
+        <div className="flex items-center justify-between mb-1.5">
+          <div className="flex items-center gap-1.5">
+            <h2 className="text-sm font-semibold text-gray-900">Parqueaderos cercanos</h2>
+            <span className="px-1.5 py-0.5 bg-gray-100 text-xs font-medium text-gray-600 rounded">
               {filteredAndSortedSpots.length}
             </span>
           </div>
           <div className="flex items-center gap-1.5">
             <button
               onClick={handleSortByDistance}
-              className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors ${
+              className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
                 sortByDistance
                   ? 'bg-primary text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              <LuArrowUpDown className="w-3.5 h-3.5" />
+              <LuArrowUpDown className="w-3 h-3" />
               <span>Distancia</span>
             </button>
             <button
               onClick={handleFilterAvailable}
-              className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors ${
+              className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
                 filterAvailable
                   ? 'bg-primary text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              <LuFilter className="w-3.5 h-3.5" />
+              <LuFilter className="w-3 h-3" />
               <span>Disponibles</span>
             </button>
           </div>
@@ -163,20 +162,20 @@ const ParkingCarousel = memo(({ parkingSpots, onSelect }) => {
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => handleFilterPrice('all')}
-            className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium shrink-0 transition-colors ${
+            className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium shrink-0 transition-colors ${
               filterPrice === 'all'
                 ? 'bg-primary text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            <LuDollarSign className="w-3.5 h-3.5" />
+            <LuDollarSign className="w-3 h-3" />
             <span>Todos</span>
           </button>
-          <div className="h-4 w-px bg-gray-200 mx-0.5" />
+          <div className="h-3 w-px bg-gray-200 mx-1" />
           <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
             <button
               onClick={() => handleFilterPrice('low')}
-              className={`flex items-center px-2 py-1 rounded-full text-xs font-medium shrink-0 transition-colors ${
+              className={`flex items-center px-2 py-1 rounded text-xs font-medium shrink-0 transition-colors ${
                 filterPrice === 'low'
                   ? 'bg-primary text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -186,7 +185,7 @@ const ParkingCarousel = memo(({ parkingSpots, onSelect }) => {
             </button>
             <button
               onClick={() => handleFilterPrice('medium')}
-              className={`flex items-center px-2 py-1 rounded-full text-xs font-medium shrink-0 transition-colors ${
+              className={`flex items-center px-2 py-1 rounded text-xs font-medium shrink-0 transition-colors ${
                 filterPrice === 'medium'
                   ? 'bg-primary text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -196,7 +195,7 @@ const ParkingCarousel = memo(({ parkingSpots, onSelect }) => {
             </button>
             <button
               onClick={() => handleFilterPrice('high')}
-              className={`flex items-center px-2 py-1 rounded-full text-xs font-medium shrink-0 transition-colors ${
+              className={`flex items-center px-2 py-1 rounded text-xs font-medium shrink-0 transition-colors ${
                 filterPrice === 'high'
                   ? 'bg-primary text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -209,8 +208,8 @@ const ParkingCarousel = memo(({ parkingSpots, onSelect }) => {
       </div>
 
       {/* Carrusel con cards */}
-      <div className="overflow-x-auto scrollbar-hide h-[185px] bg-gray-50">
-        <div className="flex p-3 gap-3 snap-x snap-mandatory h-full pb-8">
+      <div className="overflow-x-auto scrollbar-hide flex-1 bg-gray-50">
+        <div className="flex px-2 py-2 gap-2 snap-x snap-mandatory h-full pb-1">
           {renderCards}
         </div>
       </div>

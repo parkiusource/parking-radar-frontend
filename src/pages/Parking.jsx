@@ -146,12 +146,12 @@ export default function Parking() {
 
   return (
     <LazyMotion features={domAnimation}>
-      <div className="flex flex-col min-h-screen bg-white">
+      <div className="flex flex-col h-[100dvh] overflow-hidden bg-white">
         <header className={getHeaderClassName({
           showShadow: true,
-          className: 'z-10 backdrop-blur-md sticky top-0 bg-white/95 border-b border-gray-100/50 flex items-center h-16'
+          className: 'z-10 backdrop-blur-md sticky top-0 bg-white/95 border-b border-gray-100/50 flex items-center h-14'
         })}>
-          <div className="w-full max-w-screen-2xl mx-auto px-4 flex items-center gap-3">
+          <div className="w-full max-w-screen-2xl mx-auto px-3 flex items-center gap-2">
             <Link to="/" className="flex items-center group">
               <motion.div
                 initial={{ x: -10, opacity: 0 }}
@@ -180,12 +180,12 @@ export default function Parking() {
         </header>
 
         <ErrorBoundary>
-          <main className="flex-grow grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 p-2 md:p-4 relative">
+          <main className="flex-1 flex flex-col md:grid md:grid-cols-12 gap-0.5 p-0.5 md:p-4 relative overflow-hidden">
             <motion.section
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="relative col-span-1 md:col-span-8 rounded-xl md:rounded-2xl shadow-lg h-[62vh] md:h-[calc(100vh-8rem)] overflow-hidden"
+              className="flex-1 relative md:col-span-8 rounded-lg md:rounded-2xl shadow-lg md:h-full overflow-hidden"
             >
               <Map
                 ref={mapRef}
@@ -201,18 +201,18 @@ export default function Parking() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 }}
-              className="hidden md:block md:col-span-4 h-[calc(100vh-8rem)] bg-white rounded-2xl shadow-lg border border-gray-100/50 overflow-hidden"
+              className="hidden md:block md:col-span-4 h-full bg-white rounded-2xl shadow-lg border border-gray-100/50 overflow-hidden"
             >
-              <div className="p-4 border-b border-gray-100 bg-white/95 backdrop-blur-sm sticky top-0 z-10">
+              <div className="p-3 border-b border-gray-100 bg-white/95 backdrop-blur-sm sticky top-0 z-10">
                 <h2 className="text-base font-semibold text-gray-900">
                   Parqueaderos cercanos
                 </h2>
-                <p className="text-sm text-gray-600 mt-1">
+                <p className="text-sm text-gray-600 mt-0.5">
                   {spotsCount} encontrados
                 </p>
               </div>
 
-              <div className="overflow-y-auto h-[calc(100%-5rem)] p-4">
+              <div className="overflow-y-auto h-[calc(100%-4rem)] p-3">
                 <AnimatePresence>
                   <ParkingSpotList
                     spots={nearbySpots}
@@ -225,7 +225,7 @@ export default function Parking() {
 
             {/* Mobile Carousel */}
             {nearbySpots?.length > 0 && (
-              <div className="md:hidden">
+              <div className="h-[260px] md:hidden">
                 <ParkingCarousel
                   parkingSpots={nearbySpots}
                   onSelect={handleParkingCardClick}
