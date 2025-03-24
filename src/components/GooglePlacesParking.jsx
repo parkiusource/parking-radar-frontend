@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, memo } from 'react';
 import { Car, MapPin, DollarSign, Clock, Star } from 'lucide-react';
+import { useSearchState } from '@/hooks/useSearchState';
 
 // Extraer componentes para mejor rendimiento
 const ParkingHeader = memo(({ name, isAvailable }) => (
@@ -94,9 +95,25 @@ const ParkingCTA = memo(({ rating, isAvailable, onJoinClick }) => (
 const GooglePlacesParking = ({ mapRef, center, radius = 1000 }) => {
   const [googleParkingSpots, setGoogleParkingSpots] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { getCachedResult, setCachedResult, lastSearchLocationRef } = useSearchState();
 
   const searchNearbyParking = useCallback(() => {
     if (!mapRef.current || !center) return;
+
+    // Verificar si la ubicación ha cambiado significativamente
+    const currentLocation = { lat: center.lat, lng: center.lng };
+    if (lastSearchLocationRef.current) {
+      const latDiff = Math.abs(currentLocation.lat - lastSearchLocationRef.current.lat);
+      const lngDiff = Math.abs(currentLocation.lng - lastSearchLocationRef.current.lng);
+      if (latDiff < 0.0001 && lngDiff < 0.0001) return; // Evitar búsquedas repetidas para la misma ubicación
+    }
+
+    // Intentar obtener resultados del caché
+    const cachedResults = getCachedResult(currentLocation);
+    if (cachedResults) {
+      setGoogleParkingSpots(cachedResults);
+      return;
+    }
 
     setLoading(true);
     const service = new window.google.maps.places.PlacesService(mapRef.current);
@@ -108,10 +125,14 @@ const GooglePlacesParking = ({ mapRef, center, radius = 1000 }) => {
     }, (results, status) => {
       if (status === window.google.maps.places.PlacesServiceStatus.OK) {
         setGoogleParkingSpots(results);
+        // Guardar resultados en caché
+        setCachedResult(currentLocation, results);
+        // Actualizar la última ubicación buscada
+        lastSearchLocationRef.current = currentLocation;
       }
       setLoading(false);
     });
-  }, [mapRef, center, radius]);
+  }, [mapRef, center, radius, getCachedResult, setCachedResult, lastSearchLocationRef]);
 
   useEffect(() => {
     if (mapRef.current && center) {
