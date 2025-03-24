@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import PropTypes from 'prop-types';
-import { MapPin, Car, DollarSign, Navigation } from 'lucide-react';
+import { Navigation } from 'lucide-react';
 
 const ParkingInfoWindow = memo(({ spot, onNavigate }) => {
   if (!spot) return null;
@@ -75,7 +75,7 @@ const ParkingInfoWindow = memo(({ spot, onNavigate }) => {
               Únete a Parkiu y gestiona tu parqueadero en tiempo real. Aumenta tus ingresos y mejora la experiencia de tus clientes.
             </p>
             <button
-              onClick={() => window.open('https://parkiu.com/register', '_blank')}
+              onClick={() => window.open('https://parkiu.com/register', '_blank', 'noopener,noreferrer')}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded transition duration-150 ease-in-out"
             >
               Registrar mi parqueadero
