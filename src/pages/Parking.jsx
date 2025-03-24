@@ -45,12 +45,23 @@ export default function Parking() {
   const mapRef = useRef(null);
   const [searchParams] = useSearchParams();
   const [initialSearchDone, setInitialSearchDone] = useState(false);
+  const lastCardClickTime = useRef(0);
 
   // Memoizar el centro y los spots cercanos
-  const spotCenter = useMemo(() =>
-    targetLocation || user?.location,
-    [targetLocation, user?.location]
-  );
+  const spotCenter = useMemo(() => {
+    if (!targetLocation && !user?.location) return null;
+
+    const location = targetLocation || user.location;
+    const lat = parseFloat(location.lat);
+    const lng = parseFloat(location.lng);
+
+    if (!isFinite(lat) || !isFinite(lng)) return null;
+
+    return {
+      lat,
+      lng
+    };
+  }, [targetLocation, user?.location]);
 
   const { nearbySpots } = useNearbyParkingSpots({
     spots: parkingSpots,
@@ -61,33 +72,53 @@ export default function Parking() {
 
   // Memoizar handlers
   const handleParkingSpotSelected = useCallback((data) => {
+    if (!data?.spot?.id) return;
     setSelectedSpot(data.spot);
   }, []);
 
   const handleParkingCardClick = useCallback((parking) => {
-    setSelectedSpot(prev => prev?.id === parking?.id ? null : parking);
-    if (mapRef.current?.centerOnSpot) {
-      mapRef.current.centerOnSpot(parking);
-    }
+    if (!parking?.id) return;
+
+    // Evitar clicks muy frecuentes
+    if (lastCardClickTime.current && Date.now() - lastCardClickTime.current < 300) return;
+    lastCardClickTime.current = Date.now();
+
+    setSelectedSpot(prev => prev?.id === parking.id ? null : parking);
+
+    // Usar requestAnimationFrame para suavizar la animación
+    requestAnimationFrame(() => {
+      if (mapRef.current?.centerOnSpot) {
+        mapRef.current.centerOnSpot(parking);
+      }
+    });
   }, []);
 
   const handleCustomPlaceSelected = useCallback((place) => {
+    if (!place?.location) return;
+
     setSelectedSpot(null);
-    if (place.displayName) {
+    if (place.displayName?.text) {
       setSearchTerm(place.displayName.text);
     }
-    if (place.location) {
-      const newLocation = {
-        lat: place.location.latitude,
-        lng: place.location.longitude,
-      };
-      setTargetLocation(newLocation);
 
-      // Disparar búsqueda de parqueaderos cercanos
+    const lat = parseFloat(place.location.latitude);
+    const lng = parseFloat(place.location.longitude);
+
+    if (!isFinite(lat) || !isFinite(lng)) return;
+
+    const newLocation = {
+      lat,
+      lng
+    };
+
+    setTargetLocation(newLocation);
+
+    // Disparar búsqueda de parqueaderos cercanos
+    requestAnimationFrame(() => {
       if (mapRef.current?.searchNearbyParking) {
         mapRef.current.searchNearbyParking(newLocation);
       }
-    }
+    });
   }, [setTargetLocation]);
 
   // Efecto mejorado para manejar parámetros de URL
@@ -103,7 +134,7 @@ export default function Parking() {
       const parsedLat = parseFloat(lat);
       const parsedLng = parseFloat(lng);
 
-      if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
+      if (isFinite(parsedLat) && isFinite(parsedLng)) {
         setTargetLocation({
           lat: parsedLat,
           lng: parsedLng
@@ -111,9 +142,11 @@ export default function Parking() {
 
         // Si es una búsqueda nearby, centrar el mapa inmediatamente
         if (nearby === 'true' && mapRef.current?.centerOnSpotWithoutPopup) {
-          mapRef.current.centerOnSpotWithoutPopup({
-            latitude: parsedLat,
-            longitude: parsedLng
+          requestAnimationFrame(() => {
+            mapRef.current.centerOnSpotWithoutPopup({
+              latitude: parsedLat,
+              longitude: parsedLng
+            });
           });
         }
       }
@@ -126,6 +159,13 @@ export default function Parking() {
 
     setInitialSearchDone(true);
   }, [searchParams, setTargetLocation, initialSearchDone]);
+
+  // Limpieza de recursos al desmontar
+  useEffect(() => {
+    return () => {
+      lastCardClickTime.current = 0;
+    };
+  }, []);
 
   // Memoizar el conteo de spots para evitar recálculos
   const spotsCount = useMemo(() => parkingSpots?.length || 0, [parkingSpots]);
@@ -214,7 +254,7 @@ export default function Parking() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="md:hidden flex-shrink-0 h-[280px]"
+              className="md:hidden flex-shrink-0 min-h-[280px] max-h-[320px] flex flex-col"
             >
               {nearbySpots?.length > 0 && (
                 <ParkingCarousel
