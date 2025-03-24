@@ -56,22 +56,45 @@ const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 const LIBRARIES = ['places', 'marker', 'geometry'];
 const DEFAULT_LOCATION = { lat: 4.711, lng: -74.0721 };
 const MAP_ID = import.meta.env.VITE_GOOGLE_MAP_ID;
-const COLOR_NO_AVAILABLE = '#8B0000';
-const COLOR_GOOGLE_PLACES = '#4285F4';  // Color azul de Google
-const COLOR_PARKIU = '#34D399';         // Color verde de Parkiu
+const COLOR_NO_AVAILABLE = '#DC2626';  // Rojo para no disponibles (red-600)
+const COLOR_GOOGLE_PLACES = '#6B7280';  // Gris para Google (gray-500)
+const COLOR_PARKIU = '#2563EB';         // Azul para Parkiu (blue-600)
 
 // Mayor tolerancia para comparar coordenadas
 const COORDINATE_TOLERANCE = 0.0005;
 
-// Umbral de cambio de ubicación (aproximadamente 100 metros)
-const MIN_LOCATION_CHANGE = 0.001;
+// Umbral de cambio de ubicación (aproximadamente 50 metros)
+const MIN_LOCATION_CHANGE = 0.0005;
 
+// Tiempo mínimo entre búsquedas (200ms)
+const MIN_SEARCH_INTERVAL = 200;
+
+// Tiempo máximo de caché (2 minutos)
+const CACHE_DURATION = 2 * 60 * 1000;
 
 // Componente InfoWindow optimizado y memoizado
 const ParkingInfoWindow = memo(({ spot, onNavigate }) => {
   if (!spot) return null;
 
-  const isAvailable = spot.available_spaces > 0 && spot.is_open;
+  const isParkiu = !spot.isGooglePlace;
+  const isAvailable = isParkiu
+    ? spot.available_spaces > 0
+    : spot.is_open;
+
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+      maximumFractionDigits: 0
+    }).format(price);
+  };
+
+  const capitalizeTitle = (text) => {
+    return text
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
 
   return (
     <div
@@ -82,68 +105,93 @@ const ParkingInfoWindow = memo(({ spot, onNavigate }) => {
         backfaceVisibility: 'hidden'
       }}
     >
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-lg font-bold text-gray-800">{spot.name}</h3>
-        <div className="flex items-center gap-2">
-          {spot.rating > 0 && (
-            <div className="flex items-center gap-1">
-              <span className="text-yellow-500">★</span>
-              <span className="text-sm text-gray-600">{spot.rating}</span>
-            </div>
-          )}
-          <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-            isAvailable ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
-          }`}>
-            {!spot.is_open ? 'Cerrado' : (spot.available_spaces > 0 ? 'Disponible' : 'Lleno')}
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-base font-bold text-gray-800 line-clamp-1">
+          {capitalizeTitle(spot.name)}
+        </h3>
+        {isParkiu && (
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-100">
+            <img src="/icons/providers/parkiu.svg" alt="Parkiu" className="w-2.5 h-2.5 mr-0.5" />
+            Parkiu
           </span>
-        </div>
+        )}
       </div>
 
-      <div className="flex items-start gap-2 mb-3">
-        <MapPin className="text-primary mt-1 flex-shrink-0 w-4 h-4" />
-        <p className="text-gray-600 text-sm leading-relaxed">{spot.address}</p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
+      <div className="flex items-center gap-2 mb-2">
+        {!isParkiu && spot.rating > 0 && (
+          <div className="flex items-center gap-1">
+            <span className="text-yellow-500">★</span>
+            <span className="text-sm text-gray-600">{spot.rating}</span>
+          </div>
+        )}
+        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
           isAvailable ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
         }`}>
-          <Car className={`w-4 h-4 ${
-            isAvailable ? 'text-green-600' : 'text-red-600'
-          }`} />
-          <div>
-            <p className="text-sm font-medium">
-              {spot.is_open ? (spot.available_spaces > 0 ? `${spot.available_spaces} espacios` : 'Sin espacios') : 'Cerrado'}
-            </p>
-            <p className="text-xs opacity-75">
-              {spot.is_open ? 'disponibles' : 'temporalmente'}
-            </p>
-          </div>
-        </div>
+          {isParkiu
+            ? (spot.available_spaces > 0 ? 'Disponible' : 'Lleno')
+            : (spot.is_open ? 'Abierto' : 'Cerrado')
+          }
+        </span>
+      </div>
 
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 text-blue-700">
-          <DollarSign className="w-4 h-4 text-blue-600" />
-          <div>
-            <p className="text-sm font-medium">$60 - $100</p>
-            <p className="text-xs opacity-75">por minuto</p>
+      <div className="flex items-start gap-2 mb-3 text-gray-600">
+        <MapPin className="mt-1 flex-shrink-0 w-3.5 h-3.5" />
+        <p className="text-xs leading-relaxed">{spot.address}</p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        {isParkiu ? (
+          <>
+            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
+              isAvailable ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+            }`}>
+              <Car className={`w-3.5 h-3.5 ${
+                isAvailable ? 'text-green-600' : 'text-red-600'
+              }`} />
+              <div>
+                <p className="text-xs font-medium">
+                  {spot.available_spaces > 0 ? `${spot.available_spaces} espacios` : 'Sin espacios'}
+                </p>
+                <p className="text-[10px] opacity-75">disponibles</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 text-blue-700">
+              <DollarSign className="w-3.5 h-3.5 text-blue-600" />
+              <div>
+                <p className="text-xs font-medium">
+                  {spot.price_per_hour ? `${formatPrice(spot.price_per_hour)}/hora` : 'Consultar'}
+                </p>
+                <p className="text-[10px] opacity-75">
+                  {spot.price_per_minute ? 'por minuto' : 'precio'}
+                </p>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="col-span-2 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-gray-50">
+            <img src="/icons/providers/google.svg" alt="Google" className="w-3.5 h-3.5" />
+            <span className="text-xs text-gray-600">Información de Google Maps</span>
           </div>
-        </div>
+        )}
       </div>
 
       {isAvailable ? (
         <button
-          className="w-full bg-primary hover:bg-primary-600 text-white flex gap-2 items-center justify-center py-2.5 px-4 transition-all duration-200 shadow-md hover:shadow-lg rounded-lg text-sm font-medium"
+          className="w-full bg-primary hover:bg-primary-600 text-white flex gap-2 items-center justify-center py-2 px-4 transition-all duration-200 shadow-md hover:shadow-lg rounded-lg text-sm font-medium"
           onClick={onNavigate}
         >
-          <Navigation className="w-4 h-4 animate-pulse" />
+          <Navigation className="w-3.5 h-3.5" />
           <span>Navegar</span>
         </button>
       ) : (
         <div className="bg-gray-50 rounded-lg p-3 text-center">
-          <p className="text-sm text-gray-700 font-medium">
-            {!spot.is_open ? 'Este parqueadero está cerrado' : 'Este parqueadero está lleno'}
+          <p className="text-xs text-gray-700 font-medium">
+            {isParkiu
+              ? 'Este parqueadero está lleno'
+              : 'Este parqueadero está cerrado'
+            }
           </p>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-[10px] text-gray-500 mt-1">
             Intenta buscar otro parqueadero cercano
           </p>
         </div>
@@ -185,6 +233,9 @@ const ParkingMap = memo(forwardRef(({
   const markersRef = useRef([]);
   const prevParkingSpotsRef = useRef(null);
   const { getCachedResult, setCachedResult, lastSearchLocationRef } = useSearchState();
+  const lastClickTime = useRef(0);
+  const lastSearchTime = useRef(0);
+  const lastCardClickTime = useRef(0);
 
   // Mantener un mapa auxiliar para buscar marcadores por ID o nombre
   const spotMarkerMapRef = useRef(new Map());
@@ -197,6 +248,9 @@ const ParkingMap = memo(forwardRef(({
 
   // Reducir recargas completas usando marcador de inicialización en lugar de mapKey
   const [forceMapUpdate, setForceMapUpdate] = useState(false);
+
+  // Referencia para rastrear marcadores activos
+  const activeMarkersRef = useRef(new Set());
 
   // Memoizar efectiveTargetLocation para evitar recálculos innecesarios
   const effectiveTargetLocation = useMemo(() => {
@@ -212,20 +266,18 @@ const ParkingMap = memo(forwardRef(({
   const mapCenter = useMemo(() => {
     let center = DEFAULT_LOCATION;
 
-    if (effectiveTargetLocation &&
-        isFinite(parseFloat(effectiveTargetLocation.lat)) &&
-        isFinite(parseFloat(effectiveTargetLocation.lng))) {
-      center = {
-        lat: parseFloat(effectiveTargetLocation.lat),
-        lng: parseFloat(effectiveTargetLocation.lng)
-      };
-    } else if (userLocation &&
-               isFinite(parseFloat(userLocation.lat)) &&
-               isFinite(parseFloat(userLocation.lng))) {
-      center = {
-        lat: parseFloat(userLocation.lat),
-        lng: parseFloat(userLocation.lng)
-      };
+    if (effectiveTargetLocation?.lat && effectiveTargetLocation?.lng) {
+      const lat = parseFloat(effectiveTargetLocation.lat);
+      const lng = parseFloat(effectiveTargetLocation.lng);
+      if (isFinite(lat) && isFinite(lng)) {
+        center = { lat, lng };
+      }
+    } else if (userLocation?.lat && userLocation?.lng) {
+      const lat = parseFloat(userLocation.lat);
+      const lng = parseFloat(userLocation.lng);
+      if (isFinite(lat) && isFinite(lng)) {
+        center = { lat, lng };
+      }
     }
 
     return center;
@@ -332,12 +384,16 @@ const ParkingMap = memo(forwardRef(({
     const color = spot.available_spaces > 0 ? COLOR_PARKIU : COLOR_NO_AVAILABLE;
     const svg = `
       <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M20 0C12.0589 0 5.5 6.5589 5.5 14.5C5.5 20.0649 11.0557 28.5731 18.7882 33.7154C19.5127 34.2728 20.4873 34.2728 21.2118 33.7154C28.9443 28.5731 34.5 20.0649 34.5 14.5C34.5 6.5589 27.9411 0 20 0Z"
-              fill="${color}"/>
-        <circle cx="20" cy="14.5" r="10"
+        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.2"/>
+        </filter>
+        <path d="M20 2C13.3726 2 8 7.37258 8 14C8 18.8492 12.8033 26.6124 19.4961 31.5568C19.8111 31.8016 20.1889 31.8016 20.5039 31.5568C27.1967 26.6124 32 18.8492 32 14C32 7.37258 26.6274 2 20 2Z"
+              fill="${color}"
+              filter="url(#shadow)"/>
+        <circle cx="20" cy="14" r="8"
                 fill="white"
-                fill-opacity="0.9"/>
-        <text x="20" y="18"
+                fill-opacity="0.95"/>
+        <text x="20" y="17"
               font-family="Arial, sans-serif"
               font-size="11"
               font-weight="bold"
@@ -349,21 +405,6 @@ const ParkingMap = memo(forwardRef(({
     `;
 
     markerElement.innerHTML = svg;
-
-    // Optimizar eventos táctiles y de mouse usando el evento pointerdown
-    const handlePointerEvent = (e) => {
-      e.stopPropagation();
-      const scale = e.type === 'pointerdown' ? 1.1 : 1;
-      requestAnimationFrame(() => {
-        markerElement.style.transform = `scale(${scale}) translateY(${scale > 1 ? -2 : 0}px)`;
-        markerElement.style.filter = `drop-shadow(0 ${scale > 1 ? 4 : 2}px ${scale > 1 ? 6 : 4}px rgba(0, 0, 0, ${scale > 1 ? 0.3 : 0.2}))`;
-      });
-    };
-
-    markerElement.addEventListener('pointerdown', handlePointerEvent, { passive: true });
-    markerElement.addEventListener('pointerup', handlePointerEvent, { passive: true });
-    markerElement.addEventListener('pointerout', handlePointerEvent, { passive: true });
-
     return markerElement;
   }, []);
 
@@ -388,38 +429,27 @@ const ParkingMap = memo(forwardRef(({
 
     const svg = `
       <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M20 0C12.0589 0 5.5 6.5589 5.5 14.5C5.5 20.0649 11.0557 28.5731 18.7882 33.7154C19.5127 34.2728 20.4873 34.2728 21.2118 33.7154C28.9443 28.5731 34.5 20.0649 34.5 14.5C34.5 6.5589 27.9411 0 20 0Z"
-              fill="${COLOR_GOOGLE_PLACES}"/>
-        <circle cx="20" cy="14.5" r="10"
+        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.2"/>
+        </filter>
+        <path d="M20 2C13.3726 2 8 7.37258 8 14C8 18.8492 12.8033 26.6124 19.4961 31.5568C19.8111 31.8016 20.1889 31.8016 20.5039 31.5568C27.1967 26.6124 32 18.8492 32 14C32 7.37258 26.6274 2 20 2Z"
+              fill="${COLOR_GOOGLE_PLACES}"
+              filter="url(#shadow)"/>
+        <circle cx="20" cy="14" r="8"
                 fill="white"
-                fill-opacity="0.9"/>
-        <text x="20" y="18"
+                fill-opacity="0.95"/>
+        <text x="20" y="17"
               font-family="Arial, sans-serif"
               font-size="11"
               font-weight="bold"
               text-anchor="middle"
               fill="${COLOR_GOOGLE_PLACES}">
-          G
+          P
         </text>
       </svg>
     `;
 
     markerElement.innerHTML = svg;
-
-    // Usar los mismos eventos pointer optimizados
-    const handlePointerEvent = (e) => {
-      e.stopPropagation();
-      const scale = e.type === 'pointerdown' ? 1.1 : 1;
-      requestAnimationFrame(() => {
-        markerElement.style.transform = `scale(${scale}) translateY(${scale > 1 ? -2 : 0}px)`;
-        markerElement.style.filter = `drop-shadow(0 ${scale > 1 ? 4 : 2}px ${scale > 1 ? 6 : 4}px rgba(0, 0, 0, ${scale > 1 ? 0.3 : 0.2}))`;
-      });
-    };
-
-    markerElement.addEventListener('pointerdown', handlePointerEvent, { passive: true });
-    markerElement.addEventListener('pointerup', handlePointerEvent, { passive: true });
-    markerElement.addEventListener('pointerout', handlePointerEvent, { passive: true });
-
     return markerElement;
   }, []);
 
@@ -477,11 +507,26 @@ const ParkingMap = memo(forwardRef(({
       return;
     }
 
-    // Verificar si la ubicación está dentro de los límites razonables
-    if (Math.abs(location.lat) > 90 || Math.abs(location.lng) > 180) {
-      debug('❌ Búsqueda cancelada - Coordenadas fuera de rango');
+    // Validar coordenadas
+    const lat = parseFloat(location.lat);
+    const lng = parseFloat(location.lng);
+    if (!isFinite(lat) || !isFinite(lng) ||
+        lat < -90 || lat > 90 ||
+        lng < -180 || lng > 180) {
+      debug('❌ Coordenadas fuera de rango válido');
       return;
     }
+
+    // Evitar búsquedas muy frecuentes
+    const now = Date.now();
+    if (lastSearchTime.current && now - lastSearchTime.current < MIN_SEARCH_INTERVAL) {
+      debug('⚠️ Búsqueda omitida - Demasiado frecuente', {
+        tiempoTranscurrido: `${now - lastSearchTime.current}ms`,
+        tiempoMinimo: `${MIN_SEARCH_INTERVAL}ms`
+      });
+      return;
+    }
+    lastSearchTime.current = now;
 
     debug('🔍 Iniciando búsqueda para ubicación:', {
       lat: location.lat.toFixed(6),
@@ -503,24 +548,28 @@ const ParkingMap = memo(forwardRef(({
       );
 
       if (isSameLocation) {
-        debug('🔄 Búsqueda omitida - Cambio de ubicación insignificante', {
-          actual: {
-            lat: location.lat.toFixed(6),
-            lng: location.lng.toFixed(6)
-          },
-          anterior: {
-            lat: lastSearchLocationRef.current.lat.toFixed(6),
-            lng: lastSearchLocationRef.current.lng.toFixed(6)
+        // Verificar si el caché ha expirado
+        const cacheAge = now - (lastSearchLocationRef.current.timestamp || 0);
+        if (cacheAge < CACHE_DURATION) {
+          // Si hay resultados en caché, usarlos
+          const cachedResults = getCachedResult(location);
+          if (cachedResults?.length > 0) {
+            debug('✅ Usando resultados en caché', {
+              edadCache: `${Math.round(cacheAge / 1000)}s`,
+              resultados: cachedResults.length
+            });
+            const parkiuSpots = (parkingSpots || []).filter(spot => !spot.isGooglePlace);
+            setParkingSpots([...parkiuSpots, ...cachedResults]);
+            return;
           }
-        });
-        return;
+        }
       }
     }
 
     // Si hay una búsqueda reciente en la misma ubicación, usar caché si existe
     const cachedResults = getCachedResult(location);
     if (cachedResults) {
-      const cacheAge = Date.now() - cachedResults[0]?.lastUpdated;
+      const cacheAge = now - cachedResults[0]?.lastUpdated;
       debug('📦 Evaluando caché:', {
         ubicacion: {
           lat: location.lat.toFixed(6),
@@ -530,13 +579,13 @@ const ParkingMap = memo(forwardRef(({
         edad: `${Math.round(cacheAge / 1000)}s`
       });
 
-      if (cacheAge < 5 * 60 * 1000) {
+      if (cacheAge < CACHE_DURATION && cachedResults.length > 0) {
         debug('✅ Usando resultados en caché');
         const parkiuSpots = (parkingSpots || []).filter(spot => !spot.isGooglePlace);
         setParkingSpots([...parkiuSpots, ...cachedResults]);
         return;
       } else {
-        debug('⚠️ Caché expirado - Actualizando datos');
+        debug('⚠️ Caché expirado o vacío - Actualizando datos');
       }
     }
 
@@ -671,9 +720,41 @@ const ParkingMap = memo(forwardRef(({
     });
   }, [parkingSpots, setParkingSpots, getCachedResult, setCachedResult, lastSearchLocationRef, areLocationsSignificantlyDifferent]);
 
+  // Función optimizada para limpiar marcadores
+  const cleanupMarkers = useCallback(() => {
+    markersRef.current.forEach(marker => {
+      try {
+        if (marker?.setMap) {
+          marker.setMap(null);
+          // Remover listeners si existen
+          if (marker.removeListener) {
+            marker.removeListener('click');
+            marker.removeListener('gmp-click');
+          }
+        }
+      } catch (error) {
+        debugError('Error al limpiar marcador:', error);
+      }
+    });
+    markersRef.current = [];
+    activeMarkersRef.current.clear();
+  }, []);
+
   // Optimizar initializeMarkers para reutilizar marcadores existentes
   const initializeMarkers = useCallback(() => {
     if (!mapRef.current || !parkingSpots?.length) return;
+
+    // Limpiar marcadores existentes de manera segura
+    cleanupMarkers();
+
+    // Validar spots antes de crear marcadores
+    const validSpots = parkingSpots.filter(spot =>
+      spot?.id &&
+      spot?.latitude &&
+      spot?.longitude &&
+      isFinite(parseFloat(spot.latitude)) &&
+      isFinite(parseFloat(spot.longitude))
+    );
 
     // Crear un mapa de los marcadores existentes usando el ID del spot
     const existingMarkers = new Map(markersRef.current.map(marker => [marker.spotId, marker]));
@@ -681,7 +762,7 @@ const ParkingMap = memo(forwardRef(({
     const updatedSpotMarkerMap = new Map();
     const processedSpotIds = new Set();
 
-    parkingSpots.forEach(spot => {
+    validSpots.forEach(spot => {
       if (!spot.latitude || !spot.longitude || processedSpotIds.has(spot.id)) return;
 
       processedSpotIds.add(spot.id);
@@ -710,6 +791,7 @@ const ParkingMap = memo(forwardRef(({
 
         const clickEvent = window.google?.maps?.marker?.AdvancedMarkerElement ? 'gmp-click' : 'click';
         marker.addListener(clickEvent, () => {
+          if (!activeMarkersRef.current.has(spot.id)) return;
           setSelectedSpot(spot);
           setInfoWindowOpen(true);
           if (onParkingSpotSelected) {
@@ -723,6 +805,7 @@ const ParkingMap = memo(forwardRef(({
 
       newMarkers.push(marker);
       updatedSpotMarkerMap.set(spot.id, marker);
+      activeMarkersRef.current.add(spot.id);
     });
 
     // Limpiar marcadores no utilizados
@@ -732,7 +815,7 @@ const ParkingMap = memo(forwardRef(({
 
     markersRef.current = newMarkers;
     spotMarkerMapRef.current = updatedSpotMarkerMap;
-  }, [parkingSpots, setSelectedSpot, createParkiuMarkerContent, createGooglePlacesMarkerContent, createMapMarker, onParkingSpotSelected]);
+  }, [parkingSpots, setSelectedSpot, createParkiuMarkerContent, createGooglePlacesMarkerContent, createMapMarker, onParkingSpotSelected, cleanupMarkers]);
 
   // Memoizar la función locateUser
   const locateUser = useCallback(() => {
@@ -762,9 +845,9 @@ const ParkingMap = memo(forwardRef(({
     }
   }, [setTargetLocation, setUserLocation, centerMapOnLocation, searchNearbyParking]);
 
-  // Función mejorada para encontrar y resaltar el marcador correspondiente
+  // Optimizar la función highlightMarker
   const highlightMarker = useCallback((spot) => {
-    if (!spot) return;
+    if (!spot?.id || !activeMarkersRef.current.has(spot.id)) return;
 
     if (!Array.isArray(markersRef.current) || markersRef.current.length === 0) return;
 
@@ -844,16 +927,22 @@ const ParkingMap = memo(forwardRef(({
 
   // Manejar clic en el mapa (cierra info window y deselecciona spot)
   const handleMapClick = useCallback((event) => {
-    // Verificar si el clic fue en un elemento del mapa
-    const target = event?.domEvent?.target;
-    if (!target) return;
+    if (!event?.domEvent?.target) return;
 
-    // Verificar si el clic fue en el mapa base o en un marcador
-    const isMapClick = target.closest('.gm-style') && !target.closest('.marker-content');
+    // Evitar múltiples clicks rápidos
+    if (event.domEvent.timeStamp - lastClickTime.current < 300) return;
+    lastClickTime.current = event.domEvent.timeStamp;
+
+    const target = event.domEvent.target;
+    const isMapClick = target.closest('.gm-style') &&
+                      !target.closest('.marker-content') &&
+                      !target.closest('.info-window');
 
     if (isMapClick) {
-      setSelectedSpot(null);
-      setInfoWindowOpen(false);
+      requestAnimationFrame(() => {
+        setSelectedSpot(null);
+        setInfoWindowOpen(false);
+      });
     }
   }, [setSelectedSpot]);
 
@@ -969,6 +1058,13 @@ const ParkingMap = memo(forwardRef(({
     }
   }, [forceMapUpdate, effectiveTargetLocation, centerMapOnLocation]);
 
+  // Efecto para limpiar marcadores cuando cambian los spots
+  useEffect(() => {
+    if (!parkingSpots?.length) {
+      cleanupMarkers();
+    }
+  }, [parkingSpots, cleanupMarkers]);
+
   // Exponer métodos para que el componente padre pueda acceder a ellos
   useImperativeHandle(ref, () => ({
     handleCardClick: handleParkingCardClick,
@@ -1079,12 +1175,23 @@ const ParkingMap = memo(forwardRef(({
     }
   }, [handleWheel]);
 
-  // Resetear el contador cuando el componente se desmonta
+  // Limpieza de recursos al desmontar
   useEffect(() => {
     return () => {
+      cleanupMarkers();
+
+      // Limpiar referencias
+      spotMarkerMapRef.current.clear();
+
+      // Resetear contadores
+      lastClickTime.current = 0;
+      lastSearchTime.current = 0;
+      lastCardClickTime.current = 0;
+
+      // Resetear el contador de API
       apiLimiter.reset();
     };
-  }, []);
+  }, [cleanupMarkers]);
 
   if (loadError) return (
     <div className="w-full h-full flex items-center justify-center bg-white">

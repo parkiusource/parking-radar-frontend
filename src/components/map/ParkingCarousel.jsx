@@ -1,30 +1,15 @@
-import { memo, useState, useMemo, useCallback } from 'react';
+import { memo, useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { FaFilter, FaArrowsAltV, FaDollarSign } from 'react-icons/fa';
-import { motion } from 'framer-motion';
 import ParkingSpotCard from './ParkingSpotCard';
+import { FaFilter, FaArrowsAltV, FaDollarSign } from 'react-icons/fa';
 
 const ParkingCarousel = memo(({ parkingSpots, onSelect }) => {
   const [filterAvailable, setFilterAvailable] = useState(false);
   const [sortByDistance, setSortByDistance] = useState(true);
-  const [filterPrice, setFilterPrice] = useState('all'); // 'all', 'low', 'medium', 'high'
+  const [priceRange, setPriceRange] = useState('all');
 
-  // Memoizar los handlers de los filtros
-  const handleSortByDistance = useCallback(() => {
-    setSortByDistance(prev => !prev);
-  }, []);
-
-  const handleFilterAvailable = useCallback(() => {
-    setFilterAvailable(prev => !prev);
-  }, []);
-
-  const handleFilterPrice = useCallback((price) => {
-    setFilterPrice(price);
-  }, []);
-
-  // Memoizar el filtrado y ordenamiento
-  const filteredAndSortedSpots = useMemo(() => {
-    let spots = parkingSpots;
+  const filteredSpots = useMemo(() => {
+    let spots = [...parkingSpots];
 
     // Filtro por disponibilidad
     if (filterAvailable) {
@@ -32,140 +17,133 @@ const ParkingCarousel = memo(({ parkingSpots, onSelect }) => {
     }
 
     // Filtro por precio
-    if (filterPrice !== 'all') {
+    if (priceRange !== 'all') {
       spots = spots.filter(spot => {
         const price = spot.price_per_hour || 0;
-        switch (filterPrice) {
-          case 'low':
-            return price <= 70;
-          case 'medium':
-            return price > 70 && price <= 90;
-          case 'high':
-            return price > 90;
-          default:
-            return true;
+        switch (priceRange) {
+          case 'low': return price <= 5000;
+          case 'medium': return price > 5000 && price <= 8000;
+          case 'high': return price > 8000;
+          default: return true;
         }
       });
     }
 
     // Ordenar por distancia
     if (sortByDistance) {
-      spots = [...spots].sort((a, b) => a.distance - b.distance);
+      spots.sort((a, b) => a.distance - b.distance);
     }
 
     return spots;
-  }, [parkingSpots, filterAvailable, sortByDistance, filterPrice]);
-
-  // Memoizar el renderizado de las cards
-  const renderCards = useMemo(() => {
-    return filteredAndSortedSpots.map((spot, index) => (
-      <ParkingSpotCard
-        key={`${spot.id}-${index}`}
-        parking={spot}
-        onClick={() => onSelect(spot)}
-        index={index}
-        variant="mobile"
-      />
-    ));
-  }, [filteredAndSortedSpots, onSelect]);
+  }, [parkingSpots, filterAvailable, sortByDistance, priceRange]);
 
   return (
-    <motion.div
-      initial={{ y: 20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      className="bg-white border-t border-gray-100 md:hidden h-full"
-    >
-      {/* Header reorganizado */}
-      <div className="flex flex-col px-3 pt-2 pb-1.5 border-b border-gray-100 bg-white">
-        <div className="flex items-center justify-between mb-1.5">
-          <div className="flex items-center gap-1.5">
-            <h2 className="text-sm font-semibold text-gray-900">Parqueaderos cercanos</h2>
-            <span className="px-1.5 py-0.5 bg-gray-100 text-xs font-medium text-gray-600 rounded">
-              {filteredAndSortedSpots.length}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={handleSortByDistance}
-              className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
-                sortByDistance
-                  ? 'bg-primary text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <FaArrowsAltV className="w-3 h-3" />
-              <span>Distancia</span>
-            </button>
-            <button
-              onClick={handleFilterAvailable}
-              className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
-                filterAvailable
-                  ? 'bg-primary text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <FaFilter className="w-3 h-3" />
-              <span>Disponibles</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Filtros de precio en una sola línea */}
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => handleFilterPrice('all')}
-            className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium shrink-0 transition-colors ${
-              filterPrice === 'all'
-                ? 'bg-primary text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            <FaDollarSign className="w-3 h-3" />
-            <span>Todos</span>
-          </button>
-          <div className="h-3 w-px bg-gray-200 mx-1" />
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
-            <button
-              onClick={() => handleFilterPrice('low')}
-              className={`flex items-center px-2 py-1 rounded text-xs font-medium shrink-0 transition-colors ${
-                filterPrice === 'low'
-                  ? 'bg-primary text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <span>Hasta $70</span>
-            </button>
-            <button
-              onClick={() => handleFilterPrice('medium')}
-              className={`flex items-center px-2 py-1 rounded text-xs font-medium shrink-0 transition-colors ${
-                filterPrice === 'medium'
-                  ? 'bg-primary text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <span>$70 - $90</span>
-            </button>
-            <button
-              onClick={() => handleFilterPrice('high')}
-              className={`flex items-center px-2 py-1 rounded text-xs font-medium shrink-0 transition-colors ${
-                filterPrice === 'high'
-                  ? 'bg-primary text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <span>Más de $90</span>
-            </button>
+    <div className="flex flex-col h-full">
+      {/* Header with backdrop */}
+      <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm">
+        <div className="px-4 py-2">
+          {/* Título y filtros en una sola fila */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-medium text-gray-900">
+                Parqueaderos cercanos
+              </h2>
+              <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-full">
+                {filteredSpots.length}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setSortByDistance(prev => !prev)}
+                className={`flex items-center gap-1 px-2 py-1 text-xs rounded-full transition-colors ${
+                  sortByDistance
+                    ? 'bg-gray-700 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                <FaArrowsAltV className="w-3 h-3" />
+                <span>Distancia</span>
+              </button>
+              <button
+                onClick={() => setFilterAvailable(prev => !prev)}
+                className={`flex items-center gap-1 px-2 py-1 text-xs rounded-full transition-colors ${
+                  filterAvailable
+                    ? 'bg-gray-700 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                <FaFilter className="w-3 h-3" />
+                <span>Disponibles</span>
+              </button>
+              <div className="h-4 w-px bg-gray-200" />
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setPriceRange('all')}
+                  className={`flex items-center gap-1 px-2 py-1 text-xs rounded-full transition-colors ${
+                    priceRange === 'all'
+                      ? 'bg-gray-700 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  <FaDollarSign className="w-3 h-3" />
+                  <span>Todos</span>
+                </button>
+                <button
+                  onClick={() => setPriceRange('low')}
+                  className={`px-2 py-1 text-xs rounded-full transition-colors ${
+                    priceRange === 'low'
+                      ? 'bg-gray-700 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {'< $5K'}
+                </button>
+                <button
+                  onClick={() => setPriceRange('medium')}
+                  className={`px-2 py-1 text-xs rounded-full transition-colors ${
+                    priceRange === 'medium'
+                      ? 'bg-gray-700 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  $5K - $8K
+                </button>
+                <button
+                  onClick={() => setPriceRange('high')}
+                  className={`px-2 py-1 text-xs rounded-full transition-colors ${
+                    priceRange === 'high'
+                      ? 'bg-gray-700 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {'> $8K'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Carrusel con cards */}
-      <div className="overflow-x-auto scrollbar-hide flex-1 bg-gray-50">
-        <div className="flex px-4 py-4 gap-4 snap-x snap-mandatory h-full">
-          {renderCards}
+      {/* Carousel section */}
+      <div className="flex-1 overflow-y-auto py-2">
+        <div className="flex h-full gap-3 px-4 overflow-x-auto snap-x snap-mandatory hide-scrollbar">
+          {filteredSpots.map((spot) => (
+            <div
+              key={spot.id}
+              className="flex-shrink-0 w-[320px] h-full snap-start"
+            >
+              <div className="h-full">
+                <ParkingSpotCard
+                  parking={spot}
+                  onClick={() => onSelect(spot)}
+                  className="h-full"
+                />
+              </div>
+            </div>
+          ))}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }, (prevProps, nextProps) => {
   // Comparación profunda de parkingSpots
@@ -192,6 +170,13 @@ ParkingCarousel.propTypes = {
       price_per_minute: PropTypes.number,
       latitude: PropTypes.number.isRequired,
       longitude: PropTypes.number.isRequired,
+      isGooglePlace: PropTypes.bool,
+      businessStatus: PropTypes.string,
+      rating: PropTypes.number,
+      userRatingCount: PropTypes.number,
+      carSpaces: PropTypes.number,
+      motorcycleSpaces: PropTypes.number,
+      bikeSpaces: PropTypes.number,
     })
   ).isRequired,
   onSelect: PropTypes.func.isRequired,
