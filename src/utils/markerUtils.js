@@ -30,6 +30,9 @@ export const createParkiuMarkerContent = (spot) => {
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    opacity: 1;
+    visibility: visible;
+    transform-origin: center bottom;
   `;
 
   const color = spot.available_spaces > 0 ? MARKER_COLORS.PARKIU : MARKER_COLORS.NO_AVAILABLE;
@@ -84,6 +87,9 @@ export const createGooglePlacesMarkerContent = () => {
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    opacity: 1;
+    visibility: visible;
+    transform-origin: center bottom;
   `;
 
   const svg = `

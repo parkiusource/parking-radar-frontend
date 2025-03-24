@@ -13,10 +13,43 @@ import {
 } from 'react';
 import { BiTargetLock } from 'react-icons/bi';
 import { Navigation, MapPin, Car, DollarSign } from 'lucide-react';
+import { apiLimiter } from '@/services/apiLimiter';
+import { useSearchState } from '@/hooks/useSearchState';
 
 import { ParkingContext } from '@/context/parkingContextUtils';
 import { UserContext } from '@/context/userContextDefinition';
 import { GEOLOCATION_CONFIG } from '@/services/geolocationService';
+
+// Función de debug que solo muestra logs en desarrollo
+const debug = (message, data) => {
+  if (import.meta.env.DEV) {
+    if (data) {
+      console.log(message, data);
+    } else {
+      console.log(message);
+    }
+  }
+};
+
+const debugError = (message, error) => {
+  if (import.meta.env.DEV) {
+    if (error) {
+      console.error(message, error);
+    } else {
+      console.error(message);
+    }
+  }
+};
+
+const debugWarn = (message, data) => {
+  if (import.meta.env.DEV) {
+    if (data) {
+      console.warn(message, data);
+    } else {
+      console.warn(message);
+    }
+  }
+};
 
 const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 // https://react-google-maps-api-docs.netlify.app/#loadscript
@@ -30,9 +63,15 @@ const COLOR_PARKIU = '#34D399';         // Color verde de Parkiu
 // Mayor tolerancia para comparar coordenadas
 const COORDINATE_TOLERANCE = 0.0005;
 
+// Umbral de cambio de ubicación (aproximadamente 100 metros)
+const MIN_LOCATION_CHANGE = 0.001;
+
+
 // Componente InfoWindow optimizado y memoizado
 const ParkingInfoWindow = memo(({ spot, onNavigate }) => {
   if (!spot) return null;
+
+  const isAvailable = spot.available_spaces > 0 && spot.is_open;
 
   return (
     <div
@@ -45,13 +84,19 @@ const ParkingInfoWindow = memo(({ spot, onNavigate }) => {
     >
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-bold text-gray-800">{spot.name}</h3>
-        <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-          spot.available_spaces > 0
-            ? 'bg-green-50 text-green-700'
-            : 'bg-red-50 text-red-700'
-        }`}>
-          {spot.available_spaces > 0 ? 'Disponible' : 'Lleno'}
-        </span>
+        <div className="flex items-center gap-2">
+          {spot.rating > 0 && (
+            <div className="flex items-center gap-1">
+              <span className="text-yellow-500">★</span>
+              <span className="text-sm text-gray-600">{spot.rating}</span>
+            </div>
+          )}
+          <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+            isAvailable ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+          }`}>
+            {!spot.is_open ? 'Cerrado' : (spot.available_spaces > 0 ? 'Disponible' : 'Lleno')}
+          </span>
+        </div>
       </div>
 
       <div className="flex items-start gap-2 mb-3">
@@ -61,18 +106,18 @@ const ParkingInfoWindow = memo(({ spot, onNavigate }) => {
 
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
-          spot.available_spaces > 0
-            ? 'bg-green-50 text-green-700'
-            : 'bg-red-50 text-red-700'
+          isAvailable ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
         }`}>
           <Car className={`w-4 h-4 ${
-            spot.available_spaces > 0 ? 'text-green-600' : 'text-red-600'
+            isAvailable ? 'text-green-600' : 'text-red-600'
           }`} />
           <div>
             <p className="text-sm font-medium">
-              {spot.available_spaces > 0 ? `${spot.available_spaces} espacios` : 'Sin espacios'}
+              {spot.is_open ? (spot.available_spaces > 0 ? `${spot.available_spaces} espacios` : 'Sin espacios') : 'Cerrado'}
             </p>
-            <p className="text-xs opacity-75">disponibles</p>
+            <p className="text-xs opacity-75">
+              {spot.is_open ? 'disponibles' : 'temporalmente'}
+            </p>
           </div>
         </div>
 
@@ -85,7 +130,7 @@ const ParkingInfoWindow = memo(({ spot, onNavigate }) => {
         </div>
       </div>
 
-      {spot.available_spaces > 0 ? (
+      {isAvailable ? (
         <button
           className="w-full bg-primary hover:bg-primary-600 text-white flex gap-2 items-center justify-center py-2.5 px-4 transition-all duration-200 shadow-md hover:shadow-lg rounded-lg text-sm font-medium"
           onClick={onNavigate}
@@ -96,7 +141,7 @@ const ParkingInfoWindow = memo(({ spot, onNavigate }) => {
       ) : (
         <div className="bg-gray-50 rounded-lg p-3 text-center">
           <p className="text-sm text-gray-700 font-medium">
-            Este parqueadero está lleno
+            {!spot.is_open ? 'Este parqueadero está cerrado' : 'Este parqueadero está lleno'}
           </p>
           <p className="text-xs text-gray-500 mt-1">
             Intenta buscar otro parqueadero cercano
@@ -139,6 +184,7 @@ const ParkingMap = memo(forwardRef(({
   const mapRef = useRef(null);
   const markersRef = useRef([]);
   const prevParkingSpotsRef = useRef(null);
+  const { getCachedResult, setCachedResult, lastSearchLocationRef } = useSearchState();
 
   // Mantener un mapa auxiliar para buscar marcadores por ID o nombre
   const spotMarkerMapRef = useRef(new Map());
@@ -202,29 +248,11 @@ const ParkingMap = memo(forwardRef(({
       position: 5,
     },
     zoomControl: true,
-    mapTypeControl: false,
-    gestureHandling: 'cooperative',
-    scrollwheel: true, // Permitir zoom con rueda
-    keyboardShortcuts: false,
-    // Optimizaciones de rendimiento
     clickableIcons: false,
     optimized: true,
-    // Configuración de eventos táctiles
-    gestureHandlingOptions: {
-      passiveEvents: true,
-      cooperativeTouchGestures: true,
-      touchHandlingOptions: {
-        passive: true,
-        preventDefaultOnPanGesture: true
-      }
-    },
-    // Configuración adicional para mejorar el rendimiento
-    tilt: 0,
-    heading: 0,
-    mapTypeId: 'roadmap',
-    draggableCursor: 'default',
-    draggingCursor: 'grab',
-    restriction: null
+    maxZoom: 20,
+    minZoom: 3,
+    gestureHandling: 'greedy'
   }), []);
 
   const { isLoaded, loadError } = useJsApiLoader({
@@ -249,7 +277,7 @@ const ParkingMap = memo(forwardRef(({
       }
       return true;
     } catch (error) {
-      console.error('Error al inicializar Places Service:', error);
+      debugError('Error al inicializar Places Service:', error);
       return false;
     }
   }, []);
@@ -263,7 +291,7 @@ const ParkingMap = memo(forwardRef(({
     const lng = parseFloat(location.lng);
 
     if (!isFinite(lat) || !isFinite(lng)) {
-      console.error('Coordenadas inválidas:', location);
+      debugError('Coordenadas inválidas:', location);
       return;
     }
 
@@ -404,7 +432,7 @@ const ParkingMap = memo(forwardRef(({
         collisionBehavior: 'OPTIONAL_AND_HIDES_LOWER_PRIORITY'
       });
     } else {
-      console.log('⚠️ AdvancedMarkerElement no disponible, usando Marker estándar');
+      debug('⚠️ AdvancedMarkerElement no disponible, usando Marker estándar');
       if (options.content) {
         const svgContent = options.content.innerHTML;
         options.icon = {
@@ -423,7 +451,7 @@ const ParkingMap = memo(forwardRef(({
   }, []);
 
   // Remover funciones redundantes y optimizar las existentes
-  const areLocationsSignificantlyDifferent = useCallback((loc1, loc2, threshold = 0.001) => {
+  const areLocationsSignificantlyDifferent = useCallback((loc1, loc2, threshold = MIN_LOCATION_CHANGE) => {
     if (!loc1 || !loc2) return true;
 
     // Validar que las coordenadas sean números válidos
@@ -434,55 +462,115 @@ const ParkingMap = memo(forwardRef(({
 
     if (isNaN(lat1) || isNaN(lng1) || isNaN(lat2) || isNaN(lng2)) return true;
 
-    // Usar un umbral más pequeño (aproximadamente 100 metros)
-    return Math.abs(lat1 - lat2) > threshold || Math.abs(lng1 - lng2) > threshold;
+    // Calcular la diferencia en grados
+    const latDiff = Math.abs(lat1 - lat2);
+    const lngDiff = Math.abs(lng1 - lng2);
+
+    // Si la diferencia es mayor al umbral, considerar que son ubicaciones diferentes
+    return latDiff > threshold || lngDiff > threshold;
   }, []);
 
-  // Optimizar searchNearbyParking para usar caché y optimizar búsquedas
+  // Optimizar searchNearbyParking para usar el limitador y el caché
   const searchNearbyParking = useCallback((location) => {
-    if (!location?.lat || !location?.lng || !mapRef.current || !setParkingSpots) return;
+    if (!location?.lat || !location?.lng || !mapRef.current || !setParkingSpots) {
+      debug('❌ Búsqueda cancelada - Parámetros inválidos');
+      return;
+    }
 
-    const currentTime = Date.now();
-    const SEARCH_COOLDOWN = 300000; // 5 minutos en milisegundos
+    // Verificar si la ubicación está dentro de los límites razonables
+    if (Math.abs(location.lat) > 90 || Math.abs(location.lng) > 180) {
+      debug('❌ Búsqueda cancelada - Coordenadas fuera de rango');
+      return;
+    }
 
-    // Si hay una búsqueda reciente en la misma ubicación (menos de 5 minutos)
+    debug('🔍 Iniciando búsqueda para ubicación:', {
+      lat: location.lat.toFixed(6),
+      lng: location.lng.toFixed(6)
+    });
+
+    // Verificar límites de la API
+    if (!apiLimiter.canMakeCall()) {
+      debugWarn('⚠️ Búsqueda omitida - Límite de API alcanzado');
+      return;
+    }
+
+    // Verificar si la ubicación ha cambiado significativamente
     if (lastSearchLocationRef.current) {
-      const timeSinceLastSearch = currentTime - (lastSearchLocationRef.current.timestamp || 0);
-      const isSameLocation = !areLocationsSignificantlyDifferent(lastSearchLocationRef.current, location);
+      const isSameLocation = !areLocationsSignificantlyDifferent(
+        lastSearchLocationRef.current,
+        location,
+        MIN_LOCATION_CHANGE
+      );
 
-      if (isSameLocation && timeSinceLastSearch < SEARCH_COOLDOWN) {
-        console.log('🔄 Búsqueda omitida - Muy reciente en la misma ubicación', {
-          timeSince: `${Math.round(timeSinceLastSearch / 1000)}s`,
-          nextSearchIn: `${Math.round((SEARCH_COOLDOWN - timeSinceLastSearch) / 1000)}s`
+      if (isSameLocation) {
+        debug('🔄 Búsqueda omitida - Cambio de ubicación insignificante', {
+          actual: {
+            lat: location.lat.toFixed(6),
+            lng: location.lng.toFixed(6)
+          },
+          anterior: {
+            lat: lastSearchLocationRef.current.lat.toFixed(6),
+            lng: lastSearchLocationRef.current.lng.toFixed(6)
+          }
         });
         return;
       }
     }
 
-    console.log('🔍 Iniciando búsqueda en Google Places:', {
-      location,
-      timestamp: new Date().toISOString()
-    });
+    // Si hay una búsqueda reciente en la misma ubicación, usar caché si existe
+    const cachedResults = getCachedResult(location);
+    if (cachedResults) {
+      const cacheAge = Date.now() - cachedResults[0]?.lastUpdated;
+      debug('📦 Evaluando caché:', {
+        ubicacion: {
+          lat: location.lat.toFixed(6),
+          lng: location.lng.toFixed(6)
+        },
+        resultados: cachedResults.length,
+        edad: `${Math.round(cacheAge / 1000)}s`
+      });
 
-    // Actualizar la última ubicación de búsqueda con timestamp
-    lastSearchLocationRef.current = {
-      ...location,
-      timestamp: currentTime
-    };
+      if (cacheAge < 5 * 60 * 1000) {
+        debug('✅ Usando resultados en caché');
+        const parkiuSpots = (parkingSpots || []).filter(spot => !spot.isGooglePlace);
+        setParkingSpots([...parkiuSpots, ...cachedResults]);
+        return;
+      } else {
+        debug('⚠️ Caché expirado - Actualizando datos');
+      }
+    }
+
+    debug('🌐 Consultando API de Google Places');
+
+    // Registrar la llamada a la API y proceder con la búsqueda
+    apiLimiter.logCall(location);
 
     // Mantener una referencia a los spots de Parkiu
     const parkiuSpots = (parkingSpots || []).filter(spot => !spot.isGooglePlace);
+
+    // Usar AbortController para cancelar peticiones pendientes
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos timeout
 
     fetch('https://places.googleapis.com/v1/places:searchNearby', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': apiKey,
-        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.businessStatus,places.rating,places.userRatingCount'
+        'X-Goog-FieldMask': [
+          'places.id',
+          'places.displayName',
+          'places.formattedAddress',
+          'places.location',
+          'places.rating',
+          'places.currentOpeningHours.openNow',
+          'places.businessStatus'
+        ].join(',')
       },
       body: JSON.stringify({
         includedTypes: ['parking'],
         maxResultCount: 20,
+        rankPreference: 'DISTANCE',
         locationRestriction: {
           circle: {
             center: {
@@ -492,11 +580,23 @@ const ParkingMap = memo(forwardRef(({
             radius: 1000.0
           }
         }
-      })
+      }),
+      signal: controller.signal
     })
-    .then(response => response.json())
+    .then(response => {
+      clearTimeout(timeoutId);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      return response.json();
+    })
     .then(data => {
-      if (!data.places) return;
+      if (!data.places) {
+        debug('❌ No se encontraron lugares en la respuesta');
+        return;
+      }
+
+      debug('✅ Respuesta de API recibida:', {
+        totalLugares: data.places.length
+      });
 
       const googlePlacesSpots = data.places.map(place => ({
         id: `google_${place.id}_${Date.now()}`,
@@ -506,15 +606,14 @@ const ParkingMap = memo(forwardRef(({
         latitude: place.location.latitude,
         longitude: place.location.longitude,
         isGooglePlace: true,
-        rating: place.rating || 0,
-        userRatingCount: place.userRatingCount || 0,
-        businessStatus: place.businessStatus,
-        available_spaces: place.businessStatus === 'OPERATIONAL' ? 1 : 0,
+        available_spaces: 1,
         total_spaces: 1,
         min_price: 0,
         max_price: 0,
         price_per_hour: 0,
-        is_open: place.businessStatus === 'OPERATIONAL',
+        is_open: place.currentOpeningHours?.openNow ?? true,
+        rating: place.rating || 0,
+        businessStatus: place.businessStatus || 'OPERATIONAL',
         lastUpdated: Date.now()
       }));
 
@@ -539,13 +638,38 @@ const ParkingMap = memo(forwardRef(({
         );
       });
 
-      // Actualizar estado con los spots únicos
+      debug('🔄 Procesamiento completado:', {
+        totalEncontrados: googlePlacesSpots.length,
+        uniqueSpots: uniqueGoogleSpots.length,
+        duplicadosEliminados: googlePlacesSpots.length - uniqueGoogleSpots.length
+      });
+
+      if (uniqueGoogleSpots.length > 0) {
+        debug('💾 Guardando en caché:', {
+          ubicacion: {
+            lat: location.lat.toFixed(6),
+            lng: location.lng.toFixed(6)
+          },
+          cantidadSpots: uniqueGoogleSpots.length,
+          timestamp: new Date().toISOString()
+        });
+        setCachedResult(location, uniqueGoogleSpots);
+        lastSearchLocationRef.current = location;
+      } else {
+        debug('⚠️ No se guardó en caché - No hay spots únicos');
+      }
+
       setParkingSpots([...parkiuSpots, ...uniqueGoogleSpots]);
     })
     .catch(error => {
-      console.error('❌ Error en búsqueda de Google Places:', error);
+      if (error.name === 'AbortError') {
+        debug('❌ Búsqueda cancelada - Timeout');
+      } else {
+        debugError('❌ Error en búsqueda de Google Places:', error);
+      }
+      clearTimeout(timeoutId);
     });
-  }, [parkingSpots, setParkingSpots, areLocationsSignificantlyDifferent]);
+  }, [parkingSpots, setParkingSpots, getCachedResult, setCachedResult, lastSearchLocationRef, areLocationsSignificantlyDifferent]);
 
   // Optimizar initializeMarkers para reutilizar marcadores existentes
   const initializeMarkers = useCallback(() => {
@@ -612,30 +736,29 @@ const ParkingMap = memo(forwardRef(({
 
   // Memoizar la función locateUser
   const locateUser = useCallback(() => {
-    console.log('🎯 Iniciando localización del usuario...');
+    debug('🎯 Iniciando localización del usuario...');
 
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         ({ coords: { latitude, longitude } }) => {
-          console.log('📍 Ubicación obtenida:', { latitude, longitude });
+          debug('📍 Ubicación obtenida:', { latitude, longitude });
 
           const userLoc = { lat: latitude, lng: longitude };
           if (setTargetLocation) setTargetLocation(null);
           setUserLocation(userLoc);
           centerMapOnLocation(userLoc);
 
-          // Esperar un momento para asegurar que el mapa esté listo
           setTimeout(() => {
             searchNearbyParking(userLoc);
           }, 1000);
         },
         (error) => {
-          console.error('❌ Error obteniendo ubicación:', error);
+          debugError('❌ Error obteniendo ubicación:', error);
         },
         GEOLOCATION_CONFIG
       );
     } else {
-      console.error('❌ Geolocalización no soportada');
+      debugError('❌ Geolocalización no soportada');
     }
   }, [setTargetLocation, setUserLocation, centerMapOnLocation, searchNearbyParking]);
 
@@ -671,7 +794,7 @@ const ParkingMap = memo(forwardRef(({
             break;
           }
         } catch (error) {
-          console.error('Error al comparar marcador:', error);
+          debugError('Error al comparar marcador:', error);
         }
       }
     }
@@ -690,7 +813,7 @@ const ParkingMap = memo(forwardRef(({
           markerElement.style.zIndex = '1';
         }
       } catch (error) {
-        console.error('Error al aplicar estilo a marcador:', error);
+        debugError('Error al aplicar estilo a marcador:', error);
       }
     });
   }, []);
@@ -805,42 +928,37 @@ const ParkingMap = memo(forwardRef(({
 
   // Efecto para manejar cambios en la ubicación objetivo
   useEffect(() => {
-    if (!effectiveTargetLocation || !mapInitializedRef.current) return;
+    if (!effectiveTargetLocation || !mapRef.current) return;
 
-    const SEARCH_COOLDOWN = 300000; // 5 minutos en milisegundos
-
-    // Función para determinar si debemos buscar
-    const shouldSearch = () => {
-      if (!lastSearchLocationRef.current) return true;
-
-      const timeSinceLastSearch = Date.now() - (lastSearchLocationRef.current.timestamp || 0);
-      const locationChanged = areLocationsSignificantlyDifferent(
+    if (lastSearchLocationRef.current) {
+      const isSameLocation = !areLocationsSignificantlyDifferent(
         lastSearchLocationRef.current,
-        effectiveTargetLocation
+        effectiveTargetLocation,
+        MIN_LOCATION_CHANGE
       );
 
-      // Solo buscar si:
-      // 1. La ubicación cambió significativamente (más de 100m)
-      // 2. Han pasado al menos 5 minutos desde la última búsqueda
-      return locationChanged || timeSinceLastSearch > SEARCH_COOLDOWN;
+      if (isSameLocation) {
+        debug('🎯 Centrando mapa en ubicación existente');
+        centerMapOnLocation(effectiveTargetLocation);
+        return;
+      }
+    }
+
+    debug('🔄 Nueva ubicación detectada, iniciando búsqueda...');
+
+    lastSearchLocationRef.current = {
+      ...effectiveTargetLocation,
+      timestamp: Date.now()
     };
 
-    const timeoutId = setTimeout(() => {
-      // Siempre centrar el mapa en la nueva ubicación
-      centerMapOnLocation(effectiveTargetLocation);
+    centerMapOnLocation(effectiveTargetLocation);
 
-      // Solo buscar si es necesario
-      if (shouldSearch()) {
-        console.log('🔍 Iniciando búsqueda por cambio de ubicación:', {
-          location: effectiveTargetLocation,
-          timestamp: new Date().toISOString()
-        });
-        searchNearbyParking(effectiveTargetLocation);
-      }
+    const searchTimeout = setTimeout(() => {
+      searchNearbyParking(effectiveTargetLocation);
     }, 300);
 
-    return () => clearTimeout(timeoutId);
-  }, [effectiveTargetLocation, centerMapOnLocation, searchNearbyParking, areLocationsSignificantlyDifferent]);
+    return () => clearTimeout(searchTimeout);
+  }, [effectiveTargetLocation, centerMapOnLocation, searchNearbyParking, lastSearchLocationRef, areLocationsSignificantlyDifferent]);
 
   // En lugar de renderizar el mapa nuevamente con un key diferente,
   // usamos un efecto que actualiza el estado y centro del mapa
@@ -850,16 +968,6 @@ const ParkingMap = memo(forwardRef(({
       setForceMapUpdate(false);
     }
   }, [forceMapUpdate, effectiveTargetLocation, centerMapOnLocation]);
-
-  // Efecto para centrar el mapa cuando cambia la ubicación objetivo
-  useEffect(() => {
-    if (effectiveTargetLocation && mapRef.current) {
-      centerMapOnLocation(effectiveTargetLocation);
-    }
-  }, [effectiveTargetLocation, centerMapOnLocation]);
-
-  // Referencia para la última ubicación de búsqueda
-  const lastSearchLocationRef = useRef(null);
 
   // Exponer métodos para que el componente padre pueda acceder a ellos
   useImperativeHandle(ref, () => ({
@@ -970,6 +1078,13 @@ const ParkingMap = memo(forwardRef(({
       };
     }
   }, [handleWheel]);
+
+  // Resetear el contador cuando el componente se desmonta
+  useEffect(() => {
+    return () => {
+      apiLimiter.reset();
+    };
+  }, []);
 
   if (loadError) return (
     <div className="w-full h-full flex items-center justify-center bg-white">

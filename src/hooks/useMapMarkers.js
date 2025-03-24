@@ -103,9 +103,11 @@ export const useMapMarkers = (mapRef, parkingSpots, onSpotSelect) => {
         if (marker === foundMarker) {
           markerElement.style.transform = 'scale(1.5)';
           markerElement.style.zIndex = '10';
+          markerElement.style.opacity = '1';
         } else {
           markerElement.style.transform = 'scale(1)';
           markerElement.style.zIndex = '1';
+          markerElement.style.opacity = '0.8';
         }
       } catch (error) {
         console.error('Error al aplicar estilo a marcador:', error);

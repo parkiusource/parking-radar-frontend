@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState, memo } from 'react';
-import { Car, MapPin, DollarSign, Clock, Star } from 'lucide-react';
+import { MapPin, DollarSign, Clock } from 'lucide-react';
 import { useSearchState } from '@/hooks/useSearchState';
 
 // Extraer componentes para mejor rendimiento
-const ParkingHeader = memo(({ name, isAvailable }) => (
+const ParkingHeader = memo(({ name }) => (
   <div className="flex items-center justify-between mb-2">
     <div className="flex items-center gap-2">
       <h3 className="text-base font-semibold text-gray-800 group-hover:text-primary transition-colors">
@@ -18,11 +18,6 @@ const ParkingHeader = memo(({ name, isAvailable }) => (
         Google Places
       </span>
     </div>
-    <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-      isAvailable ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
-    }`}>
-      {isAvailable ? 'Disponible' : 'No Disponible'}
-    </span>
   </div>
 ));
 
@@ -33,48 +28,29 @@ const ParkingInfo = memo(({ vicinity }) => (
   </div>
 ));
 
-const ParkingStats = memo(({ isAvailable, priceLevel }) => (
-  <div className="grid grid-cols-2 gap-3">
-    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
-      isAvailable ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
-    }`}>
-      <Car className={`w-4 h-4 ${isAvailable ? 'text-green-600' : 'text-red-600'}`} />
-      <div>
-        <p className="text-sm font-medium">
-          {isAvailable ? 'Abierto' : 'Cerrado'}
-        </p>
-        <p className="text-xs opacity-75">
-          Horario
-        </p>
-      </div>
-    </div>
+const ParkingStats = memo(() => (
+  <div className="grid grid-cols-1 gap-3">
     <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 text-blue-700">
       <DollarSign className="w-4 h-4 text-blue-600" />
       <div>
         <p className="text-sm font-medium">
-          {priceLevel ? `Nivel ${priceLevel}` : 'Precio no disponible'}
+          Información básica disponible
         </p>
         <p className="text-xs opacity-75">
-          Según Google
+          Para más detalles, contacta al establecimiento
         </p>
       </div>
     </div>
   </div>
 ));
 
-const ParkingCTA = memo(({ rating, isAvailable, onJoinClick }) => (
+const ParkingCTA = memo(({ onJoinClick }) => (
   <div className="mt-4 p-3 bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg">
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-4 text-sm text-gray-600">
-        {rating && (
-          <div className="flex items-center gap-1">
-            <Star className="w-4 h-4 text-yellow-400" />
-            <span>{rating}</span>
-          </div>
-        )}
         <div className="flex items-center gap-1">
           <Clock className="w-4 h-4" />
-          <span>{isAvailable ? 'Abierto ahora' : 'Cerrado'}</span>
+          <span>Información básica</span>
         </div>
       </div>
       <button
@@ -105,7 +81,7 @@ const GooglePlacesParking = ({ mapRef, center, radius = 1000 }) => {
     if (lastSearchLocationRef.current) {
       const latDiff = Math.abs(currentLocation.lat - lastSearchLocationRef.current.lat);
       const lngDiff = Math.abs(currentLocation.lng - lastSearchLocationRef.current.lng);
-      if (latDiff < 0.0001 && lngDiff < 0.0001) return; // Evitar búsquedas repetidas para la misma ubicación
+      if (latDiff < 0.0001 && lngDiff < 0.0001) return;
     }
 
     // Intentar obtener resultados del caché
@@ -125,9 +101,7 @@ const GooglePlacesParking = ({ mapRef, center, radius = 1000 }) => {
     }, (results, status) => {
       if (status === window.google.maps.places.PlacesServiceStatus.OK) {
         setGoogleParkingSpots(results);
-        // Guardar resultados en caché
         setCachedResult(currentLocation, results);
-        // Actualizar la última ubicación buscada
         lastSearchLocationRef.current = currentLocation;
       }
       setLoading(false);
@@ -151,27 +125,19 @@ const GooglePlacesParking = ({ mapRef, center, radius = 1000 }) => {
 
   return (
     <div className="space-y-3">
-      {googleParkingSpots.map((spot) => {
-        const isAvailable = spot.opening_hours?.isOpen();
-
-        return (
-          <div
-            key={spot.place_id}
-            className="group bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-gray-100 overflow-hidden"
-          >
-            <div className="p-4">
-              <ParkingHeader name={spot.name} isAvailable={isAvailable} />
-              <ParkingInfo vicinity={spot.vicinity} />
-              <ParkingStats isAvailable={isAvailable} priceLevel={spot.price_level} />
-              <ParkingCTA
-                rating={spot.rating}
-                isAvailable={isAvailable}
-                onJoinClick={() => handleJoinParkiu(spot)}
-              />
-            </div>
+      {googleParkingSpots.map((spot) => (
+        <div
+          key={spot.place_id}
+          className="group bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-gray-100 overflow-hidden"
+        >
+          <div className="p-4">
+            <ParkingHeader name={spot.name} />
+            <ParkingInfo vicinity={spot.vicinity} />
+            <ParkingStats />
+            <ParkingCTA onJoinClick={() => handleJoinParkiu(spot)} />
           </div>
-        );
-      })}
+        </div>
+      ))}
     </div>
   );
 };
