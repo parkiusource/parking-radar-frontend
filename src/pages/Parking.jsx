@@ -165,7 +165,7 @@ export default function Parking() {
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="flex-1 relative md:col-span-8 rounded-lg md:rounded-2xl shadow-lg md:h-full overflow-hidden"
+              className="h-[calc(100vh-200px)] md:flex-1 relative md:col-span-8 rounded-lg md:rounded-2xl shadow-lg md:h-full overflow-hidden"
             >
               <Map
                 ref={mapRef}
@@ -204,14 +204,19 @@ export default function Parking() {
             </motion.section>
 
             {/* Mobile Carousel */}
-            {nearbySpots?.length > 0 && (
-              <div className="h-[260px] md:hidden">
+            <motion.section
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="md:hidden flex-shrink-0 h-[280px]"
+            >
+              {nearbySpots?.length > 0 && (
                 <ParkingCarousel
                   parkingSpots={nearbySpots}
                   onSelect={handleParkingCardClick}
                 />
-              </div>
-            )}
+              )}
+            </motion.section>
           </main>
         </ErrorBoundary>
       </div>

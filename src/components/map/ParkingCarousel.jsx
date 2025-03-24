@@ -1,7 +1,8 @@
 import { memo, useState, useMemo, useCallback } from 'react';
 import PropTypes from 'prop-types';
-import { LuCar, LuMapPin, LuClock, LuFilter, LuArrowUpDown, LuDollarSign } from 'react-icons/lu';
+import { FaFilter, FaArrowsAltV, FaDollarSign } from 'react-icons/fa';
 import { motion } from 'framer-motion';
+import ParkingSpotCard from './ParkingSpotCard';
 
 const ParkingCarousel = memo(({ parkingSpots, onSelect }) => {
   const [filterAvailable, setFilterAvailable] = useState(false);
@@ -21,13 +22,6 @@ const ParkingCarousel = memo(({ parkingSpots, onSelect }) => {
     setFilterPrice(price);
   }, []);
 
-  // Memoizar el formateo de distancia
-  const formatDistance = useCallback((meters) => {
-    return meters < 1000
-      ? `${Math.round(meters)}m`
-      : `${(meters / 1000).toFixed(1)}km`;
-  }, []);
-
   // Memoizar el filtrado y ordenamiento
   const filteredAndSortedSpots = useMemo(() => {
     let spots = parkingSpots;
@@ -40,16 +34,14 @@ const ParkingCarousel = memo(({ parkingSpots, onSelect }) => {
     // Filtro por precio
     if (filterPrice !== 'all') {
       spots = spots.filter(spot => {
-        const minPrice = spot.min_price || 0;
-        const maxPrice = spot.max_price || minPrice;
-        const avgPrice = (minPrice + maxPrice) / 2;
+        const price = spot.price_per_hour || 0;
         switch (filterPrice) {
           case 'low':
-            return avgPrice <= 70;
+            return price <= 70;
           case 'medium':
-            return avgPrice > 70 && avgPrice <= 90;
+            return price > 70 && price <= 90;
           case 'high':
-            return avgPrice > 90;
+            return price > 90;
           default:
             return true;
         }
@@ -67,55 +59,15 @@ const ParkingCarousel = memo(({ parkingSpots, onSelect }) => {
   // Memoizar el renderizado de las cards
   const renderCards = useMemo(() => {
     return filteredAndSortedSpots.map((spot, index) => (
-      <motion.div
+      <ParkingSpotCard
         key={`${spot.id}-${index}`}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2, delay: index * 0.05 }}
-        className="flex-none w-[260px] snap-center"
+        parking={spot}
         onClick={() => onSelect(spot)}
-      >
-        <div className="bg-white h-[165px] border border-gray-100 rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow flex flex-col">
-          <div className="flex justify-between items-start gap-1 mb-2">
-            <h3 className="font-semibold text-gray-900 text-sm line-clamp-1 flex-1">
-              {spot.name}
-            </h3>
-            <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${
-              typeof spot.available_spaces === 'number' && spot.available_spaces > 0
-                ? 'bg-green-50 text-green-700'
-                : 'bg-red-50 text-red-700'
-            }`}>
-              {typeof spot.available_spaces === 'number' && spot.available_spaces > 0 ? 'Disponible' : 'Lleno'}
-            </span>
-          </div>
-
-          <div className="flex items-center justify-between text-gray-600 text-xs mb-3">
-            <div className="flex items-center flex-1 min-w-0">
-              <LuMapPin className="mr-1.5 flex-shrink-0 text-gray-400 w-3.5 h-3.5" />
-              <span className="line-clamp-2">{spot.address}</span>
-            </div>
-            <span className="text-xs text-primary font-medium ml-2 whitespace-nowrap">
-              {formatDistance(spot.distance)}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 mt-auto">
-            <div className="flex items-center text-gray-700 text-xs bg-gray-50 px-2.5 py-2 rounded">
-              <LuCar className="mr-1.5 text-primary w-3.5 h-3.5" />
-              <span>{typeof spot.available_spaces === 'number' ? spot.available_spaces : '?'} espacios</span>
-            </div>
-            <div className="flex items-center text-gray-700 text-xs bg-gray-50 px-2.5 py-2 rounded">
-              <LuClock className="mr-1.5 text-primary w-3.5 h-3.5" />
-              <span className="font-medium">
-                ${spot.min_price || 0}
-                {spot.max_price ? ` - $${spot.max_price}` : ''}
-              </span>
-            </div>
-          </div>
-        </div>
-      </motion.div>
+        index={index}
+        variant="mobile"
+      />
     ));
-  }, [filteredAndSortedSpots, onSelect, formatDistance]);
+  }, [filteredAndSortedSpots, onSelect]);
 
   return (
     <motion.div
@@ -141,7 +93,7 @@ const ParkingCarousel = memo(({ parkingSpots, onSelect }) => {
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              <LuArrowUpDown className="w-3 h-3" />
+              <FaArrowsAltV className="w-3 h-3" />
               <span>Distancia</span>
             </button>
             <button
@@ -152,7 +104,7 @@ const ParkingCarousel = memo(({ parkingSpots, onSelect }) => {
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              <LuFilter className="w-3 h-3" />
+              <FaFilter className="w-3 h-3" />
               <span>Disponibles</span>
             </button>
           </div>
@@ -168,7 +120,7 @@ const ParkingCarousel = memo(({ parkingSpots, onSelect }) => {
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            <LuDollarSign className="w-3 h-3" />
+            <FaDollarSign className="w-3 h-3" />
             <span>Todos</span>
           </button>
           <div className="h-3 w-px bg-gray-200 mx-1" />
@@ -209,7 +161,7 @@ const ParkingCarousel = memo(({ parkingSpots, onSelect }) => {
 
       {/* Carrusel con cards */}
       <div className="overflow-x-auto scrollbar-hide flex-1 bg-gray-50">
-        <div className="flex px-2 py-2 gap-2 snap-x snap-mandatory h-full pb-1">
+        <div className="flex px-4 py-4 gap-4 snap-x snap-mandatory h-full">
           {renderCards}
         </div>
       </div>
@@ -236,8 +188,8 @@ ParkingCarousel.propTypes = {
       address: PropTypes.string.isRequired,
       available_spaces: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
       distance: PropTypes.number.isRequired,
-      min_price: PropTypes.number,
-      max_price: PropTypes.number,
+      price_per_hour: PropTypes.number,
+      price_per_minute: PropTypes.number,
       latitude: PropTypes.number.isRequired,
       longitude: PropTypes.number.isRequired,
     })
