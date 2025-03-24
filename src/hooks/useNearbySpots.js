@@ -1,34 +1,21 @@
 import { useMemo } from 'react';
+import {
+  validateCoordinates,
+  removeDuplicateSpots,
+  calculateDistances,
+  filterByRadius,
+  sortByDistance
+} from '@/utils/searchUtils';
 
-const toRad = (value) => {
-  return (value * Math.PI) / 180;
-};
-
-const haversineDistance = (coords1, coords2) => {
-  const EARTH_RADIUS = 6371e3;
-
-  const lat1 = coords1?.lat ?? 0;
-  const lng1 = coords1?.lng ?? 0;
-  const lat2 = coords2?.lat ?? 0;
-  const lng2 = coords2?.lng ?? 0;
-
-  const φ1 = toRad(lat1);
-  const φ2 = toRad(lat2);
-  const Δφ = toRad(lat2 - lat1);
-  const Δλ = toRad(lng2 - lng1);
-
-  const a =
-    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return EARTH_RADIUS * c;
-};
-
-const validateCoordinates = (coords) =>
-  Number.isFinite(coords?.lat) && Number.isFinite(coords?.lng);
-
+/**
+ * Hook para encontrar parqueaderos cercanos
+ * @param {Object} params - Parámetros de búsqueda
+ * @param {Array} params.spots - Lista de parqueaderos
+ * @param {Object} params.center - Punto central {lat, lng}
+ * @param {number} params.limit - Límite de resultados
+ * @param {number} params.maxRadius - Radio máximo en metros
+ * @returns {Object} Lista de parqueaderos cercanos
+ */
 export const useNearbyParkingSpots = ({ spots = [], center, limit = 5, maxRadius = Infinity }) => {
   const nearbySpots = useMemo(() => {
     if (!Array.isArray(spots)) return [];
@@ -37,27 +24,21 @@ export const useNearbyParkingSpots = ({ spots = [], center, limit = 5, maxRadius
       return spots.slice(0, limit);
     }
 
-    // Primero filtrar duplicados
-    const uniqueSpots = spots.filter((spot, index, self) =>
-      index === self.findIndex((s) => (
-        s.id === spot.id ||
-        (Math.abs(s.latitude - spot.latitude) < 0.0005 &&
-         Math.abs(s.longitude - spot.longitude) < 0.0005)
-      ))
-    );
+    // Proceso de búsqueda en pasos:
+    // 1. Eliminar duplicados
+    const uniqueSpots = removeDuplicateSpots(spots);
 
-    // Luego calcular distancias y filtrar por radio
-    const spotsWithDistance = uniqueSpots
-      .map((spot) => {
-        const spotCoordinates = { lat: spot.latitude, lng: spot.longitude };
-        const distance = haversineDistance(center, spotCoordinates);
-        return { ...spot, distance };
-      })
-      .filter((spot) => spot.distance <= maxRadius);
+    // 2. Calcular distancias
+    const spotsWithDistance = calculateDistances(uniqueSpots, center);
 
-    spotsWithDistance.sort((a, b) => a.distance - b.distance);
+    // 3. Filtrar por radio
+    const filteredSpots = filterByRadius(spotsWithDistance, maxRadius);
 
-    return spotsWithDistance.slice(0, limit);
+    // 4. Ordenar por distancia
+    const sortedSpots = sortByDistance(filteredSpots);
+
+    // 5. Limitar resultados
+    return sortedSpots.slice(0, limit);
   }, [spots, center, limit, maxRadius]);
 
   return { nearbySpots };

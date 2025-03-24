@@ -15,7 +15,8 @@ import { BiTargetLock } from 'react-icons/bi';
 import { Navigation, MapPin, Car, DollarSign } from 'lucide-react';
 
 import { ParkingContext } from '@/context/parkingContextUtils';
-import { UserContext } from '@/context/UserContext';
+import { UserContext } from '@/context/userContextDefinition';
+import { GEOLOCATION_CONFIG } from '@/services/geolocationService';
 
 const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 // https://react-google-maps-api-docs.netlify.app/#loadscript
@@ -29,23 +30,6 @@ const COLOR_PARKIU = '#34D399';         // Color verde de Parkiu
 // Mayor tolerancia para comparar coordenadas
 const COORDINATE_TOLERANCE = 0.0005;
 
-// Constantes para optimización de búsqueda
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
-const SEARCH_GRID_SIZE = 0.02; // Aproximadamente 2km
-const searchCache = new Map();
-
-// Función para obtener la clave de caché basada en la ubicación
-const getCacheKey = (location) => {
-  const gridCell = getGridCell(location);
-  return `${gridCell.lat},${gridCell.lng}`;
-};
-
-// Función para obtener la celda de la cuadrícula para una ubicación
-const getGridCell = (location) => ({
-  lat: Math.floor(location.lat / SEARCH_GRID_SIZE) * SEARCH_GRID_SIZE,
-  lng: Math.floor(location.lng / SEARCH_GRID_SIZE) * SEARCH_GRID_SIZE
-});
-
 // Componente InfoWindow optimizado y memoizado
 const ParkingInfoWindow = memo(({ spot, onNavigate }) => {
   if (!spot) return null;
@@ -53,7 +37,11 @@ const ParkingInfoWindow = memo(({ spot, onNavigate }) => {
   return (
     <div
       className="p-4 font-sans rounded-xl overflow-hidden animate-fadeIn bg-white shadow-xl border border-gray-100"
-      style={{ contentVisibility: 'auto' }}
+      style={{
+        contain: 'layout style paint',
+        willChange: 'transform',
+        backfaceVisibility: 'hidden'
+      }}
     >
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-bold text-gray-800">{spot.name}</h3>
@@ -215,13 +203,20 @@ const ParkingMap = memo(forwardRef(({
     },
     zoomControl: true,
     mapTypeControl: false,
-    gestureHandling: 'greedy',
+    gestureHandling: 'cooperative',
+    scrollwheel: true, // Permitir zoom con rueda
+    keyboardShortcuts: false,
     // Optimizaciones de rendimiento
-    clickableIcons: false, // Deshabilitar POIs clickeables para mejor rendimiento
+    clickableIcons: false,
     optimized: true,
     // Configuración de eventos táctiles
     gestureHandlingOptions: {
-      passiveEvents: true // Habilitar eventos pasivos
+      passiveEvents: true,
+      cooperativeTouchGestures: true,
+      touchHandlingOptions: {
+        passive: true,
+        preventDefaultOnPanGesture: true
+      }
     },
     // Configuración adicional para mejorar el rendimiento
     tilt: 0,
@@ -229,7 +224,6 @@ const ParkingMap = memo(forwardRef(({
     mapTypeId: 'roadmap',
     draggableCursor: 'default',
     draggingCursor: 'grab',
-    keyboardShortcuts: false,
     restriction: null
   }), []);
 
@@ -302,6 +296,9 @@ const ParkingMap = memo(forwardRef(({
       cursor: pointer;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+      touch-action: none;
+      will-change: transform;
+      contain: layout style paint;
     `;
 
     const color = spot.available_spaces > 0 ? COLOR_PARKIU : COLOR_NO_AVAILABLE;
@@ -325,16 +322,19 @@ const ParkingMap = memo(forwardRef(({
 
     markerElement.innerHTML = svg;
 
-    // Agregar efectos de hover
-    markerElement.addEventListener('mouseover', () => {
-      markerElement.style.transform = 'scale(1.1) translateY(-2px)';
-      markerElement.style.filter = 'drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3))';
-    });
+    // Optimizar eventos táctiles y de mouse usando el evento pointerdown
+    const handlePointerEvent = (e) => {
+      e.stopPropagation();
+      const scale = e.type === 'pointerdown' ? 1.1 : 1;
+      requestAnimationFrame(() => {
+        markerElement.style.transform = `scale(${scale}) translateY(${scale > 1 ? -2 : 0}px)`;
+        markerElement.style.filter = `drop-shadow(0 ${scale > 1 ? 4 : 2}px ${scale > 1 ? 6 : 4}px rgba(0, 0, 0, ${scale > 1 ? 0.3 : 0.2}))`;
+      });
+    };
 
-    markerElement.addEventListener('mouseout', () => {
-      markerElement.style.transform = 'scale(1) translateY(0)';
-      markerElement.style.filter = 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2))';
-    });
+    markerElement.addEventListener('pointerdown', handlePointerEvent, { passive: true });
+    markerElement.addEventListener('pointerup', handlePointerEvent, { passive: true });
+    markerElement.addEventListener('pointerout', handlePointerEvent, { passive: true });
 
     return markerElement;
   }, []);
@@ -353,6 +353,9 @@ const ParkingMap = memo(forwardRef(({
       cursor: pointer;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+      touch-action: none;
+      will-change: transform;
+      contain: layout style paint;
     `;
 
     const svg = `
@@ -375,16 +378,19 @@ const ParkingMap = memo(forwardRef(({
 
     markerElement.innerHTML = svg;
 
-    // Agregar efectos de hover
-    markerElement.addEventListener('mouseover', () => {
-      markerElement.style.transform = 'scale(1.1) translateY(-2px)';
-      markerElement.style.filter = 'drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3))';
-    });
+    // Usar los mismos eventos pointer optimizados
+    const handlePointerEvent = (e) => {
+      e.stopPropagation();
+      const scale = e.type === 'pointerdown' ? 1.1 : 1;
+      requestAnimationFrame(() => {
+        markerElement.style.transform = `scale(${scale}) translateY(${scale > 1 ? -2 : 0}px)`;
+        markerElement.style.filter = `drop-shadow(0 ${scale > 1 ? 4 : 2}px ${scale > 1 ? 6 : 4}px rgba(0, 0, 0, ${scale > 1 ? 0.3 : 0.2}))`;
+      });
+    };
 
-    markerElement.addEventListener('mouseout', () => {
-      markerElement.style.transform = 'scale(1) translateY(0)';
-      markerElement.style.filter = 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2))';
-    });
+    markerElement.addEventListener('pointerdown', handlePointerEvent, { passive: true });
+    markerElement.addEventListener('pointerup', handlePointerEvent, { passive: true });
+    markerElement.addEventListener('pointerout', handlePointerEvent, { passive: true });
 
     return markerElement;
   }, []);
@@ -392,10 +398,13 @@ const ParkingMap = memo(forwardRef(({
   // Función para crear un marcador (con fallback a marcador estándar si es necesario)
   const createMapMarker = useCallback((options) => {
     if (window.google?.maps?.marker?.AdvancedMarkerElement) {
-      return new window.google.maps.marker.AdvancedMarkerElement(options);
+      return new window.google.maps.marker.AdvancedMarkerElement({
+        ...options,
+        // Configuración básica para mejor rendimiento
+        collisionBehavior: 'OPTIONAL_AND_HIDES_LOWER_PRIORITY'
+      });
     } else {
       console.log('⚠️ AdvancedMarkerElement no disponible, usando Marker estándar');
-      // Convertir el contenido DOM a una URL de ícono
       if (options.content) {
         const svgContent = options.content.innerHTML;
         options.icon = {
@@ -405,62 +414,61 @@ const ParkingMap = memo(forwardRef(({
         };
         delete options.content;
       }
-      return new window.google.maps.Marker(options);
+      return new window.google.maps.Marker({
+        ...options,
+        optimized: true,
+        clickable: true
+      });
     }
   }, []);
 
   // Remover funciones redundantes y optimizar las existentes
-  const areLocationsSignificantlyDifferent = useCallback((loc1, loc2, threshold = 0.01) => {
+  const areLocationsSignificantlyDifferent = useCallback((loc1, loc2, threshold = 0.001) => {
     if (!loc1 || !loc2) return true;
-    return Math.abs(loc1.lat - loc2.lat) > threshold ||
-           Math.abs(loc1.lng - loc2.lng) > threshold;
+
+    // Validar que las coordenadas sean números válidos
+    const lat1 = parseFloat(loc1.lat);
+    const lng1 = parseFloat(loc1.lng);
+    const lat2 = parseFloat(loc2.lat);
+    const lng2 = parseFloat(loc2.lng);
+
+    if (isNaN(lat1) || isNaN(lng1) || isNaN(lat2) || isNaN(lng2)) return true;
+
+    // Usar un umbral más pequeño (aproximadamente 100 metros)
+    return Math.abs(lat1 - lat2) > threshold || Math.abs(lng1 - lng2) > threshold;
   }, []);
 
   // Optimizar searchNearbyParking para usar caché y optimizar búsquedas
   const searchNearbyParking = useCallback((location) => {
     if (!location?.lat || !location?.lng || !mapRef.current || !setParkingSpots) return;
 
-    // Verificar si la ubicación está muy cerca de la última búsqueda
-    if (lastSearchLocationRef.current &&
-        !areLocationsSignificantlyDifferent(lastSearchLocationRef.current, location)) {
-      console.log('🔍 Búsqueda omitida - Ubicación muy cercana a la anterior:', {
-        lastLocation: lastSearchLocationRef.current,
-        newLocation: location
-      });
-      return;
-    }
+    const currentTime = Date.now();
+    const SEARCH_COOLDOWN = 300000; // 5 minutos en milisegundos
 
-    // Verificar caché
-    const cacheKey = getCacheKey(location);
-    const cachedResult = searchCache.get(cacheKey);
+    // Si hay una búsqueda reciente en la misma ubicación (menos de 5 minutos)
+    if (lastSearchLocationRef.current) {
+      const timeSinceLastSearch = currentTime - (lastSearchLocationRef.current.timestamp || 0);
+      const isSameLocation = !areLocationsSignificantlyDifferent(lastSearchLocationRef.current, location);
 
-    if (cachedResult) {
-      const { data, timestamp } = cachedResult;
-      const age = Date.now() - timestamp;
-
-      if (age < CACHE_DURATION) {
-        console.log('🎯 Usando resultados en caché:', {
-          cacheKey,
-          age: `${Math.round(age / 1000)}s`,
-          resultsCount: data.length
+      if (isSameLocation && timeSinceLastSearch < SEARCH_COOLDOWN) {
+        console.log('🔄 Búsqueda omitida - Muy reciente en la misma ubicación', {
+          timeSince: `${Math.round(timeSinceLastSearch / 1000)}s`,
+          nextSearchIn: `${Math.round((SEARCH_COOLDOWN - timeSinceLastSearch) / 1000)}s`
         });
-
-        // Mantener los spots de Parkiu y actualizar solo los de Google Places
-        const parkiuSpots = (parkingSpots || []).filter(spot => !spot.isGooglePlace);
-        setParkingSpots([...parkiuSpots, ...data]);
         return;
-      } else {
-        searchCache.delete(cacheKey);
       }
     }
 
     console.log('🔍 Iniciando búsqueda en Google Places:', {
       location,
-      gridCell: getGridCell(location),
       timestamp: new Date().toISOString()
     });
 
-    lastSearchLocationRef.current = location;
+    // Actualizar la última ubicación de búsqueda con timestamp
+    lastSearchLocationRef.current = {
+      ...location,
+      timestamp: currentTime
+    };
 
     // Mantener una referencia a los spots de Parkiu
     const parkiuSpots = (parkingSpots || []).filter(spot => !spot.isGooglePlace);
@@ -531,12 +539,6 @@ const ParkingMap = memo(forwardRef(({
         );
       });
 
-      // Guardar en caché
-      searchCache.set(cacheKey, {
-        data: uniqueGoogleSpots,
-        timestamp: Date.now()
-      });
-
       // Actualizar estado con los spots únicos
       setParkingSpots([...parkiuSpots, ...uniqueGoogleSpots]);
     })
@@ -544,20 +546,6 @@ const ParkingMap = memo(forwardRef(({
       console.error('❌ Error en búsqueda de Google Places:', error);
     });
   }, [parkingSpots, setParkingSpots, areLocationsSignificantlyDifferent]);
-
-  // Limpiar caché periódicamente
-  useEffect(() => {
-    const cleanupInterval = setInterval(() => {
-      const now = Date.now();
-      for (const [key, { timestamp }] of searchCache.entries()) {
-        if (now - timestamp > CACHE_DURATION) {
-          searchCache.delete(key);
-        }
-      }
-    }, CACHE_DURATION);
-
-    return () => clearInterval(cleanupInterval);
-  }, []);
 
   // Optimizar initializeMarkers para reutilizar marcadores existentes
   const initializeMarkers = useCallback(() => {
@@ -622,7 +610,8 @@ const ParkingMap = memo(forwardRef(({
     spotMarkerMapRef.current = updatedSpotMarkerMap;
   }, [parkingSpots, setSelectedSpot, createParkiuMarkerContent, createGooglePlacesMarkerContent, createMapMarker, onParkingSpotSelected]);
 
-  const locateUser = () => {
+  // Memoizar la función locateUser
+  const locateUser = useCallback(() => {
     console.log('🎯 Iniciando localización del usuario...');
 
     if (navigator.geolocation) {
@@ -643,12 +632,12 @@ const ParkingMap = memo(forwardRef(({
         (error) => {
           console.error('❌ Error obteniendo ubicación:', error);
         },
-        { enableHighAccuracy: false }
+        GEOLOCATION_CONFIG
       );
     } else {
       console.error('❌ Geolocalización no soportada');
     }
-  };
+  }, [setTargetLocation, setUserLocation, centerMapOnLocation, searchNearbyParking]);
 
   // Función mejorada para encontrar y resaltar el marcador correspondiente
   const highlightMarker = useCallback((spot) => {
@@ -814,24 +803,39 @@ const ParkingMap = memo(forwardRef(({
     return () => clearTimeout(timer);
   }, [parkingSpots, isLoaded, initializeMarkers, spotsHaveChanged]);
 
-  // Combinar efectos relacionados con la ubicación
+  // Efecto para manejar cambios en la ubicación objetivo
   useEffect(() => {
     if (!effectiveTargetLocation || !mapInitializedRef.current) return;
 
-    console.log('🎯 Efecto de ubicación disparado:', {
-      effectiveTargetLocation,
-      mapInitialized: mapInitializedRef.current,
-      timestamp: new Date().toISOString()
-    });
+    const SEARCH_COOLDOWN = 300000; // 5 minutos en milisegundos
+
+    // Función para determinar si debemos buscar
+    const shouldSearch = () => {
+      if (!lastSearchLocationRef.current) return true;
+
+      const timeSinceLastSearch = Date.now() - (lastSearchLocationRef.current.timestamp || 0);
+      const locationChanged = areLocationsSignificantlyDifferent(
+        lastSearchLocationRef.current,
+        effectiveTargetLocation
+      );
+
+      // Solo buscar si:
+      // 1. La ubicación cambió significativamente (más de 100m)
+      // 2. Han pasado al menos 5 minutos desde la última búsqueda
+      return locationChanged || timeSinceLastSearch > SEARCH_COOLDOWN;
+    };
 
     const timeoutId = setTimeout(() => {
+      // Siempre centrar el mapa en la nueva ubicación
       centerMapOnLocation(effectiveTargetLocation);
 
-      if (!lastSearchLocationRef.current ||
-          areLocationsSignificantlyDifferent(lastSearchLocationRef.current, effectiveTargetLocation)) {
+      // Solo buscar si es necesario
+      if (shouldSearch()) {
+        console.log('🔍 Iniciando búsqueda por cambio de ubicación:', {
+          location: effectiveTargetLocation,
+          timestamp: new Date().toISOString()
+        });
         searchNearbyParking(effectiveTargetLocation);
-      } else {
-        console.log('🔄 Búsqueda omitida en efecto - Sin cambios significativos en ubicación');
       }
     }, 300);
 
@@ -876,8 +880,13 @@ const ParkingMap = memo(forwardRef(({
       centerOnSelectedSpot(spot, { skipInfoWindow: true, skipHighlight: true });
     },
 
-    getMapRef: () => mapRef.current
-  }), [handleParkingCardClick, centerOnSelectedSpot]);
+    getMapRef: () => mapRef.current,
+
+    searchNearbyParking: (location) => {
+      if (!location || !mapRef.current || !mapInitializedRef.current) return;
+      searchNearbyParking(location);
+    }
+  }), [handleParkingCardClick, centerOnSelectedSpot, searchNearbyParking]);
 
   // Optimizar el componente GoogleMap con opciones de eventos pasivos
   const googleMapProps = useMemo(() => ({
@@ -885,29 +894,82 @@ const ParkingMap = memo(forwardRef(({
       width: '100%',
       height: '100%',
       backgroundColor: 'white',
-      contentVisibility: 'auto',
-      touchAction: 'pan-x pan-y' // Optimizar para gestos táctiles
+      contain: 'layout style paint',
+      touchAction: 'none',
+      WebkitOverflowScrolling: 'touch',
+      userSelect: 'none'
     },
     center: mapCenter,
     zoom: 15,
     onLoad: handleMapLoad,
     onClick: handleMapClick,
-    options: mapOptions,
-    // Configuración de eventos táctiles
-    onTouchStart: (e) => {
-      e.stopPropagation();
-      if (e.touches.length === 1) {
-        e.preventDefault();
+    options: {
+      ...mapOptions,
+      gestureHandling: 'cooperative',
+      gestureHandlingOptions: {
+        passiveEvents: true,
+        cooperativeTouchGestures: true,
+        touchHandlingOptions: {
+          passive: true,
+          preventDefaultOnPanGesture: true
+        }
+      },
+      scrollwheel: true,
+      ctrlKey: true,
+      zoomControl: true,
+      zoomControlOptions: {
+        position: window.google?.maps?.ControlPosition?.RIGHT_BOTTOM || 7
+      },
+      disableDoubleClickZoom: true,
+      minZoom: 12,
+      maxZoom: 20,
+      restriction: {
+        latLngBounds: {
+          north: 85,
+          south: -85,
+          west: -180,
+          east: 180
+        },
+        strictBounds: true
       }
-    },
-    onTouchMove: (e) => {
-      e.stopPropagation();
-      if (e.touches.length === 1) {
-        e.preventDefault();
-      }
-    },
-    onWheel: { passive: true }
+    }
   }), [mapCenter, handleMapLoad, handleMapClick, mapOptions]);
+
+  // Optimizar el botón de localización
+  const locateUserButton = useMemo(() => (
+    <button
+      onClick={locateUser}
+      className="absolute left-4 p-3 bg-white text-primary rounded-full shadow-lg hover:bg-gray-50 transition-all duration-300 hover:scale-105 z-50 border border-gray-100 bottom-4 md:bottom-4"
+      aria-label="Localizar mi ubicación"
+      style={{
+        touchAction: 'manipulation',
+        WebkitTapHighlightColor: 'transparent',
+        willChange: 'transform'
+      }}
+    >
+      <BiTargetLock size={24} />
+    </button>
+  ), [locateUser]);
+
+  // Manejador de eventos para la rueda del mouse
+  const handleWheel = useCallback((e) => {
+    // Solo permitir zoom si Ctrl o Cmd está presionado
+    if (!(e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      return false;
+    }
+  }, []);
+
+  // Efecto para agregar y remover el event listener
+  useEffect(() => {
+    const mapContainer = document.querySelector('.google-map');
+    if (mapContainer) {
+      mapContainer.addEventListener('wheel', handleWheel, { passive: false });
+      return () => {
+        mapContainer.removeEventListener('wheel', handleWheel);
+      };
+    }
+  }, [handleWheel]);
 
   if (loadError) return (
     <div className="w-full h-full flex items-center justify-center bg-white">
@@ -921,19 +983,25 @@ const ParkingMap = memo(forwardRef(({
   );
 
   return (
-    <div className="relative h-full w-full flex flex-col">
-      <div className="flex-1 relative w-full h-full">
+    <div
+      className="relative h-full w-full flex flex-col"
+      style={{
+        touchAction: 'none',
+        WebkitTapHighlightColor: 'transparent',
+        WebkitUserSelect: 'none',
+        userSelect: 'none'
+      }}
+    >
+      <div
+        className="flex-1 relative w-full h-full google-map"
+        style={{
+          touchAction: 'none',
+          WebkitTapHighlightColor: 'transparent'
+        }}
+      >
         {isLoaded ? (
           <GoogleMap {...googleMapProps}>
-            <button
-              onClick={locateUser}
-              className="absolute left-4 p-3 bg-white text-primary rounded-full shadow-lg hover:bg-gray-50 transition-all duration-300 hover:scale-105 z-50 border border-gray-100 bottom-4 md:bottom-4"
-              aria-label="Localizar mi ubicación"
-              onTouchStart={(e) => e.stopPropagation()}
-            >
-              <BiTargetLock size={24} />
-            </button>
-
+            {locateUserButton}
             {selectedSpot && infoWindowOpen && selectedSpot.latitude && selectedSpot.longitude && (
               <InfoWindowF
                 position={{

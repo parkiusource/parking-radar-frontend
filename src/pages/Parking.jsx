@@ -6,7 +6,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useSearchPlaces } from '@/api/hooks/useSearchPlaces';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { ParkingContext } from '@/context/parkingContextUtils';
-import { UserContext } from '@/context/UserContext';
+import { UserContext } from '@/context/userContextDefinition';
 import { useNearbyParkingSpots } from '@/hooks/useNearbySpots';
 import { getHeaderClassName } from '@/components/Header';
 import { Logo } from '@/components/Logo';
@@ -77,10 +77,16 @@ export default function Parking() {
       setSearchTerm(place.displayName.text);
     }
     if (place.location) {
-      setTargetLocation({
+      const newLocation = {
         lat: place.location.latitude,
         lng: place.location.longitude,
-      });
+      };
+      setTargetLocation(newLocation);
+
+      // Disparar búsqueda de parqueaderos cercanos
+      if (mapRef.current?.searchNearbyParking) {
+        mapRef.current.searchNearbyParking(newLocation);
+      }
     }
   }, [setTargetLocation]);
 
