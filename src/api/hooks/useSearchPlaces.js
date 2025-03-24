@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchQuery, Queries, useDebounce } from '@/api/base';
 import isEmpty from 'lodash/isEmpty';
-import { CACHE_CONFIG } from '@/context/queryClientUtils';
+import { getQueryConfig } from '@/context/queryClientUtils';
 
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 const DEFAULT_TEXT_DEBOUNCE = 500; // Aumentado a 500ms para reducir llamadas durante la escritura
@@ -92,11 +92,8 @@ export const useSearchPlaces = (
       return places;
     },
     enabled: !isEmpty(debouncedTextQuery) && !isEmpty(normalizedText),
-    // Usamos la configuración de caché específica para búsquedas de lugares
-    staleTime: CACHE_CONFIG.SearchPlaces.staleTime,
-    cacheTime: CACHE_CONFIG.SearchPlaces.cacheTime,
-    // Evitar refetch innecesarios durante cambios de foco
-    refetchOnWindowFocus: false,
+    // Usar la configuración específica para búsquedas de lugares
+    ...getQueryConfig('googlePlaces'),
     // Si los datos están ya en la caché local, usarlos inmediatamente
     initialData: () => {
       return localCache.get(cacheKey);

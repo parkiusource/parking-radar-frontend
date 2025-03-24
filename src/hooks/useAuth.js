@@ -1,7 +1,9 @@
 import { useAuth0 } from '@auth0/auth0-react';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
+import { setAuth0Client } from '@/api/client';
 
 export function useAuth() {
+  const auth0 = useAuth0();
   const {
     isAuthenticated,
     isLoading,
@@ -9,7 +11,14 @@ export function useAuth() {
     logout,
     getAccessTokenSilently,
     user
-  } = useAuth0();
+  } = auth0;
+
+  // Inicializar el cliente Auth0 cuando el usuario está autenticado
+  useEffect(() => {
+    if (isAuthenticated) {
+      setAuth0Client(auth0);
+    }
+  }, [isAuthenticated, auth0]);
 
   const getToken = useCallback(async () => {
     try {

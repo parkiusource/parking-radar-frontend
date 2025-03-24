@@ -1,105 +1,41 @@
 import { AnimatePresence, motion, LazyMotion, domAnimation } from 'framer-motion';
-import React, { useCallback, useContext, useState, useRef, Suspense, useMemo } from 'react';
-import { Car, DollarSign, Search, ArrowLeft, Info, MapPin } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useCallback, useContext, useState, useRef, Suspense, useMemo, useEffect, memo } from 'react';
+import { Search, ArrowLeft, Info } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
 
 import { useSearchPlaces } from '@/api/hooks/useSearchPlaces';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import { ParkingContext } from '@/context/ParkingContext';
-import { UserContext } from '@/context/UserContext';
+import { ParkingContext } from '@/context/parkingContextUtils';
+import { UserContext } from '@/context/userContextDefinition';
 import { useNearbyParkingSpots } from '@/hooks/useNearbySpots';
 import { getHeaderClassName } from '@/components/Header';
 import { Logo } from '@/components/Logo';
 import Map from '@/components/Map';
 import { SearchBox } from '@/components/SearchBox';
 import ParkingCarousel from '@/components/map/ParkingCarousel';
+import ParkingSpotList from '@/pages/components/ParkingSpotList';
 
 const DEFAULT_MAX_DISTANCE = 1000;
 const DEFAULT_LIMIT = 10;
 
-// Componente ParkingSpotList optimizado
-const ParkingSpotList = React.memo(({ spots, selectedSpot, onSpotClick }) => {
-  if (!spots?.length) {
-    return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="flex flex-col items-center text-center p-6 bg-white rounded-xl shadow-sm"
-      >
-        <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-          <Info className="h-8 w-8 text-gray-400" />
-        </div>
-        <h3 className="text-gray-700 font-medium mb-2">No encontramos parqueaderos</h3>
-        <p className="text-gray-600 text-sm">
-          No encontramos parqueaderos en esta zona. Intenta buscar en otra ubicación.
-        </p>
-      </motion.div>
-    );
-  }
-
-  return (
-    <div>
-      {spots.map((parking) => (
-        <motion.div
-          key={parking.id}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.3 }}
-          className={`mb-4 p-4 bg-white rounded-xl shadow-sm border border-transparent hover:border-primary/30 hover:shadow-md transition-all ${
-            selectedSpot?.id === parking.id ? 'border-primary ring-2 ring-primary/20' : ''
-          }`}
-          onClick={() => onSpotClick(parking)}
-        >
-          <div className="flex justify-between items-center mb-3">
-            <div className="flex items-center">
-              <div className="bg-primary/10 p-2 rounded-full text-primary mr-3">
-                <Car className="w-5 h-5" />
-              </div>
-              <h3 className="font-semibold text-gray-800">{parking.name}</h3>
-            </div>
-            <span className={`text-xs px-3 py-1 rounded-full font-medium ${
-              parking.available_spaces > 0
-                ? 'bg-green-50 text-green-700'
-                : 'bg-red-50 text-red-700'
-            }`}>
-              {parking.available_spaces > 0 ? 'Disponible' : 'Lleno'}
-            </span>
-          </div>
-
-          <div className="flex items-center text-gray-600 text-sm mb-4">
-            <MapPin className="mr-2 flex-shrink-0 text-gray-400" />
-            <span className="line-clamp-1">{parking.address}</span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex items-center text-gray-700">
-              <Car className="w-5 h-5 mr-2 text-primary" />
-              <span>{parking.available_spaces} espacios</span>
-            </div>
-            <div className="flex items-center text-gray-700">
-              <DollarSign className="w-5 h-5 mr-2 text-primary" />
-              <span>$60 - $100</span>
-            </div>
-          </div>
-        </motion.div>
-      ))}
+// Mensaje de no resultados memoizado
+const NoResultsMessage = memo(() => (
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    className="flex flex-col items-center text-center p-6 bg-white rounded-xl shadow-sm"
+  >
+    <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+      <Info className="h-8 w-8 text-gray-400" />
     </div>
-  );
-}, (prevProps, nextProps) => {
-  // Comparación profunda de spots solo por id y available_spaces
-  const spotsEqual = prevProps.spots?.length === nextProps.spots?.length &&
-    prevProps.spots?.every((spot, index) =>
-      spot.id === nextProps.spots[index].id &&
-      spot.available_spaces === nextProps.spots[index].available_spaces
-    );
+    <h3 className="text-gray-700 font-medium mb-2">No encontramos parqueaderos</h3>
+    <p className="text-gray-600 text-sm">
+      No encontramos parqueaderos en esta zona. Intenta buscar en otra ubicación.
+    </p>
+  </motion.div>
+));
 
-  return spotsEqual &&
-         prevProps.selectedSpot?.id === nextProps.selectedSpot?.id &&
-         prevProps.onSpotClick === nextProps.onSpotClick;
-});
-
-ParkingSpotList.displayName = 'ParkingSpotList';
+NoResultsMessage.displayName = 'NoResultsMessage';
 
 export default function Parking() {
   const { parkingSpots, targetLocation, setTargetLocation } = useContext(ParkingContext);
@@ -107,9 +43,14 @@ export default function Parking() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSpot, setSelectedSpot] = useState(null);
   const mapRef = useRef(null);
+  const [searchParams] = useSearchParams();
+  const [initialSearchDone, setInitialSearchDone] = useState(false);
 
-  // Memoizar el centro para useNearbyParkingSpots
-  const spotCenter = useMemo(() => targetLocation || user?.location, [targetLocation, user?.location]);
+  // Memoizar el centro y los spots cercanos
+  const spotCenter = useMemo(() =>
+    targetLocation || user?.location,
+    [targetLocation, user?.location]
+  );
 
   const { nearbySpots } = useNearbyParkingSpots({
     spots: parkingSpots,
@@ -118,16 +59,14 @@ export default function Parking() {
     maxRadius: DEFAULT_MAX_DISTANCE,
   });
 
-  // Memoizar el conteo de spots para evitar recálculos
-  const spotsCount = useMemo(() => parkingSpots?.length || 0, [parkingSpots]);
-
+  // Memoizar handlers
   const handleParkingSpotSelected = useCallback((data) => {
     setSelectedSpot(data.spot);
   }, []);
 
   const handleParkingCardClick = useCallback((parking) => {
-    setSelectedSpot(prevSelected => prevSelected?.id === parking?.id ? null : parking);
-    if (mapRef.current && mapRef.current.centerOnSpot) {
+    setSelectedSpot(prev => prev?.id === parking?.id ? null : parking);
+    if (mapRef.current?.centerOnSpot) {
       mapRef.current.centerOnSpot(parking);
     }
   }, []);
@@ -137,12 +76,59 @@ export default function Parking() {
     if (place.displayName) {
       setSearchTerm(place.displayName.text);
     }
-    const newLocation = {
-      lat: place.location.latitude,
-      lng: place.location.longitude,
-    };
-    setTargetLocation(newLocation);
+    if (place.location) {
+      const newLocation = {
+        lat: place.location.latitude,
+        lng: place.location.longitude,
+      };
+      setTargetLocation(newLocation);
+
+      // Disparar búsqueda de parqueaderos cercanos
+      if (mapRef.current?.searchNearbyParking) {
+        mapRef.current.searchNearbyParking(newLocation);
+      }
+    }
   }, [setTargetLocation]);
+
+  // Efecto mejorado para manejar parámetros de URL
+  useEffect(() => {
+    if (initialSearchDone) return;
+
+    const lat = searchParams.get('lat');
+    const lng = searchParams.get('lng');
+    const search = searchParams.get('search');
+    const nearby = searchParams.get('nearby');
+
+    if (lat && lng) {
+      const parsedLat = parseFloat(lat);
+      const parsedLng = parseFloat(lng);
+
+      if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
+        setTargetLocation({
+          lat: parsedLat,
+          lng: parsedLng
+        });
+
+        // Si es una búsqueda nearby, centrar el mapa inmediatamente
+        if (nearby === 'true' && mapRef.current?.centerOnSpotWithoutPopup) {
+          mapRef.current.centerOnSpotWithoutPopup({
+            latitude: parsedLat,
+            longitude: parsedLng
+          });
+        }
+      }
+    }
+
+    if (search) {
+      const decodedSearch = decodeURIComponent(search);
+      setSearchTerm(decodedSearch);
+    }
+
+    setInitialSearchDone(true);
+  }, [searchParams, setTargetLocation, initialSearchDone]);
+
+  // Memoizar el conteo de spots para evitar recálculos
+  const spotsCount = useMemo(() => parkingSpots?.length || 0, [parkingSpots]);
 
   return (
     <LazyMotion features={domAnimation}>
@@ -185,7 +171,7 @@ export default function Parking() {
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="flex-1 relative md:col-span-8 rounded-lg md:rounded-2xl shadow-lg md:h-full overflow-hidden"
+              className="h-[calc(100vh-200px)] md:flex-1 relative md:col-span-8 rounded-lg md:rounded-2xl shadow-lg md:h-full overflow-hidden"
             >
               <Map
                 ref={mapRef}
@@ -224,14 +210,19 @@ export default function Parking() {
             </motion.section>
 
             {/* Mobile Carousel */}
-            {nearbySpots?.length > 0 && (
-              <div className="h-[260px] md:hidden">
+            <motion.section
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="md:hidden flex-shrink-0 h-[280px]"
+            >
+              {nearbySpots?.length > 0 && (
                 <ParkingCarousel
                   parkingSpots={nearbySpots}
                   onSelect={handleParkingCardClick}
                 />
-              </div>
-            )}
+              )}
+            </motion.section>
           </main>
         </ErrorBoundary>
       </div>

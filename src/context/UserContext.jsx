@@ -1,11 +1,14 @@
 import PropTypes from 'prop-types';
-import { createContext, useState, useMemo } from 'react';
-import { useInitAuth0Client } from '@/hooks/useInitAuth0Client';
+import { useState, useMemo } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { UserContext } from './userContextDefinition';
 
-export const UserContext = createContext();
-
+/**
+ * Proveedor del contexto de usuario
+ * Maneja el estado del usuario y la autenticación
+ */
 export const UserProvider = ({ children }) => {
-  const auth0 = useInitAuth0Client();
+  const { isAuthenticated, user: auth0User, isLoading } = useAuth();
   const [user, setUser] = useState({
     name: '',
     location: null,
@@ -23,8 +26,14 @@ export const UserProvider = ({ children }) => {
   };
 
   const value = useMemo(
-    () => ({ user, updateUser, auth0 }),
-    [user, auth0]
+    () => ({
+      user,
+      updateUser,
+      isAuthenticated,
+      isLoading,
+      auth0User
+    }),
+    [user, isAuthenticated, isLoading, auth0User]
   );
 
   return (

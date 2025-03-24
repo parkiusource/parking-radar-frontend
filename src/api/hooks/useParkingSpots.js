@@ -24,6 +24,8 @@ export const useParkingSpots = ({ queryClient, ...options }) => {
         address: parking.address || 'Dirección no disponible',
         available_spaces: parking.available_spaces || 0,
         min_price: parking.min_price || 0,
+        price_per_hour: parking.price_per_hour || 3000,
+        price_per_minute: parking.price_per_minute || 50,
         rating: parking.rating || null,
         formattedDistance: typeof parking.distance === 'number'
           ? `${parking.distance.toFixed(1)}`

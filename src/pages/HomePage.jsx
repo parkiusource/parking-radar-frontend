@@ -249,9 +249,14 @@ const HomePage = () => {
       setIsSearching(false);
       if (place.location) {
         // Si es un resultado de Google Places con coordenadas
-        navigate(`/parking?search=${encodeURIComponent(place.displayName.text)}&lat=${place.location.latitude}&lng=${place.location.longitude}`);
-      } else {
-        // Si es solo texto (búsqueda manual o reciente)
+        const params = new URLSearchParams({
+          search: place.displayName.text,
+          lat: place.location.latitude.toString(),
+          lng: place.location.longitude.toString()
+        });
+        navigate(`/parking?${params.toString()}`);
+      } else if (typeof place === 'string') {
+        // Si es una búsqueda reciente o texto manual, enviar solo el término de búsqueda
         navigate(`/parking?search=${encodeURIComponent(place)}`);
       }
     }, 300);
@@ -268,18 +273,21 @@ const HomePage = () => {
 
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          // Redireccionar con las coordenadas
           const { latitude, longitude } = position.coords;
-          // Inmediatamente redirigir a la página de parqueaderos
-          navigate(`/parking?lat=${latitude}&lng=${longitude}&nearby=true`);
-          // Resetear el estado de búsqueda después de la navegación
+          // Construir los parámetros de búsqueda
+          const params = new URLSearchParams({
+            lat: latitude.toString(),
+            lng: longitude.toString(),
+            nearby: 'true'
+          });
+          // Navegar a la página de parking con los parámetros
+          navigate(`/parking?${params.toString()}`);
           setTimeout(() => setIsSearching(false), 300);
         },
         (error) => {
           console.error("Error obteniendo ubicación:", error);
           setIsSearching(false);
 
-          // Mensajes de error más descriptivos según el tipo de error
           let errorMessage = "No pudimos acceder a tu ubicación. Por favor intenta de nuevo o busca manualmente.";
 
           switch(error.code) {
@@ -811,7 +819,7 @@ const HomePage = () => {
 
         {/* CTA Section - New */}
         <section className="py-20 bg-gradient-to-b from-primary-600 to-primary-800 relative overflow-hidden">
-          
+
           <div className="container mx-auto px-4 relative z-10">
             <div className="max-w-4xl mx-auto text-center">
               <motion.h2
