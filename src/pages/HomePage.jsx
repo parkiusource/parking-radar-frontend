@@ -150,7 +150,6 @@ const HomePage = () => {
       });
   }, []);
 
-  // Generar features del hero usando traducciones
   const HERO_FEATURES = useMemo(() => [
     {
       icon: <FaMapMarkerAlt className="text-primary-300" />,
@@ -167,6 +166,33 @@ const HomePage = () => {
     {
       icon: <FaShieldAlt className="text-primary-300" />,
       text: t('hero.features.security', 'Seguridad garantizada')
+    }
+  ], [t]);
+
+  const STATS_CARDS = useMemo(() => [
+    {
+      value: "500+",
+      label: t('stats.cards.parking.title', 'Parqueaderos'),
+      description: t('stats.cards.parking.description', 'registrados en Bogotá'),
+      icon: <CircleParking className="w-8 h-8" />
+    },
+    {
+      value: "15K+",
+      label: t('stats.cards.users.title', 'Usuarios'),
+      description: t('stats.cards.users.description', 'activos mensuales'),
+      icon: <FaUsers className="w-8 h-8" />
+    },
+    {
+      value: "95%",
+      label: t('stats.cards.satisfaction.title', 'Satisfacción'),
+      description: t('stats.cards.satisfaction.description', 'de nuestros usuarios'),
+      icon: <FaAward className="w-8 h-8" />
+    },
+    {
+      value: "24/7",
+      label: t('stats.cards.availability.title', 'Disponibilidad'),
+      description: t('stats.cards.availability.description', 'servicio ininterrumpido'),
+      icon: <FaShieldAlt className="w-8 h-8" />
     }
   ], [t]);
 
@@ -436,17 +462,6 @@ const HomePage = () => {
               transform: 'scale(1.1)',
             }}
           >
-            {/* Animated Patterns - Reduced density */}
-            <div className="absolute inset-0 opacity-5">
-              <div
-                className="absolute inset-0"
-                style={{
-                  backgroundImage: `url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDYwIDYwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxnIGZpbGw9Im5vbmUiIGZpbGwtcnVsZT0iZXZlbm9kZCI+PHBhdGggZD0iTTM2IDE4YzMuMzE0IDAgNiAyLjY4NiA2IDZzLTIuNjg2IDYtNiA2LTYtMi42ODYtNi02IDIuNjg2LTYgNi02IiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMiIvPjwvZz48L3N2Zz4=')`,
-                  backgroundSize: '120px 120px',
-                  opacity: 0.5
-                }}
-              />
-            </div>
           </div>
 
           <div className="relative z-10 w-full max-w-6xl mx-auto px-4 md:px-6 flex flex-col items-center">
@@ -458,14 +473,13 @@ const HomePage = () => {
               className="text-center mb-16"
             >
               <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-8 tracking-tight leading-tight">
-                <span className="block mb-2">Encuentra el parqueadero</span>
+                <span className="block mb-2">{t('hero.title', 'Encuentra el parqueadero')}</span>
                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-amber-400 to-amber-600">
-                  ideal en segundos
+                  {t('hero.titleHighlighted', 'ideal en segundos')}
                 </span>
               </h1>
               <p className="text-xl sm:text-2xl md:text-3xl text-gray-100 max-w-3xl mx-auto leading-relaxed">
-                Información en tiempo real sobre disponibilidad,
-                <span className="block">tarifas y seguridad</span>
+                {t('hero.subtitle', 'Información en tiempo real sobre disponibilidad, tarifas y seguridad')}
               </p>
             </motion.div>
 
@@ -536,7 +550,7 @@ const HomePage = () => {
                     className="w-full px-8 py-4 bg-white/10 backdrop-blur-sm text-white border border-white/20 hover:bg-white/20 transition-all duration-300 rounded-full font-medium flex items-center justify-center gap-2"
                   >
                     <LuSearch className="text-xl" />
-                    <span>Ver todos los parqueaderos</span>
+                    <span>{t('hero.btn.seeAllParkingLots', 'Ver todos los parqueaderos')}</span>
                   </Button>
                 </Link>
               </motion.div>
@@ -576,32 +590,7 @@ const HomePage = () => {
           </div>
           <div className="container mx-auto px-4">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto relative z-10">
-              {[
-                {
-                  value: "500+",
-                  label: "Parqueaderos",
-                  description: "registrados en Bogotá",
-                  icon: <CircleParking className="w-8 h-8" />
-                },
-                {
-                  value: "15K+",
-                  label: "Usuarios",
-                  description: "activos mensuales",
-                  icon: <FaUsers className="w-8 h-8" />
-                },
-                {
-                  value: "95%",
-                  label: "Satisfacción",
-                  description: "de nuestros usuarios",
-                  icon: <FaAward className="w-8 h-8" />
-                },
-                {
-                  value: "24/7",
-                  label: "Disponibilidad",
-                  description: "servicio ininterrumpido",
-                  icon: <FaShieldAlt className="w-8 h-8" />
-                }
-              ].map((stat, index) => (
+              {STATS_CARDS.map((stat, index) => (
                 <motion.div
                   key={index}
                   initial={{ opacity: 0, y: 20 }}
@@ -640,11 +629,11 @@ const HomePage = () => {
               <div className="flex-1 max-w-xl">
                 <div>
                   <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
-                    Potencia tu negocio con{' '}
+                  {t('admin.sectionTitle', 'Potencia tu negocio con') + ' '}
                     <span className="text-amber-400">ParkiÜ</span>
                   </h2>
                   <p className="text-xl md:text-2xl text-white/90 mb-8 leading-relaxed">
-                    Únete a la red de parqueaderos más grande y moderna. Optimiza tus operaciones y aumenta tus ingresos.
+                    {t('admin.description', 'Únete a la red de parqueaderos más grande y moderna. Optimiza tus operaciones y aumenta tus ingresos.')}
                   </p>
                 </div>
 
@@ -672,7 +661,7 @@ const HomePage = () => {
                       variant="light"
                       className="w-full px-4 lg:px-6 py-4 bg-white text-primary hover:bg-white/90 transition-all duration-300 rounded-xl font-semibold text-lg shadow-xl hover:shadow-2xl transform hover:scale-105"
                     >
-                      Administrar mi parqueadero
+                      {t('admin.btn.manageParking', 'Administrar mi parqueadero')}
                     </Button>
                   </Link>
                   <Link to="/login" className="flex-1">
@@ -680,7 +669,8 @@ const HomePage = () => {
                       variant="dark"
                       className="w-full px-4 lg:px-6 py-4 bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-all duration-300 rounded-xl font-semibold text-lg"
                     >
-                      Iniciar sesión
+                      
+                      {t('admin.btn.login', 'Iniciar sesión')}
                     </Button>
                   </Link>
                 </div>
@@ -719,10 +709,10 @@ const HomePage = () => {
               className="text-center max-w-3xl mx-auto mb-16"
             >
               <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900">
-                Cómo funciona <span className="text-primary">ParkiÜ</span>
+              {t('howItWorks.sectionTitle', 'Potencia tu negocio con ParkiÜ')}
               </h2>
               <p className="text-xl text-gray-600">
-                Encuentra, compara y reserva parqueaderos de forma rápida y segura
+              {t('howItWorks.subtitle', 'Encuentra, compara y reserva parqueaderos de forma rápida y segura')}
               </p>
             </motion.div>
 
@@ -764,10 +754,10 @@ const HomePage = () => {
               className="text-center max-w-3xl mx-auto mb-16"
             >
               <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900">
-                Lo que dicen nuestros usuarios
+                {t('testimonials.sectionTitle', 'Lo que dicen nuestros usuarios')}
               </h2>
               <p className="text-xl text-gray-600">
-                Miles de conductores y administradores confían en ParkiÜ
+                {t('testimonials.subtitle', 'Miles de conductores y administradores confían en ParkiÜ')}
               </p>
             </motion.div>
 
@@ -809,7 +799,7 @@ const HomePage = () => {
                 <Button
                   className="group px-8 py-4 bg-primary text-white hover:bg-primary-600 transition-all duration-300 rounded-xl text-lg font-semibold shadow-xl hover:shadow-2xl transform hover:scale-105 inline-flex items-center gap-3"
                 >
-                  Comenzar a buscar parqueaderos
+                  {t('testimonials.btn.startLooking', 'Comenzar a buscar parqueaderos')}
                   <LuArrowRight className="group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
@@ -828,8 +818,7 @@ const HomePage = () => {
                 viewport={{ once: true }}
                 className="text-4xl md:text-5xl font-bold text-white mb-6"
               >
-                ¿Listo para encontrar tu{' '}
-                <span className="text-amber-400">parqueadero ideal</span>?
+                {t('ctaSection.sectionTitle', '¿Listo para encontrar tu parqueadero ideal?')}
               </motion.h2>
               <motion.p
                 initial={{ y: 30, opacity: 0 }}
@@ -838,7 +827,7 @@ const HomePage = () => {
                 transition={{ delay: 0.2 }}
                 className="text-xl text-white/90 mb-8"
               >
-                Únete a miles de conductores que ya disfrutan de una experiencia de parqueo sin estrés
+                {t('ctaSection.subtitle', 'Join thousands of drivers already enjoying a stress-free parking experience')}
               </motion.p>
               <motion.div
                 initial={{ y: 30, opacity: 0 }}
@@ -852,14 +841,14 @@ const HomePage = () => {
                   className="px-8 py-4 bg-amber-400 text-white hover:bg-amber-600 transition-all duration-300 rounded-xl text-lg font-semibold shadow-xl hover:shadow-2xl transform hover:scale-105 flex items-center justify-center gap-2"
                 >
                   <LuCompass className="text-2xl" />
-                  Encontrar parqueaderos cercanos
+                  {t('ctaSection.btn.findNearbyParking', 'Encontrar parqueaderos cercanos')}
                 </Button>
                 <Link to="/admin-landing">
                   <Button
                     variant="light"
                     className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white border border-white/20 hover:bg-white/20 transition-all duration-300 rounded-xl text-lg font-semibold"
                   >
-                    Administrar mi parqueadero
+                    {t('ctaSection.btn.manageParking', 'Administrar mi parqueadero')}
                   </Button>
                 </Link>
               </motion.div>
@@ -883,11 +872,11 @@ const HomePage = () => {
                   className="max-w-xl"
                 >
                   <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900">
-                    Encuentra parqueaderos en{' '}
+                  {t('expansionSection.sectionTitle', 'Encuentra parqueaderos en ')}
                     <span className="text-primary">Colombia</span>
                   </h2>
                   <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-                    Iniciamos en Bogotá y estamos expandiéndonos a las principales ciudades del país para brindarte la mejor experiencia de parqueo donde quiera que vayas.
+                  {t('expansionSection.subtitle', 'Iniciamos en Bogotá y estamos expandiéndonos a las principales ciudades del país para brindarte la mejor experiencia de parqueo donde quiera que vayas.')}
                   </p>
                   <div className="space-y-4">
                     <div className="flex items-center gap-3 text-primary">
@@ -895,7 +884,7 @@ const HomePage = () => {
                         <FaMapMarkerAlt className="w-6 h-6" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-xl">Disponible ahora</h3>
+                        <h3 className="font-semibold text-xl">{t('expansionSection.availableNow', 'Disponible ahora')}</h3>
                         <p className="text-gray-600">Bogotá D.C.</p>
                       </div>
                     </div>
@@ -904,7 +893,7 @@ const HomePage = () => {
                         <FaMapMarkerAlt className="w-6 h-6" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-xl">Próximamente</h3>
+                        <h3 className="font-semibold text-xl">{t('expansionSection.comingSoon', 'Próximamente')}</h3>
                         <p className="text-gray-600">Medellín • Cali • Barranquilla</p>
                       </div>
                     </div>
@@ -945,11 +934,11 @@ const HomePage = () => {
                     <div className="mt-6 grid grid-cols-2 gap-4">
                       <div className="bg-gray-50 rounded-xl p-4">
                         <div className="text-3xl font-bold text-primary mb-1">4+</div>
-                        <div className="text-gray-600 text-sm">Ciudades principales</div>
+                        <div className="text-gray-600 text-sm">{t('expansionSection.majorCities', 'Ciudades principales')}</div>
                       </div>
                       <div className="bg-gray-50 rounded-xl p-4">
                         <div className="text-3xl font-bold text-primary mb-1">1M+</div>
-                        <div className="text-gray-600 text-sm">Conductores potenciales</div>
+                        <div className="text-gray-600 text-sm">{t('expansionSection.potentialDrivers', 'Conductores potenciales')}</div>
                       </div>
                     </div>
                   </div>
@@ -985,13 +974,13 @@ const HomePage = () => {
 
               <div className="text-center mt-8">
                 <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                  ¿Por qué necesitamos tu ubicación?
+                  {t('locationDialog.title', '¿Por qué necesitamos tu ubicación?')}
                 </h3>
                 <p className="text-gray-600 mb-3">
-                  Para mostrarte los parqueaderos más cercanos a tu ubicación actual y brindarte la mejor experiencia posible.
+                {t('locationDialog.description', 'Para mostrarte los parqueaderos más cercanos a tu ubicación actual y brindarte la mejor experiencia posible.')}
                 </p>
                 <p className="text-sm text-gray-500 mb-6">
-                  No almacenamos tu ubicación, solo la usamos para esta búsqueda.
+                {t('locationDialog.privacy', 'No almacenamos tu ubicación, solo la usamos para esta búsqueda.')}
                 </p>
 
                 <div className="flex gap-3 justify-center">
@@ -999,13 +988,13 @@ const HomePage = () => {
                     onClick={() => setShowLocationDialog(false)}
                     className="px-6 py-3 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-xl text-base font-medium"
                   >
-                    Cancelar
+                    {t('locationDialog.btn.cancel', 'Cancelar')}
                   </Button>
                   <Button
                     onClick={confirmLocationAccess}
                     className="px-6 py-3 bg-primary text-white hover:bg-primary-600 rounded-xl text-base font-medium shadow-lg hover:shadow-xl transition-all"
-                  >
-                    Permitir acceso
+                    >
+                    {t('locationDialog.btn.allow', 'Permitir acceso')}
                   </Button>
                 </div>
               </div>

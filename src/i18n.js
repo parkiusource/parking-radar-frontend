@@ -7,9 +7,13 @@ const resources = {
   es: {
     translation: {
       hero: {
-        title: 'Encuentra tu parqueadero favorito',
+        title: 'Encuentra el parqueadero',
+        titleHighlighted: 'ideal en segundos',
         subtitle: 'Información en tiempo real sobre disponibilidad, tarifas y seguridad',
         findNow: 'Buscar ahora',
+        btn: {
+          seeAllParkingLots: 'Ver todos los parqueaderos',
+        },
         features: {
           availability: 'Disponibilidad en tiempo real',
           rates: 'Tarifas actualizadas',
@@ -54,7 +58,25 @@ const resources = {
         parkings: 'Parqueaderos registrados',
         users: 'Usuarios activos',
         searches: 'Búsquedas mensuales',
-        cities: 'Ciudades'
+        cities: 'Ciudades',
+        cards: {
+          parking: {
+            title: 'Parqueaderos',
+            description: 'registrados en Bogotá',
+          },
+          users: {
+            title: 'Usuarios',
+            description: 'activos mensuales',
+          },
+          satisfaction: {
+            title: 'Satisfacción',
+            description: 'de nuestros usuarios',
+          },
+          availability: {
+            title: 'Disponibilidad',
+            description: 'servicio ininterrumpido',
+          },
+        },
       },
       // Traducciones para el buscador
       search: {
@@ -63,8 +85,8 @@ const resources = {
       },
       // Traducciones para la sección de administrador
       admin: {
-        sectionTitle: 'Potencia tu negocio con ParkiÜ',
-        description: 'Aumenta tus ingresos y mejora la experiencia de tus clientes con nuestra plataforma especializada para administradores de parqueaderos',
+        sectionTitle: 'Potencia tu negocio con',
+        description: 'Únete a la red de parqueaderos más grande y moderna. Optimiza tus operaciones y aumenta tus ingresos.',
         registerButton: 'Administrar mi parqueadero',
         loginButton: '¿Ya tienes cuenta?',
         loginButtonAction: 'Iniciar sesión',
@@ -74,11 +96,16 @@ const resources = {
           clients: 'Atrae nuevos clientes',
           income: 'Optimiza tus ingresos',
           management: 'Gestión simplificada'
-        }
+        },
+        btn: {
+          manageParking: 'Administrar mi parqueadero',
+          login: 'Iniciar sesión',
+        },
       },
       // Traducciones para la sección Cómo funciona
       howItWorks: {
         sectionTitle: 'Cómo funciona ParkiÜ',
+        subtitle: 'Encuentra, compara y reserva parqueaderos de forma rápida y segura',
         search: {
           title: 'Busca',
           description: 'Encuentra parqueaderos verificados cerca de ti con disponibilidad e información actualizada'
@@ -95,6 +122,7 @@ const resources = {
       // Traducciones para testimonios
       testimonials: {
         sectionTitle: 'Lo que dicen nuestros usuarios',
+        subtitle: 'Miles de conductores y administradores confían en ParkiÜ',
         carlos: {
           name: 'Carlos Ramírez',
           role: 'Conductor',
@@ -109,7 +137,28 @@ const resources = {
           name: 'Andrés Martínez',
           role: 'Conductor frecuente',
           text: 'Las reseñas y comentarios me ayudan a elegir parqueaderos seguros. La información actualizada de disponibilidad es invaluable.'
-        }
+        },
+        btn: {
+          startLooking: 'Comenzar a buscar parqueaderos',
+        },
+      },
+      // Traducciones para CTA
+      ctaSection:{
+        sectionTitle: '¿Listo para encontrar tu parqueadero ideal?',
+        subtitle: 'Únete a miles de conductores que ya disfrutan de una experiencia de parqueo sin estrés',
+        btn: {
+          findNearbyParking: 'Encontrar parqueaderos cercanos',
+          manageParking: 'Administrar mi parqueadero',
+        },
+      },
+      // Traducciones para Expansion
+      expansionSection:{
+        sectionTitle: 'Encuentra parqueaderos en ',
+        subtitle: 'Iniciamos en Bogotá y estamos expandiéndonos a las principales ciudades del país para brindarte la mejor experiencia de parqueo donde quiera que vayas.',
+        availableNow : 'Disponible ahora',
+        comingSoon : 'Próximamente',
+        majorCities : 'Ciudades principales',
+        potentialDrivers : 'Conductores potenciales',
       },
       // Traducciones para SEO
       seo: {
@@ -122,10 +171,12 @@ const resources = {
       // Traducciones para el diálogo de ubicación
       locationDialog: {
         title: '¿Por qué necesitamos tu ubicación?',
-        description: 'Para mostrarte los parqueaderos más cercanos a tu ubicación actual.',
+        description: 'Para mostrarte los parqueaderos más cercanos a tu ubicación actual y brindarte la mejor experiencia posible.',
         privacy: 'No almacenamos tu ubicación, solo la usamos para esta búsqueda.',
-        cancelButton: 'Cancelar',
-        allowButton: 'Permitir'
+        btn: {
+          cancel: 'Cancel',
+          allow: 'Allow',
+        },
       },
       // Traducciones para About.jsx
       about: {
@@ -227,9 +278,13 @@ const resources = {
   en: {
     translation: {
       hero: {
-        title: 'Find your favorite parking spot',
+        title: 'Find the parking lot',
+        titleHighlighted: 'ideal in seconds',
         subtitle: 'Real-time information on availability, rates and security',
         findNow: 'Find now',
+        btn: {
+          seeAllParkingLots: 'See all parking lots',
+        },
         features: {
           availability: 'Real-time availability',
           rates: 'Updated rates',
@@ -274,7 +329,25 @@ const resources = {
         parkings: 'Registered Parking Lots',
         users: 'Active Users',
         searches: 'Monthly Searches',
-        cities: 'Cities'
+        cities: 'Cities',
+        cards: {
+          parking: {
+            title: 'Parking',
+            description: 'registered in Bogotá',
+          },
+          users: {
+            title: 'Users',
+            description: 'monthly assets',
+          },
+          satisfaction: {
+            title: 'Satisfaction',
+            description: 'of our users',
+          },
+          availability: {
+            title: 'Availability',
+            description: 'uninterrupted service',
+          },
+        },
       },
       // English translations for search
       search: {
@@ -283,8 +356,8 @@ const resources = {
       },
       // English translations for admin section
       admin: {
-        sectionTitle: 'Boost your business with ParkiÜ',
-        description: 'Increase your income and improve your customers\' experience with our specialized platform for parking administrators',
+        sectionTitle: 'Boost your business with',
+        description: 'Join the largest and most modern parking network. Optimize your operations and increase your revenues.',
         registerButton: 'Register my parking lot',
         loginButton: 'Already have an account?',
         loginButtonAction: 'Log in',
@@ -294,11 +367,16 @@ const resources = {
           clients: 'Attract new customers',
           income: 'Optimize your income',
           management: 'Simplified management'
-        }
+        },
+        btn: {
+          manageParking: 'Manage my parking lot',
+          login: 'Log in',
+        },
       },
       // English translations for How it works
       howItWorks: {
         sectionTitle: 'How ParkiÜ Works',
+        subtitle: 'Find, compare and reserve parking spaces quickly and securely.',
         search: {
           title: 'Search',
           description: 'Find verified parking lots near you with availability and updated information'
@@ -315,6 +393,7 @@ const resources = {
       // English translations for testimonials
       testimonials: {
         sectionTitle: 'What our users say',
+        subtitle: 'Thousands of drivers and managers rely on ParkiÜ',
         carlos: {
           name: 'Carlos Ramírez',
           role: 'Driver',
@@ -329,7 +408,28 @@ const resources = {
           name: 'Andrés Martínez',
           role: 'Frequent Driver',
           text: 'Reviews and comments help me choose safe parking lots. The updated availability information is invaluable.'
-        }
+        },
+        btn: {
+          startLooking: 'Start looking for parking spaces',
+        },
+      },
+      // Traducciones para CTA
+      ctaSection:{
+        sectionTitle: 'Ready to find your ideal parking space?',
+        subtitle: 'Join thousands of drivers already enjoying a stress-free parking experience',
+        btn: {
+          findNearbyParking: 'Find nearby parking',
+          manageParking: 'Manage my parking lot',
+        },
+      },
+      // Traducciones para Expansion
+      expansionSection:{
+        sectionTitle: 'Find parking in ',
+        subtitle: 'We started in Bogota and are expanding to the main cities of the country to offer you the best parking experience wherever you go',
+        availableNow : 'Available now',
+        comingSoon : 'Coming soon',
+        majorCities : 'Major cities',
+        potentialDrivers : 'Potential drivers',
       },
       // English translations for SEO
       seo: {
@@ -342,10 +442,12 @@ const resources = {
       // English translations for location dialog
       locationDialog: {
         title: 'Why do we need your location?',
-        description: 'To show you the closest parking lots to your current location.',
+        description: 'To show you the closest parking lots to your current location and provide you with the best possible experience.',
         privacy: 'We don\'t store your location, we only use it for this search.',
-        cancelButton: 'Cancel',
-        allowButton: 'Allow'
+        btn: {
+          cancel: 'Cancel',
+          allow: 'Allow',
+        },
       },
       // English translations for About.jsx
       about: {
