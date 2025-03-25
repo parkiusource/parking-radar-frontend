@@ -19,8 +19,18 @@ export const useParkingSpots = ({ queryClient, ...options }) => {
       });
       return response.data.map((parking) => ({
         ...parking,
-        totalSpots: parking.available_spaces,
-        availableSpots: parking.available_spaces,
+        id: parking.id,
+        name: parking.name || 'Parqueadero sin nombre',
+        address: parking.address || 'Dirección no disponible',
+        available_spaces: parking.available_spaces || 0,
+        min_price: parking.min_price || 0,
+        price_per_hour: parking.price_per_hour || 3000,
+        price_per_minute: parking.price_per_minute || 50,
+        rating: parking.rating || null,
+        formattedDistance: typeof parking.distance === 'number'
+          ? `${parking.distance.toFixed(1)}`
+          : '0.0',
+        isFull: parking.available_spaces === 0,
       }));
     },
     enabled: isAuthenticated && options?.enabled,

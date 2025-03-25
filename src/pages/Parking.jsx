@@ -1,638 +1,271 @@
-import { AnimatePresence, motion } from 'framer-motion';
-import React, { useCallback, useContext, useState, useEffect, useRef, useMemo } from 'react';
-import { LuCar, LuDollarSign, LuNavigation, LuSearch, LuArrowLeft, LuInfo, LuMapPin, LuX } from 'react-icons/lu';
+import { AnimatePresence, motion, LazyMotion, domAnimation } from 'framer-motion';
+import { useCallback, useContext, useState, useRef, Suspense, useMemo, useEffect, memo } from 'react';
+import { Search, ArrowLeft, Info } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { useSwipeable } from 'react-swipeable';
 
 import { useSearchPlaces } from '@/api/hooks/useSearchPlaces';
-import { useWebSocket } from '@/hooks/useWebSocket';
-import { Button } from '@/components/common';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import Map from '@/components/Map';
-import { SearchBox } from '@/components/SearchBox';
-import { ParkingContext } from '@/context/ParkingContext';
-import { UserContext } from '@/context/UserContext';
+import { ParkingContext } from '@/context/parkingContextUtils';
+import { UserContext } from '@/context/userContextDefinition';
 import { useNearbyParkingSpots } from '@/hooks/useNearbySpots';
 import { getHeaderClassName } from '@/components/Header';
 import { Logo } from '@/components/Logo';
-import { useInView } from 'react-intersection-observer';
+import Map from '@/components/Map';
+import { SearchBox } from '@/components/SearchBox';
+import ParkingCarousel from '@/components/map/ParkingCarousel';
+import ParkingSpotList from '@/pages/components/ParkingSpotList';
 
-// Constantes
 const DEFAULT_MAX_DISTANCE = 1000;
 const DEFAULT_LIMIT = 10;
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos en milisegundos
 
-// Hook personalizado para caché de búsqueda
-const useLocationCache = () => {
-  const [cache, setCache] = useState({});
-
-  const getLocationCache = useCallback((lat, lng) => {
-    const key = `${lat},${lng}`;
-    const cached = cache[key];
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-      return cached.data;
-    }
-    return null;
-  }, [cache]);
-
-  const setLocationCache = useCallback((lat, lng, data) => {
-    const key = `${lat},${lng}`;
-    setCache(prevCache => ({
-      ...prevCache,
-      [key]: {
-        data,
-        timestamp: Date.now()
-      }
-    }));
-  }, []);
-
-  return { getLocationCache, setLocationCache };
-};
-
-// Componente Skeleton mejorado con aria-label
-const ParkingSpotSkeleton = () => (
-  <div className="animate-pulse" aria-label="Cargando información del parqueadero">
-    <div className="mb-4 p-4 bg-white rounded-xl shadow-sm">
-      <div className="flex justify-between items-center mb-3">
-        <div className="flex items-center gap-2">
-          <div className="bg-gray-200 w-8 h-8 rounded-full" />
-          <div className="bg-gray-200 h-4 w-32 rounded" />
-        </div>
-        <div className="bg-gray-200 h-4 w-16 rounded-full" />
-      </div>
-      <div className="flex items-center gap-1 mb-4">
-        <div className="bg-gray-200 h-3 w-full rounded" />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-gray-200 h-8 rounded" />
-        <div className="bg-gray-200 h-8 rounded" />
-      </div>
+// Mensaje de no resultados memoizado
+const NoResultsMessage = memo(() => (
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    className="flex flex-col items-center text-center p-6 bg-white rounded-xl shadow-sm"
+  >
+    <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+      <Info className="h-8 w-8 text-gray-400" />
     </div>
-  </div>
-);
-
-// Componente optimizado del SearchBox con feedback táctil
-const MemoizedSearchBox = React.memo(SearchBox);
-
-// Componente ParkingSpotList optimizado con gestos táctiles y mejor accesibilidad
-const ParkingSpotList = React.memo(({
-  spots,
-  selectedSpot,
-  onSpotClick
-}) => {
-  const { ref, inView } = useInView({
-    threshold: 0.1,
-    triggerOnce: true,
-    rootMargin: '100px'
-  });
-
-  const handlers = useSwipeable({
-    onSwipedLeft: (eventData) => {
-      const target = eventData.event.target.closest('[data-parking-card]');
-      if (target) {
-        target.classList.add('translate-x-2');
-        setTimeout(() => target.classList.remove('translate-x-2'), 300);
-      }
-    },
-    onSwipedRight: (eventData) => {
-      const target = eventData.event.target.closest('[data-parking-card]');
-      if (target) {
-        target.classList.add('-translate-x-2');
-        setTimeout(() => target.classList.remove('-translate-x-2'), 300);
-      }
-    },
-    preventDefaultTouchmoveEvent: true,
-    trackMouse: true
-  });
-
-  if (!inView) {
-    return <div ref={ref}>{Array(3).fill(null).map((_, i) => <ParkingSpotSkeleton key={i} />)}</div>;
-  }
-
-  if (spots.length === 0) {
-    return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="flex flex-col items-center text-center p-6 bg-white rounded-xl shadow-sm"
-        role="alert"
-      >
-        <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-          <LuInfo className="h-8 w-8 text-gray-400" aria-hidden="true" />
-        </div>
-        <h3 className="text-gray-700 font-medium mb-2">No encontramos parqueaderos</h3>
-        <p className="text-gray-600 text-sm">
-          No encontramos parqueaderos en esta zona. Intenta buscar en otra ubicación.
-        </p>
-      </motion.div>
-    );
-  }
-
-  return (
-    <div ref={ref} {...handlers}>
-      {spots.map((parking) => (
-        <motion.div
-          key={parking.id}
-          data-parking-card
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.3 }}
-          layout
-          className={`mb-4 p-4 bg-white rounded-xl shadow-sm border border-transparent hover:border-primary/30 hover:shadow-md transition-all transform ${
-            selectedSpot?.id === parking.id ? 'border-primary border-opacity-70 ring-2 ring-primary/20' : ''
-          }`}
-          onClick={() => onSpotClick(parking)}
-          onKeyPress={(e) => e.key === 'Enter' && onSpotClick(parking)}
-          tabIndex={0}
-          role="button"
-          aria-pressed={selectedSpot?.id === parking.id}
-          aria-label={`Parqueadero ${parking.name}, ${parking.available_spaces} espacios disponibles`}
-        >
-          <div className="flex justify-between items-center mb-3">
-            <div className="flex items-center">
-              <div className="bg-primary/10 p-1.5 rounded-full text-primary mr-2">
-                <LuCar className="w-4 h-4" aria-hidden="true" />
-              </div>
-              <h3 className="font-medium text-gray-800 text-base">
-                {parking.name}
-              </h3>
-            </div>
-            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-              parking.available_spaces > 0
-                ? 'bg-green-100 text-green-800'
-                : 'bg-red-100 text-red-800'
-            }`}>
-              {parking.available_spaces > 0 ? 'Disponible' : 'Lleno'}
-            </span>
-          </div>
-
-          <div className="flex items-center text-gray-600 text-xs mb-4">
-            <LuMapPin className="mr-1 flex-shrink-0 text-gray-400" aria-hidden="true" />
-            <span className="line-clamp-1">{parking.address}</span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="flex items-center text-gray-700 text-sm">
-              <div className="bg-blue-50 p-1.5 rounded-full text-blue-600 mr-2">
-                <LuCar className="w-4 h-4" aria-hidden="true" />
-              </div>
-              <span>{parking.available_spaces} disponibles</span>
-            </div>
-            <div className="flex items-center text-gray-700 text-sm">
-              <div className="bg-green-50 p-1.5 rounded-full text-green-600 mr-2">
-                <LuDollarSign className="w-4 h-4" aria-hidden="true" />
-              </div>
-              <span>$60 a $100/min</span>
-            </div>
-          </div>
-
-          {selectedSpot?.id === parking.id && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mt-2 pt-2 border-t border-gray-100"
-            >
-              <div className="flex items-center justify-between text-sm text-gray-600">
-                <span>Última actualización: {new Date().toLocaleTimeString()}</span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSpotClick(null);
-                  }}
-                  className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-                  aria-label="Cerrar detalles"
-                >
-                  <LuX className="w-4 h-4" />
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </motion.div>
-      ))}
-    </div>
-  );
-});
-
-ParkingSpotList.displayName = 'ParkingSpotList';
-
-// Componente ConnectionIndicator optimizado
-const ConnectionIndicator = React.memo(({ isConnected }) => (
-  <div className="flex items-center gap-2" role="status" aria-live="polite">
-    <div
-      className={`w-2 h-2 rounded-full ${
-        isConnected ? 'bg-emerald-500' : 'bg-amber-500'
-      }`}
-    />
-    <span className="text-xs font-medium hidden md:block">
-      {isConnected ? (
-        <span className="text-emerald-600">En línea</span>
-      ) : (
-        <span className="text-amber-600">Fuera de línea</span>
-      )}
-    </span>
-  </div>
+    <h3 className="text-gray-700 font-medium mb-2">No encontramos parqueaderos</h3>
+    <p className="text-gray-600 text-sm">
+      No encontramos parqueaderos en esta zona. Intenta buscar en otra ubicación.
+    </p>
+  </motion.div>
 ));
 
-ConnectionIndicator.displayName = 'ConnectionIndicator';
+NoResultsMessage.displayName = 'NoResultsMessage';
 
 export default function Parking() {
-  const { t } = useTranslation();
-  const { parkingSpots, targetLocation, setTargetLocation, invalidate, refetch } =
-    useContext(ParkingContext);
+  const { parkingSpots, targetLocation, setTargetLocation } = useContext(ParkingContext);
   const { user } = useContext(UserContext);
-  const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
-  const [showConnectionMessage, setShowConnectionMessage] = useState(false);
-  const [isMobileListVisible, setIsMobileListVisible] = useState(false);
-
-  const searchRef = useRef(null);
   const [selectedSpot, setSelectedSpot] = useState(null);
-  const [spotNavigation, setSpotNavigation] = useState(null);
   const mapRef = useRef(null);
+  const [searchParams] = useSearchParams();
+  const [initialSearchDone, setInitialSearchDone] = useState(false);
+  const lastCardClickTime = useRef(0);
 
-  const { location: userLocation } = user;
-  const [initialLocation, setInitialLocation] = useState(null);
+  // Memoizar el centro y los spots cercanos
+  const spotCenter = useMemo(() => {
+    if (!targetLocation && !user?.location) return null;
 
-  const { getLocationCache, setLocationCache } = useLocationCache();
+    const location = targetLocation || user.location;
+    const lat = parseFloat(location.lat);
+    const lng = parseFloat(location.lng);
 
-  // Configuración de gestos táctiles para móviles
-  const swipeHandlers = useSwipeable({
-    onSwipedUp: () => setIsMobileListVisible(true),
-    onSwipedDown: () => setIsMobileListVisible(false),
-    preventDefaultTouchmoveEvent: true,
-    trackMouse: true
-  });
+    if (!isFinite(lat) || !isFinite(lng)) return null;
 
-  // Procesar los parámetros de URL al cargar el componente
-  useEffect(() => {
-    const handleLocationError = (error) => {
-      console.error('Error getting location:', error);
-      setIsLoadingLocation(false);
+    return {
+      lat,
+      lng
     };
+  }, [targetLocation, user?.location]);
 
-    const processLocation = async (lat, lng) => {
-      try {
-        const newLocation = { lat: parseFloat(lat), lng: parseFloat(lng) };
-
-        // Intentar obtener datos del caché
-        const cachedData = getLocationCache(lat, lng);
-
-        if (cachedData) {
-          setInitialLocation(cachedData.location);
-          setTargetLocation(cachedData.location);
-          if (cachedData.searchTerm) {
-            setSearchTerm(cachedData.searchTerm);
-          }
-        } else {
-          // Si no hay caché, proceder normalmente
-          setInitialLocation(newLocation);
-          setTargetLocation(newLocation);
-
-          // Guardar en caché
-          setLocationCache(lat, lng, {
-            location: newLocation,
-            searchTerm: searchTerm
-          });
-        }
-
-        setIsLoadingLocation(false);
-      } catch (error) {
-        handleLocationError(error);
-      }
-    };
-
-    const init = async () => {
-      setIsLoadingLocation(true);
-      const searchQuery = searchParams.get('search');
-      const lat = searchParams.get('lat');
-      const lng = searchParams.get('lng');
-      const nearby = searchParams.get('nearby');
-
-      setTargetLocation(null);
-      setInitialLocation(null);
-
-      if (searchQuery) {
-        setSearchTerm(searchQuery);
-      }
-
-      if (lat && lng) {
-        await processLocation(lat, lng);
-        if (nearby === 'true') {
-          setSearchTerm('Tu ubicación actual');
-        }
-      } else {
-        setIsLoadingLocation(false);
-      }
-    };
-
-    init();
-  }, [searchParams, setTargetLocation, getLocationCache, setLocationCache, searchTerm]);
-
-  // Memoize the WebSocket message handler to keep its reference stable
-  const handleWebSocketMessage = useCallback((data) => {
-    if (data.type === 'new-change-in-parking') {
-      console.log('Received parking update, refreshing data...');
-      invalidate();
-      refetch();
-    }
-  }, [invalidate, refetch]);
-
-  // Initialize WebSocket connection with real-time updates
-  const { isConnected } = useWebSocket({
-    onMessage: handleWebSocketMessage,
-    // Only enable WebSocket when the component is mounted
-    enabled: true
-  });
-
-  // Efecto para mostrar/ocultar el mensaje de conexión
-  useEffect(() => {
-    if (isConnected) {
-      setShowConnectionMessage(true);
-      const timer = setTimeout(() => {
-        setShowConnectionMessage(false);
-      }, 3000); // Ocultar después de 3 segundos
-      return () => clearTimeout(timer);
-    } else {
-      setShowConnectionMessage(true);
-    }
-  }, [isConnected]);
-
-  // Memoizar el resultado de useNearbyParkingSpots para evitar recálculos
   const { nearbySpots } = useNearbyParkingSpots({
     spots: parkingSpots,
-    center: targetLocation || userLocation,
+    center: spotCenter,
     limit: DEFAULT_LIMIT,
     maxRadius: DEFAULT_MAX_DISTANCE,
   });
 
-  // Determinar el título según el tipo de búsqueda - Memoizado para evitar recálculos
-  const getSectionTitle = useMemo(() => {
-    if (isLoadingLocation) {
-      return t('parking.loading', 'Buscando parqueaderos cercanos...');
-    }
-
-    if (!parkingSpots?.length) {
-      return searchTerm
-        ? t('parking.noResults', 'No se encontraron parqueaderos cerca de {{location}}', { location: searchTerm })
-        : t('parking.noResultsDefault', 'No se encontraron parqueaderos cercanos');
-    }
-
-    return searchTerm
-      ? t('parking.resultsFound', 'Parqueaderos cerca de {{location}}', { location: searchTerm })
-      : t('parking.resultsFoundDefault', 'Parqueaderos cercanos');
-  }, [isLoadingLocation, parkingSpots, searchTerm, t]);
-
-  // Determinar el mensaje descriptivo - Memoizado para evitar recálculos
-  const getDescriptiveMessage = useMemo(() => {
-    if (!parkingSpots?.length) {
-      return t('parking.tryDifferentLocation', 'Intenta con otra ubicación o amplía tu área de búsqueda');
-    }
-
-    return parkingSpots.length === 1
-      ? t('parking.oneSpotFound', 'Se encontró {{count}} parqueadero en tu área', { count: 1 })
-      : t('parking.multipleSpotFound', 'Se encontraron {{count}} parqueaderos en tu área', { count: parkingSpots.length });
-  }, [parkingSpots, t]);
-
-  const handleParkingSpotSelected = useCallback(({ spot, navigate }) => {
-    setSelectedSpot(spot);
-    setSpotNavigation(() => navigate);
+  // Memoizar handlers
+  const handleParkingSpotSelected = useCallback((data) => {
+    if (!data?.spot?.id) return;
+    setSelectedSpot(data.spot);
   }, []);
 
-  // Función mejorada para manejar el clic en la tarjeta de parqueadero
   const handleParkingCardClick = useCallback((parking) => {
-    setSelectedSpot(parking);
+    if (!parking?.id) return;
 
-    // Utilizar la referencia al mapa para centrar en el parqueadero seleccionado
-    if (mapRef.current && mapRef.current.centerOnSpot) {
-      mapRef.current.centerOnSpot(parking);
-    }
+    // Evitar clicks muy frecuentes
+    if (lastCardClickTime.current && Date.now() - lastCardClickTime.current < 300) return;
+    lastCardClickTime.current = Date.now();
+
+    setSelectedSpot(prev => prev?.id === parking.id ? null : parking);
+
+    // Usar requestAnimationFrame para suavizar la animación
+    requestAnimationFrame(() => {
+      if (mapRef.current?.centerOnSpot) {
+        mapRef.current.centerOnSpot(parking);
+      }
+    });
   }, []);
 
-  // Función para manejar la selección de lugares personalizados en la búsqueda
-  const handleCustomPlaceSelected = useCallback(
-    (place) => {
-      // Limpiar estados previos
-      setSelectedSpot(null);
-      setIsLoadingLocation(true);
+  const handleCustomPlaceSelected = useCallback((place) => {
+    if (!place?.location) return;
 
-      // Actualizar el estado de búsqueda
-      if (place.displayName) {
-        setSearchTerm(place.displayName.text);
+    setSelectedSpot(null);
+    if (place.displayName?.text) {
+      setSearchTerm(place.displayName.text);
+    }
+
+    const lat = parseFloat(place.location.latitude);
+    const lng = parseFloat(place.location.longitude);
+
+    if (!isFinite(lat) || !isFinite(lng)) return;
+
+    const newLocation = {
+      lat,
+      lng
+    };
+
+    setTargetLocation(newLocation);
+
+    // Disparar búsqueda de parqueaderos cercanos
+    requestAnimationFrame(() => {
+      if (mapRef.current?.searchNearbyParking) {
+        mapRef.current.searchNearbyParking(newLocation);
       }
+    });
+  }, [setTargetLocation]);
 
-      // Crear la nueva ubicación
-      const newLocation = {
-        lat: place.location.latitude,
-        lng: place.location.longitude,
-      };
+  // Efecto mejorado para manejar parámetros de URL
+  useEffect(() => {
+    if (initialSearchDone) return;
 
-      // Resetear ubicaciones anteriores primero
-      setTargetLocation(null);
-      setInitialLocation(null);
+    const lat = searchParams.get('lat');
+    const lng = searchParams.get('lng');
+    const search = searchParams.get('search');
+    const nearby = searchParams.get('nearby');
 
-      // Después de un pequeño retraso, establecer la nueva ubicación
-      setTimeout(() => {
-        // Actualizar en ambos estados
-        setInitialLocation(newLocation);
-        setTargetLocation(newLocation);
-        setIsLoadingLocation(false);
+    if (lat && lng) {
+      const parsedLat = parseFloat(lat);
+      const parsedLng = parseFloat(lng);
 
-        // Actualizar la URL para reflejar la nueva búsqueda sin recargar la página
-        const newSearchParams = new URLSearchParams();
-        if (place.displayName) {
-          newSearchParams.set('search', place.displayName.text);
+      if (isFinite(parsedLat) && isFinite(parsedLng)) {
+        setTargetLocation({
+          lat: parsedLat,
+          lng: parsedLng
+        });
+
+        // Si es una búsqueda nearby, centrar el mapa inmediatamente
+        if (nearby === 'true' && mapRef.current?.centerOnSpotWithoutPopup) {
+          requestAnimationFrame(() => {
+            mapRef.current.centerOnSpotWithoutPopup({
+              latitude: parsedLat,
+              longitude: parsedLng
+            });
+          });
         }
-        newSearchParams.set('lat', place.location.latitude);
-        newSearchParams.set('lng', place.location.longitude);
+      }
+    }
 
-        const newUrl = `${window.location.pathname}?${newSearchParams.toString()}`;
-        window.history.pushState({ path: newUrl }, '', newUrl);
-      }, 100);
-    },
-    [setTargetLocation, setInitialLocation],
-  );
+    if (search) {
+      const decodedSearch = decodeURIComponent(search);
+      setSearchTerm(decodedSearch);
+    }
+
+    setInitialSearchDone(true);
+  }, [searchParams, setTargetLocation, initialSearchDone]);
+
+  // Limpieza de recursos al desmontar
+  useEffect(() => {
+    return () => {
+      lastCardClickTime.current = 0;
+    };
+  }, []);
+
+  // Memoizar el conteo de spots para evitar recálculos
+  const spotsCount = useMemo(() => parkingSpots?.length || 0, [parkingSpots]);
 
   return (
-    <div className="flex flex-col min-h-screen relative bg-gray-50">
-      <header className={getHeaderClassName({
-        showShadow: true,
-        className: 'z-10 backdrop-blur-md sticky top-0 bg-white/95 border-b border-gray-100/50 px-4 py-3 transition-all duration-300'
-      })}>
-        <Link to="/" className="flex items-center group" aria-label="Volver al inicio">
-          <motion.div
-            initial={{ x: -10, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            className="mr-3 md:hidden hover:text-primary transition-colors"
-          >
-            <LuArrowLeft className="text-gray-600 group-hover:text-primary transition-colors" aria-hidden="true" />
-          </motion.div>
-          <Logo variant="secondary" className="scale-90 md:scale-100" />
-        </Link>
-
-        <MemoizedSearchBox
-          ref={searchRef}
-          className="flex-1 max-w-xl mx-3"
-          placeholder="Busca cerca a tu destino..."
-          useSearchHook={useSearchPlaces}
-          onResultSelected={handleCustomPlaceSelected}
-          value={searchTerm}
-          aria-label="Buscar ubicación"
-        >
-          <LuSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" aria-hidden="true" />
-        </MemoizedSearchBox>
-
-        <ConnectionIndicator isConnected={isConnected} />
-      </header>
-
-      <ErrorBoundary>
-        <main className="flex-grow grid grid-cols-1 md:grid-cols-3 gap-6 p-4 relative">
-          {/* Show connection status messages */}
-          <AnimatePresence>
-            {showConnectionMessage && (
+    <LazyMotion features={domAnimation}>
+      <div className="flex flex-col h-[100dvh] overflow-hidden bg-white">
+        <header className={getHeaderClassName({
+          showShadow: true,
+          className: 'z-10 backdrop-blur-md sticky top-0 bg-white/95 border-b border-gray-100/50 flex items-center h-14'
+        })}>
+          <div className="w-full max-w-screen-2xl mx-auto px-3 flex items-center gap-2">
+            <Link to="/" className="flex items-center group">
               <motion.div
-                key={isConnected ? "connected" : "disconnected"}
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="absolute top-4 left-1/2 -translate-x-1/2 z-20"
+                initial={{ x: -10, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                className="mr-2 md:hidden"
               >
-                {isConnected ? (
-                  <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-2 rounded-xl shadow-lg flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="font-medium">En línea</span>
-                  </div>
-                ) : (
-                  <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-2 rounded-xl shadow-lg flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                    <span className="font-medium">Sin conexión</span>
-                  </div>
-                )}
+                <ArrowLeft className="w-5 h-5 text-gray-600 group-hover:text-primary transition-colors" />
               </motion.div>
-            )}
-          </AnimatePresence>
+              <Logo variant="secondary" className="scale-75 md:scale-90" />
+            </Link>
 
-          <AnimatePresence mode="wait">
-            {isLoadingLocation && (
-              <motion.div
-                key="loading"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 z-10 flex items-center justify-center bg-white/90 backdrop-blur-sm"
-              >
-                <div className="flex flex-col items-center bg-white p-6 rounded-2xl shadow-lg">
-                  <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-                  <p className="text-gray-700 font-medium">Obteniendo ubicación...</p>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <motion.section
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.4 }}
-            className="col-span-2 bg-white rounded-2xl shadow-sm overflow-hidden h-full border border-gray-100/50"
-          >
-            <div className="h-full w-full bg-gray-100">
-              <ErrorBoundary>
-                <section className="w-full h-[60vh] md:h-[70vh] lg:h-[80vh] xl:h-[85vh]">
-                  <Map
-                    ref={mapRef}
-                    onParkingSpotSelected={handleParkingSpotSelected}
-                    selectedSpot={selectedSpot}
-                    setSelectedSpot={setSelectedSpot}
-                    targetLocation={initialLocation || targetLocation}
-                    className="w-full h-full"
-                  />
-                </section>
-              </ErrorBoundary>
-            </div>
-          </motion.section>
-
-          <motion.section
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.3, duration: 0.4 }}
-            className="overflow-y-auto space-y-4"
-          >
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100/50">
-              <h2 className="text-xl font-semibold text-gray-800 mb-2">
-                {getSectionTitle}
-              </h2>
-              <p className="text-gray-600 text-sm">
-                {getDescriptiveMessage}
-              </p>
-            </div>
-
-            <AnimatePresence>
-              <ParkingSpotList
-                key="parkingSpotList"
-                spots={nearbySpots}
-                selectedSpot={selectedSpot}
-                onSpotClick={handleParkingCardClick}
-              />
-
-              {selectedSpot && spotNavigation && (
-                <motion.div
-                  key="navigationButton"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100/50"
+            <div className="relative flex-1 max-w-xl">
+              <Suspense fallback={<div className="h-12 bg-gray-100 rounded-xl animate-pulse" />}>
+                <SearchBox
+                  className="w-full"
+                  placeholder="Busca cerca a tu destino..."
+                  useSearchHook={useSearchPlaces}
+                  onResultSelected={handleCustomPlaceSelected}
+                  value={searchTerm}
                 >
-                  <Button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      spotNavigation();
-                    }}
-                    className="w-full bg-primary hover:bg-primary-600 text-white transition-all flex items-center justify-center gap-2 px-4 py-3 rounded-xl shadow-md hover:shadow-lg hover:scale-[1.02] font-medium"
-                    aria-label="Navegar al parqueadero seleccionado"
-                  >
-                    <LuNavigation className="w-5 h-5 animate-pulse" />
-                    <span>Navegar a {selectedSpot.name}</span>
-                  </Button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.section>
-
-          {/* Versión móvil con gesto swipe */}
-          <motion.div
-            className="md:hidden fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-xl z-50 border-t border-gray-100/50"
-            initial={{ y: "100%" }}
-            animate={{ y: isMobileListVisible ? "0%" : "85%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            {...swipeHandlers}
-          >
-            <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto my-3" />
-            <div className="px-4 pb-safe max-h-[80vh] overflow-y-auto">
-              <AnimatePresence>
-                <ParkingSpotList
-                  spots={nearbySpots}
-                  selectedSpot={selectedSpot}
-                  onSpotClick={handleParkingCardClick}
-                />
-              </AnimatePresence>
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                </SearchBox>
+              </Suspense>
             </div>
-          </motion.div>
-        </main>
-      </ErrorBoundary>
+          </div>
+        </header>
 
-      <footer className="py-4 px-4 bg-white border-t border-gray-100/50 text-center text-sm text-gray-500">
-        <div className="container mx-auto flex flex-wrap justify-center items-center gap-6">
-          <div className="font-medium">© {new Date().getFullYear()} ParkiÜ</div>
-          <nav className="flex items-center gap-6">
-            <Link to="/about" className="hover:text-primary transition-colors">Nosotros</Link>
-            <Link to="/terms" className="hover:text-primary transition-colors">Términos</Link>
-            <Link to="/privacy" className="hover:text-primary transition-colors">Privacidad</Link>
-          </nav>
-        </div>
-      </footer>
-    </div>
+        <ErrorBoundary>
+          <main className="flex-1 flex flex-col md:grid md:grid-cols-12 gap-0.5 p-0.5 md:p-4 relative overflow-hidden">
+            <motion.section
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="h-[calc(100vh-200px)] md:flex-1 relative md:col-span-8 rounded-lg md:rounded-2xl shadow-lg md:h-full overflow-hidden"
+            >
+              <Map
+                ref={mapRef}
+                selectedSpot={selectedSpot}
+                setSelectedSpot={setSelectedSpot}
+                targetLocation={targetLocation}
+                onParkingSpotSelected={handleParkingSpotSelected}
+              />
+            </motion.section>
+
+            {/* Desktop Parking List */}
+            <motion.section
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 }}
+              className="hidden md:block md:col-span-4 h-full bg-white rounded-2xl shadow-lg border border-gray-100/50 overflow-hidden"
+            >
+              <div className="p-3 border-b border-gray-100 bg-white/95 backdrop-blur-sm sticky top-0 z-10">
+                <h2 className="text-base font-semibold text-gray-900">
+                  Parqueaderos cercanos
+                </h2>
+                <p className="text-sm text-gray-600 mt-0.5">
+                  {spotsCount} encontrados
+                </p>
+              </div>
+
+              <div className="overflow-y-auto h-[calc(100%-4rem)] p-3">
+                <AnimatePresence>
+                  <ParkingSpotList
+                    spots={nearbySpots}
+                    selectedSpot={selectedSpot}
+                    onSpotClick={handleParkingCardClick}
+                  />
+                </AnimatePresence>
+              </div>
+            </motion.section>
+
+            {/* Mobile Carousel */}
+            <motion.section
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="md:hidden flex-shrink-0 min-h-[280px] max-h-[320px] flex flex-col"
+            >
+              {nearbySpots?.length > 0 && (
+                <ParkingCarousel
+                  parkingSpots={nearbySpots}
+                  onSelect={handleParkingCardClick}
+                />
+              )}
+            </motion.section>
+          </main>
+        </ErrorBoundary>
+      </div>
+    </LazyMotion>
   );
 }
