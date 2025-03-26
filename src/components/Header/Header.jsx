@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useState, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LuMenu, LuX } from 'react-icons/lu';
+import { useTranslation } from 'react-i18next';
 
 import { Logo } from '@/components/Logo';
 import { useAuth } from '@/hooks/useAuth';
@@ -79,6 +80,7 @@ MobileMenu.propTypes = {
 const Header = ({ className }) => {
   const { loginWithRedirect, isAuthenticated, isLoading } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { t } = useTranslation();
 
   const handleLogin = useCallback(() => {
     loginWithRedirect();
@@ -111,10 +113,10 @@ const Header = ({ className }) => {
         {/* Navegación de escritorio */}
         <nav className="hidden md:flex items-center gap-6">
           <Link to="/about" className="text-sm hover:text-primary transition-colors">
-            Nosotros
+          {t('header.menu.aboutUs', 'Nosotros')}
           </Link>
           <Link to="/support" className="text-sm hover:text-primary transition-colors">
-            Soporte
+          {t('header.menu.support', 'Soporte')}
           </Link>
           <LanguageSwitcher className="mr-2" />
           <CtaButtons

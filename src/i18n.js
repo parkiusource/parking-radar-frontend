@@ -6,6 +6,37 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 const resources = {
   es: {
     translation: {
+      header: {
+        menu: {
+          aboutUs: 'Nosotros',
+          support: 'Soporte',
+        },
+        ctaButtons: {
+          search: 'Buscar',
+          manageParking: 'Administrar mi parqueadero',
+        }
+      },
+      footer: {
+        description: 'La plataforma líder para encontrar y gestionar parqueaderos en tiempo real.',
+        quickLinks: {
+          title: 'Enlaces rápidos',
+          home: 'Inicio',
+          searchParking: 'Buscar parqueaderos',
+          manageParking: 'Administrar parqueadero',
+          aboutUs: 'Acerca de nosotros',
+        },
+        legal: {
+          title: 'Legal',
+          termsAndConditions: 'Términos y condiciones',
+          privacyPolicy: 'Política de privacidad',
+          cookiePolicy: 'Política de cookies',
+          support: 'Soporte',
+        },
+        contact: {
+          title: 'Contacto',
+        },
+        allRightsReserved: 'ParkiÜ. Todos los derechos reservados.',
+      },
       hero: {
         title: 'Encuentra el parqueadero',
         titleHighlighted: 'ideal en segundos',
@@ -277,6 +308,37 @@ const resources = {
   },
   en: {
     translation: {
+      header: {
+        menu: {
+          aboutUs: 'About Us',
+          support: 'Support',
+        },
+        ctaButtons: {
+          search: 'Search',
+          manageParking: 'Manage my parking lot',
+        }
+      },
+      footer: {
+        description: 'The leading platform to find and manage parking lots in real time.',
+        quickLinks: {
+          title: 'Quick links',
+          home: 'Home',
+          searchParking: 'Search for parking',
+          manageParking: 'Manage parking lot',
+          aboutUs: 'About us',
+        },
+        legal: {
+          title: 'Legal',
+          termsAndConditions: 'Terms and Conditions',
+          privacyPolicy: 'Privacy Policy',
+          cookiePolicy: 'Cookie Policy',
+          support: 'Support',
+        },
+        contact: {
+          title: 'Contact',
+        },
+        allRightsReserved: 'ParkiÜ. All rights reserved.',
+      },
       hero: {
         title: 'Find the parking lot',
         titleHighlighted: 'ideal in seconds',

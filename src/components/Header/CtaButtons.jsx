@@ -6,9 +6,11 @@ import { CircleParking } from 'lucide-react';
 import { Button } from '@/components/common';
 import { twMerge } from 'tailwind-merge';
 import { useAdminProfile } from '@/api/hooks/useAdminOnboarding';
+import { useTranslation } from 'react-i18next';
 
 const CtaButtons = ({ auth: { isAuthenticated, isLoading }, onLogin, className }) => {
   const { data: profile, isLoading: profileLoading } = useAdminProfile();
+  const { t } = useTranslation();
 
   const getAdminLink = () => {
     console.log('Profile state:', {
@@ -43,7 +45,7 @@ const CtaButtons = ({ auth: { isAuthenticated, isLoading }, onLogin, className }
             className="w-full flex items-center justify-center gap-2 px-3 md:px-4 py-2 text-sm font-medium text-white border-white hover:bg-white/10"
           >
             <Search className="w-4 h-4 md:w-5 md:h-5" />
-            <span className="whitespace-nowrap">Buscar</span>
+            <span className="whitespace-nowrap">{t('header.ctaButtons.search', 'Buscar')}</span>
           </Button>
         </Link>
       </motion.div>
@@ -61,9 +63,8 @@ const CtaButtons = ({ auth: { isAuthenticated, isLoading }, onLogin, className }
             disabled={isLoading}
           >
             <LogIn className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
-            <div className="flex flex-col items-start">
-              <span className="whitespace-nowrap">Administrar</span>
-              <span className="text-xs opacity-90">Mi parqueadero</span>
+            <div className="flex flex-col items-start min-w-20 max-w-28">
+              {t('header.ctaButtons.manageParking', 'Administrar mi parqueadero')}
             </div>
           </Button>
         ) : (
