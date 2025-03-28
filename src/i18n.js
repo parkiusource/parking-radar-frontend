@@ -303,7 +303,107 @@ const resources = {
         oneSpotFound: 'Se encontró {{count}} parqueadero en tu área',
         multipleSpotFound: 'Se encontraron {{count}} parqueaderos en tu área',
         tryDifferentLocation: 'Intenta con otra ubicación o amplía tu área de búsqueda'
-      }
+      },
+      adminLanding: {
+        hero: {
+          sectionTitle: 'Potencia tu parqueadero con',
+          titleHighlighted: 'tecnología inteligente',
+          description: 'Únete a la red de parqueaderos más innovadora de Colombia y transforma la manera en que gestionas tu negocio.',
+          btn: {
+            startNow: 'Comenzar ahora',
+            scheduleDemo: 'Agendar demo',
+          },
+          stats:{
+            increaseOccupancy: 'Aumento promedio en ocupación',
+            managementTime: 'Reducción en tiempo de gestión',
+            userSatisfaction: 'Satisfacción de los usuarios',
+            technicalSupport: 'Soporte técnico',
+          },
+        },
+        features:{
+          title: 'Características diseñadas para tu éxito',
+          description: 'Herramientas poderosas que transformarán la gestión de tu parqueadero',
+          items:{
+            realtimeAnalytics:{
+              title: 'Analítica en tiempo real',
+              description: 'Monitorea la ocupación y el rendimiento de tu parqueadero con datos actualizados al instante.'
+            },
+            customerManagement:{
+              title: 'Gestión de clientes',
+              description: 'Administra reservas, perfiles de usuarios y programas de fidelización desde un solo lugar.'
+            },
+            financialControl:{
+              title: 'Control financiero',
+              description: 'Seguimiento detallado de ingresos, facturación automática y reportes financieros.'
+            },
+            advancedSecurity:{
+              title: 'Seguridad avanzada',
+              description: 'Sistema de control de acceso y monitoreo de seguridad integrado.'
+            },
+          },
+        },
+        benefits:{
+          title: 'Beneficios que impulsan tu negocio',
+          description: 'Descubre cómo ParkiÜ puede ayudarte a optimizar tus operaciones y aumentar tus ingresos',
+          items:{
+            timeSavings:{
+              title:'Ahorro de tiempo',
+              description:'Automatiza tareas rutinarias y reduce el tiempo de gestión administrativa.'
+            },
+            increasedVisibility:{
+              title:'Mayor visibilidad',
+              description:'Aumenta tu presencia digital y atrae más clientes potenciales.'
+            },
+            mobileManagement:{
+              title:'Gestión móvil',
+              description:'Administra tu negocio desde cualquier lugar con nuestra app móvil.'
+            },
+            detailedReports:{
+              title:'Reportes detallados',
+              description:'Obtén insights valiosos con nuestros reportes personalizados.'
+            },
+          },
+        },
+        accessControlSystem:{
+          title:'Gestión inteligente y simplificada',
+          description:'Optimiza tus operaciones diarias con nuestra plataforma intuitiva. Diseñada para hacer la gestión de tu parqueadero más eficiente y rentable.',
+          items: {
+            economicSolution:{
+              title:'Solución económica',
+              description:'Optimiza costos sin comprometer calidad.',
+            },
+            simplifiedControl:{
+              title:'Control simplificado',
+              description:'Gestión eficiente de tu parqueadero.',
+            },
+            remoteAccess:{
+              title:'Acceso remoto',
+              description:'Administra tu negocio donde estés.',
+            },
+          },
+          elementsSystem:{
+            simplifiedControl: 'Control de entradas y salidas simplificado',
+            billingSystem: 'Sistema de facturación integrado',
+            realtimeReports: 'Reportes y estadísticas en tiempo real',
+            tariffManagement: 'Gestión flexible de tarifas',
+          },
+          disclaimer: {
+            title: 'Próximamente',
+            description: 'Estamos trabajando en funcionalidades avanzadas como control automático de barreras e integración con sensores para brindarte una experiencia aún más completa.',
+          },
+          btn: {
+            seeAllFeatures: 'Ver todas las características',
+          }
+        },
+        cta: {
+          title: '¿Listo para llevar tu parqueadero al siguiente nivel?',
+          description: 'Únete a la red de parqueaderos más innovadora y comienza a ver resultados desde el primer día',
+          btn:{
+            registerParking: 'Registrar mi parqueadero',
+            contactSales: 'Contactar a ventas'
+          }
+        }
+      },
     }
   },
   en: {
@@ -605,7 +705,107 @@ const resources = {
         oneSpotFound: 'Found {{count}} parking lot in your area',
         multipleSpotFound: 'Found {{count}} parking lots in your area',
         tryDifferentLocation: 'Try a different location or expand your search area'
-      }
+      },
+      adminLanding: {
+        hero: {
+          sectionTitle: 'Power your parking lot with ',
+          titleHighlighted: 'smart technology',
+          description: 'Join the most innovative parking network in Colombia and transform the way you manage your business.',
+          btn: {
+            startNow: 'Start Now',
+            scheduleDemo: 'Schedule demo',
+          },
+          stats:{
+            increaseOccupancy: 'Average increase in occupancy',
+            managementTime: 'Reduction in management time',
+            userSatisfaction: 'User satisfaction',
+            technicalSupport: 'Technical support',
+          },
+        },
+        features:{
+          title: 'Features designed for your success',
+          description: 'Powerful tools that will transform the management of your parking lot',
+          items:{
+            realtimeAnalytics:{
+              title: 'Real-time Analytics',
+              description: 'Monitor your parking lot occupancy and performance with instantly updated data.'
+            },
+            customerManagement:{
+              title: 'Customer management',
+              description: 'Manage reservations, user profiles and loyalty programs from one place.'
+            },
+            financialControl:{
+              title: 'Financial control',
+              description: 'Detailed revenue tracking, automatic invoicing and financial reporting.'
+            },
+            advancedSecurity:{
+              title: 'Advanced security',
+              description: 'Integrated access control and security monitoring system.'
+            },
+          },
+        },
+        benefits:{
+          title: 'Benefits that boost your business',
+          description: 'Discover how ParkiÜ can help you optimize your operations and increase your revenue.',
+          items:{
+            timeSavings:{
+              title:'Time savings',
+              description:'Automates routine tasks and reduces administrative management time.'
+            },
+            increasedVisibility:{
+              title:'Increased visibility',
+              description:'Increase your digital presence and attract more potential customers.'
+            },
+            mobileManagement:{
+              title:'Mobile management',
+              description:'Manage your business from anywhere with our mobile app.'
+            },
+            detailedReports:{
+              title:'Detailed reports',
+              description:'Get valuable insights with our customized reports.'
+            },
+          },
+        },
+        accessControlSystem:{
+          title:'Intelligent and simplified management',
+          description:'Optimize your daily operations with our intuitive platform. Designed to make your parking lot management more efficient and profitable.',
+          items: {
+            economicSolution:{
+              title:'Economical solution',
+              description:'Optimize costs without compromising quality.',
+            },
+            simplifiedControl:{
+              title:'Simplified control',
+              description:'Efficient management of your parking lot.',
+            },
+            remoteAccess:{
+              title:'Access from anywhere',
+              description:'Manage your business wherever you are.',
+            },
+          },
+          elementsSystem:{
+            simplifiedControl: 'Simplified input and output control',
+            billingSystem: 'Integrated billing system',
+            realtimeReports: 'Real-time reports and statistics',
+            tariffManagement: 'Flexible tariff management',
+          },
+          disclaimer: {
+            title: 'Coming soon',
+            description: 'We are working on advanced features such as automatic barrier control and sensor integration to give you an even more complete experience.',
+          },
+          btn: {
+            seeAllFeatures: 'See all features',
+          }
+        },
+        cta: {
+          title: 'Ready to take your parking to the next level?',
+          description: 'Join the most innovative parking network and start seeing results from the first day.',
+          btn:{
+            registerParking: 'Register my parking lot',
+            contactSales: 'Contact sales'
+          }
+        }
+      },
     }
   }
 };
