@@ -4,16 +4,16 @@ import { Search, ArrowLeft, Info } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import { useSearchPlaces } from '@/api/hooks/useSearchPlaces';
-import ErrorBoundary from '@/components/ErrorBoundary';
+import ErrorBoundary from '@/components/common/ErrorBoundary';
 import { ParkingContext } from '@/context/parkingContextUtils';
 import { UserContext } from '@/context/userContextDefinition';
 import { useNearbyParkingSpots } from '@/hooks/useNearbySpots';
-import { getHeaderClassName } from '@/components/Header';
-import { Logo } from '@/components/Logo';
-import Map from '@/components/Map';
-import { SearchBox } from '@/components/SearchBox';
+import { getHeaderClassName } from '@/components/layout/Header';
+import { Logo } from '@/components/layout/Logo';
+import Map from '@/components/map/Map';
+import { SearchBox } from '@/components/parking/SearchBox';
 import ParkingCarousel from '@/components/map/ParkingCarousel';
-import ParkingSpotList from '@/pages/components/ParkingSpotList';
+import ParkingSpotList from '@/components/parking/ParkingSpotList';
 
 const DEFAULT_MAX_DISTANCE = 1000;
 const DEFAULT_LIMIT = 10;

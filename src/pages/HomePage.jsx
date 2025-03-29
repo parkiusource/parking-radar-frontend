@@ -3,15 +3,15 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { FaAward, FaCalendarCheck, FaMoneyBillWave, FaComments, FaShieldAlt, FaChartLine, FaUsers, FaMapMarkerAlt } from 'react-icons/fa';
 import { FaSquareParking } from 'react-icons/fa6';
-import DarkFooter from '@/components/Footer';
+import DarkFooter from '@/components/layout/Footer';
 import { Button } from '@/components/common/Button/Button';
 import { LuSearch, LuArrowRight, LuCompass } from "react-icons/lu";
 import { motion, AnimatePresence } from "framer-motion";
 import imgParkiu from '@/images/img_parkiu.webp';
 import bgMapHero from '@/images/bg_map_hero.webp';
-import { Header } from '@/components/Header';
+import { Header } from '@/components/layout/Header';
 import { useSearchPlaces } from '@/api/hooks/useSearchPlaces';
-import { SearchBox } from '@/components/SearchBox';
+import { SearchBox } from '@/components/parking/SearchBox';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
 import { CircleParking, Loader2 } from 'lucide-react';
@@ -669,7 +669,7 @@ const HomePage = () => {
                       variant="dark"
                       className="w-full px-4 lg:px-6 py-4 bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-all duration-300 rounded-xl font-semibold text-lg"
                     >
-                      
+
                       {t('admin.btn.login', 'Iniciar sesión')}
                     </Button>
                   </Link>

@@ -12,7 +12,7 @@ import { useParkingSpots } from '@/api/hooks/useParkingSpots';
 import { useCreateParking } from '@/api/hooks/useCreateParking';
 import { ParkingCard } from '@/components/admin/ParkingCard';
 import { ParkingFormDialog } from '@/components/admin/ParkingForm';
-import { Logo } from '@/components/Logo';
+import { Logo } from '@/components/layout/Logo';
 import { useQueryClient } from '@/context/queryClientUtils';
 
 // Datos simulados para las métricas
