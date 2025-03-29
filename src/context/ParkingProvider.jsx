@@ -87,7 +87,7 @@ export function ParkingProvider({ children }) {
 
       const position = await new Promise((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
+          enableHighAccuracy: false,
           timeout: 5000,
           maximumAge: 0
         });
@@ -130,22 +130,17 @@ export function ParkingProvider({ children }) {
     if (isInitialized) return;
 
     const initializeParking = async () => {
-      const userLocation = await getUserLocation();
+      // Usar ubicación por defecto del mapa inicialmente
+      const defaultLocation = MAP_CONSTANTS.DEFAULT_CENTER;
+      console.debug('🗺️ Usando ubicación por defecto:', defaultLocation);
 
-      if (!userLocation) {
-        // Usar ubicación por defecto del mapa
-        const defaultLocation = MAP_CONSTANTS.DEFAULT_CENTER;
-        console.debug('🗺️ Usando ubicación por defecto:', defaultLocation);
-
-        updateTargetLocation(defaultLocation, true);
-        searchNearbyParking(defaultLocation);
-      }
-
+      updateTargetLocation(defaultLocation, true);
+      searchNearbyParking(defaultLocation);
       setIsInitialized(true);
     };
 
     initializeParking();
-  }, [isInitialized, getUserLocation, searchNearbyParking, updateTargetLocation]);
+  }, [isInitialized, searchNearbyParking, updateTargetLocation]);
 
   const value = useMemo(() => ({
     parkingSpots,
@@ -154,7 +149,7 @@ export function ParkingProvider({ children }) {
     setTargetLocation: updateTargetLocation,
     shouldCenterMap,
     setShouldCenterMap,
-    getUserLocation,
+    getUserLocation, // Esta función ahora se llamará solo cuando el usuario la solicite
     invalidate,
     refetch,
     isInitialized

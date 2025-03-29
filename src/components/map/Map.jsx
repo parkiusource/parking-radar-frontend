@@ -118,9 +118,13 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
     }
   }, []);
 
-  // Efecto para manejar búsquedas cuando el mapa se detiene
+  // Referencia para controlar si estamos en una interacción de marcador
+  const isMarkerInteractionRef = useRef(false);
+  const markerInteractionTimeoutRef = useRef(null);
+
+  // Optimizar el manejador de inactividad del mapa
   const handleMapIdle = useCallback(() => {
-    if (!mapInstance) return;
+    if (!mapInstance || isMarkerInteractionRef.current) return;
 
     const center = mapInstance.getCenter();
     if (!center) return;
@@ -130,33 +134,29 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
       lng: center.lng()
     };
 
-    // Si el mapa se está moviendo, solo actualizar la referencia
     if (isMapMoving) {
       lastSearchLocationRef.current = newLocation;
       return;
     }
 
-    // Verificar si la nueva ubicación es significativamente diferente
     if (lastSearchLocationRef.current &&
         isSimilarLocation(newLocation, lastSearchLocationRef.current)) {
       debug('Ubicación muy cercana a la última búsqueda, omitiendo...');
       return;
     }
 
-    // Actualizar la referencia y realizar la búsqueda
     lastSearchLocationRef.current = newLocation;
     const currentZoom = mapInstance.getZoom();
 
-    // Ajustar el radio de búsqueda según el nivel de zoom
     let searchRadius;
     if (currentZoom >= 18) {
-      searchRadius = 300; // 300 metros para zoom muy cercano
+      searchRadius = 300;
     } else if (currentZoom >= 16) {
-      searchRadius = 800; // 800 metros para zoom cercano
+      searchRadius = 800;
     } else if (currentZoom >= 14) {
-      searchRadius = 1500; // 1.5 km para zoom medio
+      searchRadius = 1500;
     } else {
-      searchRadius = 2500; // 2.5 km para zoom lejano
+      searchRadius = 2500;
     }
 
     debug('🔍 Realizando búsqueda por área:', {
@@ -210,7 +210,8 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
     if (cachedResults?.length > 0) {
       debug('Usando resultados en caché para la inicialización');
       setParkingSpots(cachedResults);
-      } else {
+    } else {
+      // Solo realizar la búsqueda si no hay resultados en caché
       searchNearbyParking(userLoc, 15, false);
     }
   }, [mapInstance, userLoc, searchNearbyParking, getCachedResult, setParkingSpots]);
@@ -322,9 +323,8 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
     );
   }, [selectedSpot, openNavigation, handleInfoWindowClose]);
 
-  // Restaurar la referencia a los marcadores
-  // eslint-disable-next-line no-unused-vars
-  const { markersRef, clearMarkers } = useMapMarkers(
+  // Restaurar la referencia a los marcadores con manejo de interacción
+  const { clearMarkers } = useMapMarkers(
     mapInstance,
     contextParkingSpots,
     useCallback((spot) => {
@@ -332,29 +332,51 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
 
       if (!spot || !mapInstance) return;
 
+      // Marcar que estamos en una interacción de marcador
+      isMarkerInteractionRef.current = true;
+
+      // Limpiar timeout anterior si existe
+      if (markerInteractionTimeoutRef.current) {
+        clearTimeout(markerInteractionTimeoutRef.current);
+      }
+
       // Cerrar todos los InfoWindows inmediatamente
       setSelectedSpot(null);
 
-      // Centrar el mapa en la nueva ubicación
-      mapInstance.panTo({
-            lat: parseFloat(spot.latitude),
-            lng: parseFloat(spot.longitude)
-      });
-      mapInstance.setZoom(17);
-
-      // Abrir el nuevo InfoWindow después de centrar el mapa
+      // Centrar el mapa en la nueva ubicación con animación suave
       requestAnimationFrame(() => {
-          setSelectedSpot(spot);
+        mapInstance.panTo({
+          lat: parseFloat(spot.latitude),
+          lng: parseFloat(spot.longitude)
+        });
+        mapInstance.setZoom(17);
+
+        // Abrir el nuevo InfoWindow después de centrar el mapa
+        setSelectedSpot(spot);
         if (onLocationChange) {
           onLocationChange(spot);
         }
+
+        // Restaurar la posibilidad de búsquedas después de un tiempo
+        markerInteractionTimeoutRef.current = setTimeout(() => {
+          isMarkerInteractionRef.current = false;
+        }, 1000); // Esperar 1 segundo después de la interacción
       });
     }, [mapInstance, onLocationChange])
   );
 
-  // Modificar el manejador de clics en el mapa
+  // Limpiar timeouts al desmontar
+  useEffect(() => {
+    return () => {
+      if (markerInteractionTimeoutRef.current) {
+        clearTimeout(markerInteractionTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Memoizar el manejador de clics en el mapa
   const handleMapClick = useCallback((event) => {
-    if (!event?.domEvent?.target) return;
+    if (!event?.domEvent?.target || isMarkerInteractionRef.current) return;
 
     if (event.domEvent.timeStamp - lastClickTime.current < 300) return;
     lastClickTime.current = event.domEvent.timeStamp;
@@ -365,27 +387,33 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
                       !target.closest('.info-window');
 
     if (isMapClick) {
-        setSelectedSpot(null);
+      setSelectedSpot(null);
     }
   }, []);
 
   // Efecto para manejar el centrado automático del mapa
   useEffect(() => {
     if (shouldCenterMap && mapInstance && contextTargetLocation) {
-      mapInstance.panTo({
-        lat: contextTargetLocation.lat,
-        lng: contextTargetLocation.lng
+      // Usar requestAnimationFrame para suavizar la transición
+      requestAnimationFrame(() => {
+        mapInstance.panTo({
+          lat: contextTargetLocation.lat,
+          lng: contextTargetLocation.lng
+        });
+        mapInstance.setZoom(15);
+        setShouldCenterMap(false);
       });
-      mapInstance.setZoom(15);
-      setShouldCenterMap(false);
     }
   }, [shouldCenterMap, mapInstance, contextTargetLocation, setShouldCenterMap]);
 
   // Efecto para manejar actualizaciones forzadas
   useEffect(() => {
     if (forceMapUpdate && mapRef.current && effectiveTargetLocation) {
-      centerMapOnLocation(effectiveTargetLocation);
-      setForceMapUpdate(false);
+      // Usar requestAnimationFrame para suavizar la transición
+      requestAnimationFrame(() => {
+        centerMapOnLocation(effectiveTargetLocation);
+        setForceMapUpdate(false);
+      });
     }
   }, [forceMapUpdate, effectiveTargetLocation, centerMapOnLocation, setForceMapUpdate]);
 

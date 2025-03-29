@@ -5,14 +5,14 @@ export const useMap = (targetLocation, contextTargetLocation, userLocation, onMa
   const mapRef = useRef(null);
   const mapInitializedRef = useRef(false);
   const [forceMapUpdate, setForceMapUpdate] = useState(false);
+  const lastUpdateRef = useRef(0);
+  const updateTimeoutRef = useRef(null);
 
   // Memoizar effectiveTargetLocation para evitar recálculos innecesarios
   const effectiveTargetLocation = useMemo(() => {
-    // Si hay una prop de ubicación objetivo, usarla directamente ignorando el contexto
     if (targetLocation) {
       return targetLocation;
     }
-    // De lo contrario, usar el valor del contexto
     return contextTargetLocation;
   }, [targetLocation, contextTargetLocation]);
 
@@ -39,10 +39,10 @@ export const useMap = (targetLocation, contextTargetLocation, userLocation, onMa
     return center;
   }, [effectiveTargetLocation, userLocation]);
 
+  // Memoizar la función de centrado del mapa
   const centerMapOnLocation = useCallback((location) => {
     if (!location || !mapRef.current) return;
 
-    // Validar que las coordenadas sean números finitos
     const lat = parseFloat(location.lat);
     const lng = parseFloat(location.lng);
 
@@ -51,17 +51,34 @@ export const useMap = (targetLocation, contextTargetLocation, userLocation, onMa
       return;
     }
 
-    const defaultZoom = 16;
-    mapRef.current.panTo({ lat, lng });
-    mapRef.current.setZoom(defaultZoom);
+    // Evitar actualizaciones muy frecuentes
+    const now = Date.now();
+    if (now - lastUpdateRef.current < 100) {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+      updateTimeoutRef.current = setTimeout(() => {
+        centerMapOnLocation(location);
+      }, 100);
+      return;
+    }
 
-    // Aplicar opciones del mapa
-    mapRef.current.setOptions({
-      ...MAP_CONSTANTS.MAP_OPTIONS,
-      center: { lat, lng }
+    lastUpdateRef.current = now;
+    const defaultZoom = 16;
+
+    // Usar requestAnimationFrame para suavizar las actualizaciones
+    requestAnimationFrame(() => {
+      mapRef.current.panTo({ lat, lng });
+      mapRef.current.setZoom(defaultZoom);
+
+      mapRef.current.setOptions({
+        ...MAP_CONSTANTS.MAP_OPTIONS,
+        center: { lat, lng }
+      });
     });
   }, []);
 
+  // Memoizar el manejador de carga del mapa
   const handleMapLoad = useCallback((map) => {
     if (!map || mapRef.current === map) return;
 
@@ -87,7 +104,6 @@ export const useMap = (targetLocation, contextTargetLocation, userLocation, onMa
       } else if (userLocation) {
         centerMapOnLocation(userLocation);
       } else {
-        // Si no hay ubicación específica, usar la ubicación por defecto
         centerMapOnLocation(MAP_CONSTANTS.DEFAULT_LOCATION);
       }
       if (onMapLoad) {
@@ -113,11 +129,22 @@ export const useMap = (targetLocation, contextTargetLocation, userLocation, onMa
     }
   }, [forceMapUpdate, effectiveTargetLocation, centerMapOnLocation]);
 
+  // Memoizar el manejador de actualización forzada
   const handleForceUpdate = useCallback(() => {
     setForceMapUpdate(true);
   }, []);
 
-  return {
+  // Limpiar timeouts al desmontar
+  useEffect(() => {
+    return () => {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Memoizar el resultado para evitar recreaciones innecesarias
+  return useMemo(() => ({
     mapRef,
     mapInitializedRef,
     handleMapLoad,
@@ -127,5 +154,12 @@ export const useMap = (targetLocation, contextTargetLocation, userLocation, onMa
     forceMapUpdate,
     setForceMapUpdate,
     handleForceUpdate
-  };
+  }), [
+    handleMapLoad,
+    centerMapOnLocation,
+    mapCenter,
+    effectiveTargetLocation,
+    forceMapUpdate,
+    handleForceUpdate
+  ]);
 };
