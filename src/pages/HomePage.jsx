@@ -278,12 +278,18 @@ const HomePage = () => {
         const params = new URLSearchParams({
           search: place.displayName.text,
           lat: place.location.latitude.toString(),
-          lng: place.location.longitude.toString()
+          lng: place.location.longitude.toString(),
+          zoom: '17', // Añadimos zoom para mejor precisión
+          direct: 'true' // Indicador para centrado directo
         });
         navigate(`/parking?${params.toString()}`);
       } else if (typeof place === 'string') {
-        // Si es una búsqueda reciente o texto manual, enviar solo el término de búsqueda
-        navigate(`/parking?search=${encodeURIComponent(place)}`);
+        // Si es una búsqueda reciente o texto manual
+        const params = new URLSearchParams({
+          search: encodeURIComponent(place),
+          type: 'text'
+        });
+        navigate(`/parking?${params.toString()}`);
       }
     }, 300);
   }, [navigate, recentSearches]);
@@ -304,7 +310,9 @@ const HomePage = () => {
           const params = new URLSearchParams({
             lat: latitude.toString(),
             lng: longitude.toString(),
-            nearby: 'true'
+            zoom: '16', // Añadimos zoom para mejor precisión
+            nearby: 'true',
+            direct: 'true' // Indicador para centrado directo
           });
           // Navegar a la página de parking con los parámetros
           navigate(`/parking?${params.toString()}`);
@@ -331,7 +339,7 @@ const HomePage = () => {
           alert(errorMessage);
         },
         {
-          enableHighAccuracy: false,
+          enableHighAccuracy: true,
           timeout: 8000,
           maximumAge: 0
         }

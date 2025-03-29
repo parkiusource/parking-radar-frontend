@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import PropTypes from 'prop-types';
-import { Navigation, Star } from 'lucide-react';
+import { Navigation, Star, Clock } from 'lucide-react';
 
 const ParkingInfoWindow = memo(({ spot, onNavigate }) => {
   if (!spot) return null;
@@ -57,38 +57,35 @@ const ParkingInfoWindow = memo(({ spot, onNavigate }) => {
         </div>
       ) : (
         <div className="space-y-2">
-          <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
-            <span className="text-gray-600">Estado:</span>
+          <div className="flex items-center gap-2 text-sm">
+            <Clock className="w-4 h-4 text-gray-500" />
             <span className={`font-medium ${spot.openNow ? 'text-emerald-600' : 'text-red-600'}`}>
-              {spot.openNow ? 'Abierto' : 'Cerrado'}
+              {spot.openNow ? 'Abierto ahora' : 'Cerrado'}
             </span>
           </div>
-          {spot.rating > 0 && (
-            <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
-              <span className="text-gray-600">Calificación:</span>
-              <div className="flex items-center">
+
+          <div className="flex items-center justify-between mt-2">
+            {spot.rating > 0 && (
+              <div className="flex items-center bg-gray-50 px-3 py-1.5 rounded">
                 <Star className="w-4 h-4 text-yellow-400 mr-1" />
-                <span className="font-semibold">{spot.rating.toFixed(1)}</span>
+                <span className="font-medium">{spot.rating.toFixed(1)}</span>
                 {spot.userRatingCount > 0 && (
-                  <span className="text-gray-400 text-sm ml-1">
+                  <span className="text-gray-500 text-sm ml-1">
                     ({spot.userRatingCount})
                   </span>
                 )}
               </div>
-            </div>
-          )}
-          <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
-            <h3 className="text-blue-800 font-medium mb-2">¿Eres el administrador?</h3>
-            <p className="text-sm text-blue-600 mb-3">
-              Únete a Parkiu y gestiona tu parqueadero en tiempo real. Aumenta tus ingresos y mejora la experiencia de tus clientes.
-            </p>
-            <button
-              onClick={() => window.open('https://parkiu.com/register', '_blank', 'noopener,noreferrer')}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded transition duration-150 ease-in-out"
-            >
-              Registrar mi parqueadero
-            </button>
+            )}
+            {spot.formattedDistance && (
+              <span className="text-sm text-gray-500">
+                A {spot.formattedDistance}
+              </span>
+            )}
           </div>
+
+          <p className="text-xs text-gray-500 mt-2 italic">
+            * Datos proporcionados por Google Places, la información puede ser inexacta.
+          </p>
         </div>
       )}
 
@@ -105,7 +102,9 @@ const ParkingInfoWindow = memo(({ spot, onNavigate }) => {
   return prevProps.spot?.id === nextProps.spot?.id &&
          prevProps.spot?.available_spaces === nextProps.spot?.available_spaces &&
          prevProps.spot?.name === nextProps.spot?.name &&
-         prevProps.spot?.address === nextProps.spot?.address;
+         prevProps.spot?.address === nextProps.spot?.address &&
+         prevProps.spot?.openNow === nextProps.spot?.openNow &&
+         prevProps.spot?.rating === nextProps.spot?.rating;
 });
 
 ParkingInfoWindow.displayName = 'ParkingInfoWindow';
@@ -126,6 +125,7 @@ ParkingInfoWindow.propTypes = {
     userRatingCount: PropTypes.number,
     openNow: PropTypes.bool,
     businessStatus: PropTypes.string,
+    formattedDistance: PropTypes.string,
   }),
   onNavigate: PropTypes.func.isRequired
 };

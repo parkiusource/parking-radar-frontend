@@ -2,17 +2,19 @@ import { useEffect, useRef, useCallback } from 'react';
 import { createMapMarker, createParkiuMarkerContent, createGooglePlacesMarkerContent } from '@/utils/markerUtils';
 
 /**
- * Verifica si los spots han cambiado comparando sus IDs
- * @param {Array} currentSpots - Lista actual de parqueaderos
- * @param {Array} previousSpots - Lista anterior de parqueaderos
- * @returns {boolean} True si los spots han cambiado
+ * Verifica si los spots han cambiado comparando sus IDs y propiedades relevantes
  */
 const haveSpotsChanged = (currentSpots, previousSpots) => {
-  const currentIds = new Set(currentSpots.map(s => s.id));
-  const previousIds = new Set(previousSpots.map(s => s.id));
+  if (!Array.isArray(currentSpots) || !Array.isArray(previousSpots)) return true;
+  if (currentSpots.length !== previousSpots.length) return true;
 
-  if (currentIds.size !== previousIds.size) return true;
-  return [...currentIds].some(id => !previousIds.has(id));
+  return currentSpots.some((spot, index) => {
+    const prevSpot = previousSpots[index];
+    return spot.id !== prevSpot.id ||
+           spot.latitude !== prevSpot.latitude ||
+           spot.longitude !== prevSpot.longitude ||
+           spot.available_spaces !== prevSpot.available_spaces;
+  });
 };
 
 /**
@@ -23,14 +25,19 @@ const haveSpotsChanged = (currentSpots, previousSpots) => {
  * @returns {Object} Funciones y referencias para manejar marcadores
  */
 const useMapMarkers = (map, parkingSpots, onSpotClick) => {
-  // Referencias para mantener el estado entre renders
-  const markers = useRef([]);
+  const markers = useRef(new Map());
   const mapInstance = useRef(map);
   const previousSpots = useRef([]);
   const isFirstRender = useRef(true);
+  const onSpotClickRef = useRef(onSpotClick);
+
+  // Actualizar la referencia del callback
+  useEffect(() => {
+    onSpotClickRef.current = onSpotClick;
+  }, [onSpotClick]);
 
   // Función para crear un marcador individual
-  const createMarker = useCallback((spot, map) => {
+  const createMarker = useCallback((spot) => {
     if (!spot?.latitude || !spot?.longitude) return null;
 
     const position = {
@@ -42,19 +49,38 @@ const useMapMarkers = (map, parkingSpots, onSpotClick) => {
       ? createGooglePlacesMarkerContent()
       : createParkiuMarkerContent(spot);
 
-    const marker = createMapMarker({ position, map, content });
+    const marker = createMapMarker({
+      position,
+      map: mapInstance.current,
+      content
+    });
 
-    marker.element?.addEventListener('click', () => onSpotClick?.(spot));
+    marker.element?.addListener('gmp-click', () => {
+      // Usar la referencia más reciente del callback
+      onSpotClickRef.current?.(spot);
+    });
 
     return marker;
-  }, [onSpotClick]);
+  }, []);
 
-  // Función para limpiar marcadores existentes
+  // Función para limpiar marcadores
   const clearMarkers = useCallback(() => {
     markers.current.forEach(marker => {
       if (marker?.map) marker.map = null;
     });
-    markers.current = [];
+    markers.current.clear();
+  }, []);
+
+  // Función para actualizar un marcador existente
+  const updateMarker = useCallback((marker, spot) => {
+    if (!marker?.element) return false;
+
+    const content = spot.isGooglePlace
+      ? createGooglePlacesMarkerContent()
+      : createParkiuMarkerContent(spot);
+
+    marker.element.innerHTML = content.innerHTML;
+    return true;
   }, []);
 
   // Efecto para actualizar la referencia del mapa
@@ -71,22 +97,46 @@ const useMapMarkers = (map, parkingSpots, onSpotClick) => {
       return;
     }
 
-    // Limpiar marcadores existentes
-    clearMarkers();
+    const currentIds = new Set(parkingSpots.map(spot => spot.id));
+    const markersToRemove = [];
 
-    // Crear nuevos marcadores
-    const validSpots = parkingSpots.filter(spot => spot?.id && spot?.latitude && spot?.longitude);
-    markers.current = validSpots
-      .map(spot => createMarker(spot, mapInstance.current))
-      .filter(Boolean);
+    // Eliminar marcadores que ya no existen
+    markers.current.forEach((marker, id) => {
+      if (!currentIds.has(id)) {
+        marker.map = null;
+        markersToRemove.push(id);
+      }
+    });
+
+    markersToRemove.forEach(id => markers.current.delete(id));
+
+    // Actualizar o crear marcadores
+    parkingSpots.forEach(spot => {
+      if (!spot?.id || !spot?.latitude || !spot?.longitude) return;
+
+      const existingMarker = markers.current.get(spot.id);
+      if (existingMarker) {
+        // Intentar actualizar el marcador existente
+        if (!updateMarker(existingMarker, spot)) {
+          // Si no se puede actualizar, crear uno nuevo
+          existingMarker.map = null;
+          const newMarker = createMarker(spot);
+          if (newMarker) markers.current.set(spot.id, newMarker);
+        }
+      } else {
+        // Crear nuevo marcador
+        const newMarker = createMarker(spot);
+        if (newMarker) markers.current.set(spot.id, newMarker);
+      }
+    });
 
     // Actualizar referencias
-    previousSpots.current = parkingSpots;
+    previousSpots.current = [...parkingSpots];
     isFirstRender.current = false;
 
-  }, [parkingSpots, createMarker, clearMarkers]);
+  }, [parkingSpots, createMarker, updateMarker]);
 
-  return { markers, clearMarkers };
+  return { markers: markers.current, clearMarkers };
 };
 
 export { useMapMarkers };
