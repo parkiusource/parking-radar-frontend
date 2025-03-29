@@ -99,14 +99,15 @@ export function ParkingProvider({ children }) {
   const getUserLocation = useCallback(async () => {
     try {
       if (!navigator.geolocation) {
-        throw new Error('Geolocalización no soportada');
+        console.debug('⚠️ Geolocalización no soportada, usando ubicación por defecto');
+        return MAP_CONSTANTS.DEFAULT_CENTER;
       }
 
       // Verificar si ha pasado suficiente tiempo desde la última búsqueda
       const now = Date.now();
       if (now - lastSearchTimestampRef.current < 2000) {
         console.debug('⏱️ Demasiado pronto para una nueva búsqueda de ubicación');
-        return lastLocationRef.current;
+        return lastLocationRef.current || MAP_CONSTANTS.DEFAULT_CENTER;
       }
 
       console.debug('🌍 Solicitando ubicación del usuario...');
@@ -127,7 +128,7 @@ export function ParkingProvider({ children }) {
       // Verificar si la ubicación ha cambiado significativamente
       if (areLocationsEqual(userLocation, lastLocationRef.current)) {
         console.debug('📍 Ubicación del usuario no ha cambiado significativamente');
-        return lastLocationRef.current;
+        return lastLocationRef.current || MAP_CONSTANTS.DEFAULT_CENTER;
       }
 
       console.debug('📍 Nueva ubicación obtenida:', userLocation);
@@ -143,7 +144,7 @@ export function ParkingProvider({ children }) {
       // Intentar usar resultados en caché primero
       const cachedResults = getCachedResult(userLocation);
       if (cachedResults?.length > 0) {
-        console.debug('��️ Usando resultados en caché para la ubicación');
+        console.debug('💾 Usando resultados en caché para la ubicación');
         updateParkingSpots(cachedResults);
       } else {
         searchNearbyParking(userLocation, initialZoom);
@@ -152,7 +153,12 @@ export function ParkingProvider({ children }) {
       return userLocation;
     } catch (error) {
       console.debug('⚠️ No se pudo obtener la ubicación:', error);
-      return null;
+      // Usar ubicación por defecto en caso de error
+      const defaultLocation = MAP_CONSTANTS.DEFAULT_CENTER;
+      lastLocationRef.current = defaultLocation;
+      updateTargetLocation(defaultLocation, true);
+      searchNearbyParking(defaultLocation);
+      return defaultLocation;
     }
   }, [updateTargetLocation, searchNearbyParking, getCachedResult, updateParkingSpots]);
 

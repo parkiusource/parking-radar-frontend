@@ -466,36 +466,37 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
 
   // Efecto para manejar el marcador de ubicación del usuario
   useEffect(() => {
-    if (!mapInstance || !userLoc) return;
+    if (!mapInstance) return;
 
     // Limpiar marcador anterior si existe
     if (userMarkerRef.current) {
-      userMarkerRef.current.setMap(null);
+      userMarkerRef.current.map = null;
     }
 
-    // Crear nuevo marcador
-    const marker = new window.google.maps.Marker({
-      position: {
-        lat: parseFloat(userLoc.lat),
-        lng: parseFloat(userLoc.lng)
-      },
-      map: mapInstance,
-      icon: {
-        path: window.google.maps.SymbolPath.CIRCLE,
-        scale: 8,
-        fillColor: '#3B82F6',
-        fillOpacity: 1,
-        strokeColor: '#FFFFFF',
-        strokeWeight: 2
-      },
-      zIndex: 1000
-    });
+    // Solo crear el marcador si tenemos una ubicación válida
+    if (userLoc && isFinite(userLoc.lat) && isFinite(userLoc.lng)) {
+      // Crear nuevo marcador avanzado
+      const markerView = new window.google.maps.marker.AdvancedMarkerElement({
+        position: {
+          lat: parseFloat(userLoc.lat),
+          lng: parseFloat(userLoc.lng)
+        },
+        map: mapInstance,
+        content: new window.google.maps.marker.PinView({
+          background: '#3B82F6',
+          borderColor: '#FFFFFF',
+          glyphColor: '#FFFFFF',
+          scale: 1.2
+        }),
+        zIndex: 1000
+      });
 
-    userMarkerRef.current = marker;
+      userMarkerRef.current = markerView;
+    }
 
     return () => {
       if (userMarkerRef.current) {
-        userMarkerRef.current.setMap(null);
+        userMarkerRef.current.map = null;
       }
     };
   }, [mapInstance, userLoc]);
