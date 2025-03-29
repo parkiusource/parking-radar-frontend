@@ -136,14 +136,14 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
 
       // Centrar el mapa en la nueva ubicación
       mapInstance.panTo({
-        lat: parseFloat(spot.latitude),
-        lng: parseFloat(spot.longitude)
+            lat: parseFloat(spot.latitude),
+            lng: parseFloat(spot.longitude)
       });
       mapInstance.setZoom(17);
 
       // Abrir el nuevo InfoWindow después de centrar el mapa
       requestAnimationFrame(() => {
-        setSelectedSpot(spot);
+          setSelectedSpot(spot);
         if (onLocationChange) {
           onLocationChange(spot);
         }
