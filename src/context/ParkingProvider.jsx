@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { ParkingContext } from './parkingContextUtils';
 import { useParkingSpots } from '@/api/hooks/useParkingSpots';
@@ -12,11 +12,22 @@ const generateUniqueId = (placeId, timestamp) => {
   return `google_${placeId}_${timestamp}`;
 };
 
+// Función para comparar dos ubicaciones
+const areLocationsEqual = (loc1, loc2) => {
+  if (!loc1 || !loc2) return false;
+  return (
+    Math.abs(parseFloat(loc1.lat) - parseFloat(loc2.lat)) < 0.000001 &&
+    Math.abs(parseFloat(loc1.lng) - parseFloat(loc2.lng)) < 0.000001
+  );
+};
+
 export function ParkingProvider({ children }) {
   const [targetLocation, setTargetLocation] = useState(null);
   const [googlePlacesSpots, setGooglePlacesSpots] = useState([]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [shouldCenterMap, setShouldCenterMap] = useState(false);
+  const lastLocationRef = useRef(null);
+  const lastSearchTimestampRef = useRef(0);
 
   const queryClient = useQueryClient();
   const { parkingSpots: dbParkingSpots, invalidate, refetch } = useParkingSpots({
@@ -68,10 +79,18 @@ export function ParkingProvider({ children }) {
 
   // Función para actualizar la ubicación y centrar el mapa
   const updateTargetLocation = useCallback((newLocation, shouldCenter = false) => {
+    // Verificar si la ubicación ha cambiado significativamente
+    if (areLocationsEqual(newLocation, lastLocationRef.current)) {
+      console.debug('📍 Ubicación no ha cambiado significativamente, omitiendo actualización');
+      return;
+    }
+
     console.debug('🎯 Actualizando ubicación objetivo:', {
       location: newLocation,
       shouldCenter
     });
+
+    lastLocationRef.current = newLocation;
     setTargetLocation(newLocation);
     setShouldCenterMap(shouldCenter);
   }, []);
@@ -83,13 +102,20 @@ export function ParkingProvider({ children }) {
         throw new Error('Geolocalización no soportada');
       }
 
+      // Verificar si ha pasado suficiente tiempo desde la última búsqueda
+      const now = Date.now();
+      if (now - lastSearchTimestampRef.current < 2000) {
+        console.debug('⏱️ Demasiado pronto para una nueva búsqueda de ubicación');
+        return lastLocationRef.current;
+      }
+
       console.debug('🌍 Solicitando ubicación del usuario...');
 
       const position = await new Promise((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
           enableHighAccuracy: false,
           timeout: 5000,
-          maximumAge: 0
+          maximumAge: 2000 // Permitir usar una ubicación en caché de hasta 2 segundos
         });
       });
 
@@ -98,20 +124,37 @@ export function ParkingProvider({ children }) {
         lng: position.coords.longitude
       };
 
-      console.debug('📍 Ubicación obtenida:', userLocation);
+      // Verificar si la ubicación ha cambiado significativamente
+      if (areLocationsEqual(userLocation, lastLocationRef.current)) {
+        console.debug('📍 Ubicación del usuario no ha cambiado significativamente');
+        return lastLocationRef.current;
+      }
+
+      console.debug('📍 Nueva ubicación obtenida:', userLocation);
 
       // Ajustar el zoom inicial según el dispositivo
       const isMobile = window.innerWidth < 768;
       const initialZoom = isMobile ? 16 : 17;
 
+      lastSearchTimestampRef.current = now;
+      lastLocationRef.current = userLocation;
       updateTargetLocation(userLocation, true);
-      searchNearbyParking(userLocation, initialZoom);
+
+      // Intentar usar resultados en caché primero
+      const cachedResults = getCachedResult(userLocation);
+      if (cachedResults?.length > 0) {
+        console.debug('��️ Usando resultados en caché para la ubicación');
+        updateParkingSpots(cachedResults);
+      } else {
+        searchNearbyParking(userLocation, initialZoom);
+      }
+
       return userLocation;
     } catch (error) {
       console.debug('⚠️ No se pudo obtener la ubicación:', error);
       return null;
     }
-  }, [updateTargetLocation, searchNearbyParking]);
+  }, [updateTargetLocation, searchNearbyParking, getCachedResult, updateParkingSpots]);
 
   // Combinar los spots de la base de datos con los de Google Places
   const parkingSpots = useMemo(() => {
@@ -149,7 +192,7 @@ export function ParkingProvider({ children }) {
     setTargetLocation: updateTargetLocation,
     shouldCenterMap,
     setShouldCenterMap,
-    getUserLocation, // Esta función ahora se llamará solo cuando el usuario la solicite
+    getUserLocation,
     invalidate,
     refetch,
     isInitialized

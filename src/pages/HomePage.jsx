@@ -279,15 +279,20 @@ const HomePage = () => {
           search: place.displayName.text,
           lat: place.location.latitude.toString(),
           lng: place.location.longitude.toString(),
-          zoom: '17', // Añadimos zoom para mejor precisión
-          direct: 'true' // Indicador para centrado directo
+          zoom: '17',
+          direct: 'true',
+          source: 'search',
+          timestamp: Date.now().toString() // Añadimos timestamp para forzar actualización
         });
         navigate(`/parking?${params.toString()}`);
       } else if (typeof place === 'string') {
         // Si es una búsqueda reciente o texto manual
         const params = new URLSearchParams({
           search: encodeURIComponent(place),
-          type: 'text'
+          type: 'text',
+          direct: 'true',
+          source: 'recent',
+          timestamp: Date.now().toString() // Añadimos timestamp para forzar actualización
         });
         navigate(`/parking?${params.toString()}`);
       }
