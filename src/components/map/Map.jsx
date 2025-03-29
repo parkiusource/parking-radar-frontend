@@ -19,7 +19,6 @@ import { useMap } from '@/hooks/useMap';
 import { useMapMarkers } from '@/hooks/useMapMarkers';
 import { useParkingSearch } from '@/hooks/useParkingSearch';
 import ParkingInfoWindow from './ParkingInfoWindow';
-import '@/styles/map.css';
 
 // Función de debug que solo muestra logs en desarrollo
 const debug = (message, data) => {
