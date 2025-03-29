@@ -12,7 +12,7 @@ import {
   SecondStep,
   ThirdStep,
 } from '@/components/admin/Onboarding';
-import { Logo } from '@/components/Logo';
+import { Logo } from '@/components/layout/Logo';
 import { LoadingOverlay } from '@/components/common';
 
 import { useAuth } from '@/hooks/useAuth';

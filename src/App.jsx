@@ -8,9 +8,9 @@ import { ParkingProvider } from '@/context/ParkingProvider';
 import { QueryClientContextProvider } from '@/context/QueryClientContext';
 import { UserProvider } from '@/context/UserContext';
 import AppRoutes from '@/routes/AppRoutes';
-import ScrollToTop from '@/components/ScrollToTop';
-import RoutePrefetcher from '@/components/RoutePrefetcher';
-import ErrorBoundary from '@/components/ErrorBoundary';
+import ScrollToTop from '@/components/common/ScrollToTop';
+import RoutePrefetcher from '@/components/common/RoutePrefetcher';
+import ErrorBoundary from '@/components/common/ErrorBoundary';
 
 const AUTH_DOMAIN = import.meta.env.VITE_AUTH_DOMAIN;
 const AUTH_CLIENT_ID = import.meta.env.VITE_AUTH_CLIENT_ID;

@@ -3,9 +3,9 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
-import { Header } from '@/components/Header';
+import { Header } from '@/components/layout/Header';
 import { Button } from '@/components/common';
-import Footer from '@/components/Footer';
+import Footer from '@/components/layout/Footer';
 import imgParkiu from '@/images/img-parking.webp';
 import imgAdmin from '@/images/img-admin.webp';
 
@@ -297,7 +297,7 @@ const AdminLandingPage = () => {
                   <div className="relative bg-white rounded-2xl p-8 shadow-xl border border-gray-100">
                     <div className="space-y-6">
                     {accessControlSystem.map((item, index) => (
-                      <div 
+                      <div
                         key={index}
                         className="flex items-center gap-4 p-4 bg-gradient-to-r from-primary-50 to-primary-100/50 rounded-xl hover:shadow-md transition-all duration-300"
                       >
@@ -330,7 +330,7 @@ const AdminLandingPage = () => {
                   </p>
                   <ul className="space-y-4 mb-8">
                   {elementsSystem.map((element, index) => (
-                    <li 
+                    <li
                       key={index}
                       className="flex items-center gap-3 text-gray-700"
                     >

@@ -5,7 +5,7 @@ import { useAdminProfile, useAdminParkingLots } from '@/api/hooks/useAdminOnboar
 import { LoadingOverlay } from '@/components/common/LoadingOverlay';
 import { Button } from '@/components/common/Button/Button';
 import { CircleParking, LogIn } from 'lucide-react';
-import { Logo } from '@/components/Logo';
+import { Logo } from '@/components/layout/Logo';
 
 export const Gateway = () => {
   const navigate = useNavigate();

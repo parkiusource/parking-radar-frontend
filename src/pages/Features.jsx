@@ -7,8 +7,8 @@ import iconSmartCar from '../assets/Icon-SmartCar.png';
 import iconInteresting from '../assets/Icon-Interesting.png';
 import iconLogo from '../assets/smart-parking-logo3.png';
 
-import { Header } from '@/components/Header';
-import DarkFooter from '@/components/Footer';
+import { Header } from '@/components/layout/Header';
+import DarkFooter from '@/components/layout/Footer';
 
 const Features = () => {
   const { t } = useTranslation();

@@ -5,9 +5,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { LuMenu, LuX } from 'react-icons/lu';
 import { useTranslation } from 'react-i18next';
 
-import { Logo } from '@/components/Logo';
+import { Logo } from '@/components/layout/Logo';
 import { useAuth } from '@/hooks/useAuth';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
+import LanguageSwitcher from '@/components/common/LanguageSwitcher';
 import { LogoutButton } from '@/components/common';
 
 import { CtaButtons } from './CtaButtons';

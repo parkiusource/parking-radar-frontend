@@ -8,8 +8,8 @@ import { useTranslation } from 'react-i18next';
 
 import { Button, Card } from '@/components/common';
 import { CardContent } from '@/components/common/Card';
-import DarkFooter from '@/components/Footer';
-import { Header } from '@/components/Header';
+import DarkFooter from '@/components/layout/Footer';
+import { Header } from '@/components/layout/Header';
 
 export default function About() {
   const { t } = useTranslation();

@@ -9,7 +9,7 @@ import { useSearchPlaces } from '@/api/hooks/useSearchPlaces';
 import { Input } from '@/components/common/Input';
 import { Label } from '@/components/common/Label';
 import { Button } from '@/components/common';
-import { SearchBox } from '@/components/SearchBox';
+import { SearchBox } from '@/components/parking/SearchBox';
 
 const MAX_ADDRESS_LENGTH = 40;
 
