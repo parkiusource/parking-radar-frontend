@@ -14,32 +14,18 @@ import { BiTargetLock } from 'react-icons/bi';
 import { useSearchState } from '@/hooks/useSearchState';
 import { ParkingContext } from '@/context/parkingContextUtils';
 import { UserContext } from '@/context/userContextDefinition';
-import { GEOLOCATION_CONFIG } from '@/services/geolocationService';
 import { MAP_CONSTANTS } from '@/constants/map';
 import { useMap } from '@/hooks/useMap';
 import { useMapMarkers } from '@/hooks/useMapMarkers';
 import { useParkingSearch } from '@/hooks/useParkingSearch';
+import { useGeolocation } from '@/services/geolocationService';
 import ParkingInfoWindow from './ParkingInfoWindow';
 import { LocationRequestModal } from './LocationRequestModal';
 
 // Función de debug que solo muestra logs en desarrollo
 const debug = (message, data) => {
   if (import.meta.env.DEV) {
-    if (data) {
-      console.log(message, data);
-    } else {
-      console.log(message);
-    }
-  }
-};
-
-const debugError = (message, error) => {
-  if (import.meta.env.DEV) {
-    if (error) {
-      console.error(message, error);
-    } else {
-      console.error(message);
-    }
+    console.log(`🗺️ [Map] ${message}`, data || '');
   }
 };
 
@@ -47,8 +33,7 @@ const debugError = (message, error) => {
 const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-    libraries: MAP_CONSTANTS.LIBRARIES,
-    mapIds: [import.meta.env.VITE_GOOGLE_MAP_ID]
+    libraries: MAP_CONSTANTS.LIBRARIES
   });
 
   const { user, updateUser } = useContext(UserContext);
@@ -61,6 +46,15 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
     setShouldCenterMap,
     setParkingSpots
   } = useContext(ParkingContext);
+
+  // Usar el hook de geolocalización
+  const { error: geoError, loading: geoLoading, getCurrentLocation } = useGeolocation();
+  const [showLocationModal, setShowLocationModal] = useState(false);
+
+  // Inicializar searchNearbyParking primero
+  const { searchNearbyParking } = useParkingSearch(setParkingSpots, getCachedResult, setCachedResult);
+
+  // Resto de estados y refs
   const mapRef = useRef(null);
   const [selectedSpot, setSelectedSpot] = useState(null);
   const lastClickTime = useRef(0);
@@ -72,7 +66,6 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
   const userMarkerRef = useRef(null);
   const lastIdleTimeRef = useRef(null);
   const MIN_IDLE_INTERVAL = 2000; // 2 segundos entre búsquedas
-  const [showLocationModal, setShowLocationModal] = useState(false);
 
   // Usar hooks personalizados
   const {
@@ -82,7 +75,76 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
     effectiveTargetLocation,
     forceMapUpdate,
     setForceMapUpdate
-  } = useMap(userLoc, contextTargetLocation, MAP_CONSTANTS.DEFAULT_CENTER);
+  } = useMap(userLoc, contextTargetLocation, MAP_CONSTANTS.DEFAULT_LOCATION);
+
+  // Inicializar useMapMarkers antes de su uso
+  const { clearMarkers } = useMapMarkers(
+    mapInstance,
+    contextParkingSpots,
+    useCallback((spot) => {
+      debug('🎯 Marcador clickeado:', spot);
+
+      if (!spot || !mapInstance) return;
+
+      // Marcar que estamos en una interacción de marcador
+      isMarkerInteractionRef.current = true;
+
+      // Limpiar timeout anterior si existe
+      if (markerInteractionTimeoutRef.current) {
+        clearTimeout(markerInteractionTimeoutRef.current);
+      }
+
+      // Cerrar todos los InfoWindows inmediatamente
+      setSelectedSpot(null);
+
+      // Centrar el mapa en la nueva ubicación con animación suave
+      requestAnimationFrame(() => {
+        mapInstance.panTo({
+          lat: parseFloat(spot.latitude),
+          lng: parseFloat(spot.longitude)
+        });
+        mapInstance.setZoom(17);
+
+        // Abrir el nuevo InfoWindow después de centrar el mapa
+        setSelectedSpot(spot);
+        if (onLocationChange) {
+          onLocationChange(spot);
+        }
+
+        // Restaurar la posibilidad de búsquedas después de un tiempo
+        markerInteractionTimeoutRef.current = setTimeout(() => {
+          isMarkerInteractionRef.current = false;
+        }, 1000); // Esperar 1 segundo después de la interacción
+      });
+    }, [mapInstance, onLocationChange])
+  );
+
+  // Función para solicitar ubicación del usuario
+  const requestUserLocation = useCallback(async () => {
+    try {
+      debug('🎯 Solicitando ubicación del usuario');
+      const userLocation = await getCurrentLocation();
+      debug('📍 Ubicación obtenida:', userLocation);
+
+      updateUser({ location: userLocation });
+      centerMapOnLocation(userLocation);
+      searchNearbyParking(userLocation);
+      setShowLocationModal(false);
+    } catch (error) {
+      debug('❌ Error al obtener ubicación:', error);
+      // El hook useGeolocation ya maneja el fallback a ubicación por defecto
+    }
+  }, [getCurrentLocation, updateUser, centerMapOnLocation, searchNearbyParking]);
+
+  // Función para manejar el skip de la ubicación
+  const handleLocationSkip = useCallback(() => {
+    setShowLocationModal(false);
+    const defaultLocation = MAP_CONSTANTS.DEFAULT_LOCATION;
+    debug('📍 Usando ubicación por defecto (skip):', defaultLocation);
+    updateUser({ location: defaultLocation });
+    centerMapOnLocation(defaultLocation);
+    searchNearbyParking(defaultLocation);
+  }, [updateUser, centerMapOnLocation, searchNearbyParking]);
 
   const handleMapLoad = useCallback((map) => {
     debug('🗺️ Mapa cargado:', map);
@@ -92,16 +154,8 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
     // Mostrar el modal de solicitud de ubicación si no hay ubicación
     if (!userLoc && !hasInitialized.current) {
       setShowLocationModal(true);
-    } else if (!userLoc) {
-      // Si no hay ubicación y ya se inicializó, usar ubicación por defecto
-      const defaultLocation = MAP_CONSTANTS.DEFAULT_CENTER;
-      updateUser({ location: defaultLocation });
-      centerMapOnLocation(defaultLocation);
-      searchNearbyParking(defaultLocation);
     }
-  }, [originalHandleMapLoad, userLoc, updateUser, centerMapOnLocation, searchNearbyParking]);
-
-  const { searchNearbyParking } = useParkingSearch(setParkingSpots, getCachedResult, setCachedResult);
+  }, [originalHandleMapLoad, userLoc]);
 
   // Función para verificar si una ubicación es similar a la última búsqueda
   const isSimilarLocation = useCallback((location1, location2, threshold = 100) => {
@@ -231,71 +285,6 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
     }
   }, [mapInstance, userLoc, searchNearbyParking, getCachedResult, setParkingSpots]);
 
-  // Función para localizar al usuario
-  const locateUser = useCallback(() => {
-    debug('🎯 Iniciando localización del usuario...');
-
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        ({ coords: { latitude, longitude } }) => {
-          const userLoc = { lat: latitude, lng: longitude };
-
-          // Evitar actualización si es la misma ubicación
-          if (lastSearchLocationRef.current?.lat === latitude &&
-              lastSearchLocationRef.current?.lng === longitude) {
-            return;
-          }
-
-          debug('📍 Ubicación obtenida:', { latitude, longitude });
-
-          const handleUserLocation = async () => {
-            if (contextTargetLocation) contextTargetLocation(null);
-            updateUser({ location: userLoc });
-
-            // Limpiar marcadores existentes
-            clearMarkers();
-
-            // Centrar el mapa inmediatamente
-            centerMapOnLocation(userLoc);
-
-            // Asegurar que el mapa está centrado
-            if (mapInstance) {
-              mapInstance.panTo({
-                lat: latitude,
-                lng: longitude
-              });
-              mapInstance.setZoom(15);
-            }
-
-            // Pequeña pausa para permitir que el mapa se centre
-            await new Promise(resolve => setTimeout(resolve, 100));
-
-            // Realizar la búsqueda
-            searchNearbyParking(userLoc);
-          };
-
-          handleUserLocation();
-        },
-        (error) => {
-          debugError('❌ Error obteniendo ubicación:', error);
-          // En caso de error, usar ubicación por defecto
-          const defaultLocation = MAP_CONSTANTS.DEFAULT_CENTER;
-          updateUser({ location: defaultLocation });
-          centerMapOnLocation(defaultLocation);
-          searchNearbyParking(defaultLocation);
-        },
-        GEOLOCATION_CONFIG
-      );
-    } else {
-      debugError('❌ Geolocalización no soportada');
-      // Si no hay soporte de geolocalización, usar ubicación por defecto
-      const defaultLocation = MAP_CONSTANTS.DEFAULT_CENTER;
-      updateUser({ location: defaultLocation });
-      centerMapOnLocation(defaultLocation);
-      searchNearbyParking(defaultLocation);
-    }
-  }, [contextTargetLocation, updateUser, centerMapOnLocation, searchNearbyParking, lastSearchLocationRef, clearMarkers, mapInstance]);
-
   // Memoizar el callback de navegación
   const openNavigation = useCallback((lat, lng) => {
     const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
@@ -331,57 +320,6 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
       </InfoWindowF>
     );
   }, [selectedSpot, openNavigation, handleInfoWindowClose]);
-
-  // Restaurar la referencia a los marcadores con manejo de interacción
-  const { clearMarkers } = useMapMarkers(
-    mapInstance,
-    contextParkingSpots,
-    useCallback((spot) => {
-      debug('🎯 Marcador clickeado:', spot);
-
-      if (!spot || !mapInstance) return;
-
-      // Marcar que estamos en una interacción de marcador
-      isMarkerInteractionRef.current = true;
-
-      // Limpiar timeout anterior si existe
-      if (markerInteractionTimeoutRef.current) {
-        clearTimeout(markerInteractionTimeoutRef.current);
-      }
-
-      // Cerrar todos los InfoWindows inmediatamente
-      setSelectedSpot(null);
-
-      // Centrar el mapa en la nueva ubicación con animación suave
-      requestAnimationFrame(() => {
-        mapInstance.panTo({
-          lat: parseFloat(spot.latitude),
-          lng: parseFloat(spot.longitude)
-        });
-        mapInstance.setZoom(17);
-
-        // Abrir el nuevo InfoWindow después de centrar el mapa
-        setSelectedSpot(spot);
-        if (onLocationChange) {
-          onLocationChange(spot);
-        }
-
-        // Restaurar la posibilidad de búsquedas después de un tiempo
-        markerInteractionTimeoutRef.current = setTimeout(() => {
-          isMarkerInteractionRef.current = false;
-        }, 1000); // Esperar 1 segundo después de la interacción
-      });
-    }, [mapInstance, onLocationChange])
-  );
-
-  // Limpiar timeouts al desmontar
-  useEffect(() => {
-    return () => {
-      if (markerInteractionTimeoutRef.current) {
-        clearTimeout(markerInteractionTimeoutRef.current);
-      }
-    };
-  }, []);
 
   // Memoizar el manejador de clics en el mapa
   const handleMapClick = useCallback((event) => {
@@ -475,33 +413,35 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
 
     // Limpiar marcador anterior si existe
     if (userMarkerRef.current) {
-      userMarkerRef.current.map = null;
+      userMarkerRef.current.setMap(null);
     }
 
     // Solo crear el marcador si tenemos una ubicación válida
     if (userLoc && isFinite(userLoc.lat) && isFinite(userLoc.lng)) {
-      // Crear nuevo marcador avanzado
-      const markerView = new window.google.maps.marker.AdvancedMarkerElement({
+      // Crear nuevo marcador estándar
+      const marker = new window.google.maps.Marker({
         position: {
           lat: parseFloat(userLoc.lat),
           lng: parseFloat(userLoc.lng)
         },
         map: mapInstance,
-        content: new window.google.maps.marker.PinView({
-          background: '#3B82F6',
-          borderColor: '#FFFFFF',
-          glyphColor: '#FFFFFF',
-          scale: 1.2
-        }),
+        icon: {
+          path: window.google.maps.SymbolPath.CIRCLE,
+          scale: 8,
+          fillColor: '#3B82F6',
+          fillOpacity: 1,
+          strokeColor: '#FFFFFF',
+          strokeWeight: 2
+        },
         zIndex: 1000
       });
 
-      userMarkerRef.current = markerView;
+      userMarkerRef.current = marker;
     }
 
     return () => {
       if (userMarkerRef.current) {
-        userMarkerRef.current.map = null;
+        userMarkerRef.current.setMap(null);
       }
     };
   }, [mapInstance, userLoc]);
@@ -573,7 +513,7 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
   // Memoizar el botón de localización
   const locateUserButton = useMemo(() => (
     <button
-      onClick={locateUser}
+      onClick={requestUserLocation}
       className="absolute left-4 p-3 bg-white text-primary rounded-full shadow-lg hover:bg-gray-50 transition-all duration-300 hover:scale-105 z-50 border border-gray-100 bottom-4 md:bottom-4"
       aria-label="Localizar mi ubicación"
       style={{
@@ -584,7 +524,7 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
     >
       <BiTargetLock size={24} />
     </button>
-  ), [locateUser]);
+  ), [requestUserLocation]);
 
   // Memoizar las opciones del mapa
   const mapOptions = useMemo(() => ({
@@ -633,23 +573,6 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
     }
   }), []);
 
-  // Función para manejar la solicitud de ubicación
-  const handleLocationRequest = useCallback(() => {
-    setShowLocationModal(false);
-    locateUser();
-  }, [locateUser]);
-
-  // Función para manejar el skip de la ubicación
-  const handleLocationSkip = useCallback(() => {
-    setShowLocationModal(false);
-    hasInitialized.current = true;
-    // Usar ubicación por defecto
-    const defaultLocation = MAP_CONSTANTS.DEFAULT_CENTER;
-    updateUser({ location: defaultLocation });
-    centerMapOnLocation(defaultLocation);
-    searchNearbyParking(defaultLocation);
-  }, [updateUser, centerMapOnLocation, searchNearbyParking]);
-
   if (loadError) return (
     <div className="w-full h-full flex items-center justify-center bg-white">
       <div className="text-gray-600">Error al cargar el mapa. Intente recargar la página.</div>
@@ -682,8 +605,10 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
         </GoogleMap>
         {showLocationModal && (
           <LocationRequestModal
-            onRequestLocation={handleLocationRequest}
+            onRequestLocation={requestUserLocation}
             onSkip={handleLocationSkip}
+            isLoading={geoLoading}
+            error={geoError}
           />
         )}
       </div>
