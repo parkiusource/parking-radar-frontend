@@ -1,5 +1,5 @@
 export const MAP_CONSTANTS = {
-  DEFAULT_LOCATION: { lat: 4.711, lng: -74.0721 },
+  DEFAULT_LOCATION: { lat: 4.5962, lng: -74.0762 },
   MAP_ID: import.meta.env.VITE_GOOGLE_MAP_ID,
   COLOR_NO_AVAILABLE: '#DC2626',  // Rojo para no disponibles (red-600)
   COLOR_GOOGLE_PLACES: '#6B7280',  // Gris para Google (gray-500)

@@ -82,7 +82,7 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
     effectiveTargetLocation,
     forceMapUpdate,
     setForceMapUpdate
-  } = useMap(userLoc, contextTargetLocation, userLoc);
+  } = useMap(userLoc, contextTargetLocation, MAP_CONSTANTS.DEFAULT_CENTER);
 
   const handleMapLoad = useCallback((map) => {
     debug('🗺️ Mapa cargado:', map);
@@ -92,8 +92,14 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
     // Mostrar el modal de solicitud de ubicación si no hay ubicación
     if (!userLoc && !hasInitialized.current) {
       setShowLocationModal(true);
+    } else if (!userLoc) {
+      // Si no hay ubicación y ya se inicializó, usar ubicación por defecto
+      const defaultLocation = MAP_CONSTANTS.DEFAULT_CENTER;
+      updateUser({ location: defaultLocation });
+      centerMapOnLocation(defaultLocation);
+      searchNearbyParking(defaultLocation);
     }
-  }, [originalHandleMapLoad, userLoc]);
+  }, [originalHandleMapLoad, userLoc, updateUser, centerMapOnLocation, searchNearbyParking]);
 
   const { searchNearbyParking } = useParkingSearch(setParkingSpots, getCachedResult, setCachedResult);
 
@@ -272,11 +278,21 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
         },
         (error) => {
           debugError('❌ Error obteniendo ubicación:', error);
+          // En caso de error, usar ubicación por defecto
+          const defaultLocation = MAP_CONSTANTS.DEFAULT_CENTER;
+          updateUser({ location: defaultLocation });
+          centerMapOnLocation(defaultLocation);
+          searchNearbyParking(defaultLocation);
         },
         GEOLOCATION_CONFIG
       );
     } else {
       debugError('❌ Geolocalización no soportada');
+      // Si no hay soporte de geolocalización, usar ubicación por defecto
+      const defaultLocation = MAP_CONSTANTS.DEFAULT_CENTER;
+      updateUser({ location: defaultLocation });
+      centerMapOnLocation(defaultLocation);
+      searchNearbyParking(defaultLocation);
     }
   }, [contextTargetLocation, updateUser, centerMapOnLocation, searchNearbyParking, lastSearchLocationRef, clearMarkers, mapInstance]);
 
