@@ -121,13 +121,27 @@ export const useParkingSearch = (setParkingSpots, getCachedResult, setCachedResu
 
   // Función para verificar si el caché es válido
   const isCacheValid = useCallback((location) => {
-    if (!lastCachedLocationRef.current || !lastCacheTimeRef.current) return false;
+    if (!lastCachedLocationRef.current || !lastCacheTimeRef.current) {
+      debug('❌ Caché no válido - No hay ubicación o timestamp anterior');
+      return false;
+    }
 
     const timeSinceLastCache = Date.now() - lastCacheTimeRef.current;
-    if (timeSinceLastCache > CACHE_EXPIRY) return false;
+    if (timeSinceLastCache > CACHE_EXPIRY) {
+      debug('❌ Caché no válido - Expirado');
+      return false;
+    }
 
     const distance = calculateDistance(location, lastCachedLocationRef.current);
-    return distance < MIN_DISTANCE_FOR_NEW_SEARCH;
+    const isWithinDistance = distance < MIN_DISTANCE_FOR_NEW_SEARCH;
+
+    if (!isWithinDistance) {
+      debug('❌ Caché no válido - Distancia significativa', { distance, threshold: MIN_DISTANCE_FOR_NEW_SEARCH });
+      return false;
+    }
+
+    debug('✅ Caché válido - Usando resultados existentes');
+    return true;
   }, []);
 
   // Función para actualizar el caché
@@ -170,15 +184,19 @@ export const useParkingSearch = (setParkingSpots, getCachedResult, setCachedResu
 
     // Verificar si el caché es válido y tenemos spots
     if (isCacheValid(currentLocation) && currentSpots.length > 0) {
-      debug('Usando caché válido');
+      debug('📦 Usando caché válido');
       setParkingSpots(currentSpots);
+      updateCache(currentLocation, currentSpots);
+      lastSearchLocationRef.current = currentLocation;
+      lastIdleTimeRef.current = Date.now();
       return;
     }
 
-    try {
-      isSearchingRef.current = true;
-      debug('Iniciando búsqueda en Places API', { location: currentLocation, zoom });
+    // Si no hay caché válido, realizar la búsqueda
+    isSearchingRef.current = true;
+    debug('🔍 Realizando nueva búsqueda - No hay caché válido');
 
+    try {
       // Verificar rate limit
       if (!apiLimiter.canMakeCall()) {
         debug('Rate limit alcanzado, manteniendo spots actuales');
@@ -293,6 +311,10 @@ export const useParkingSearch = (setParkingSpots, getCachedResult, setCachedResu
       const combinedSpots = mergeSpots(currentSpots, googlePlacesSpots);
       setParkingSpots(combinedSpots);
 
+      // Actualizar el caché con los nuevos resultados
+      updateCache(currentLocation, combinedSpots);
+      debug('✅ Búsqueda completada y caché actualizado');
+
     } catch (error) {
       if (error.name === 'AbortError') {
         debug('❌ Búsqueda cancelada - Timeout');
@@ -309,7 +331,7 @@ export const useParkingSearch = (setParkingSpots, getCachedResult, setCachedResu
     } finally {
       isSearchingRef.current = false;
     }
-  }, [setParkingSpots, getCachedResult, isCacheValid]);
+  }, [setParkingSpots, getCachedResult, isCacheValid, updateCache]);
 
   // Función para procesar la cola de búsquedas
   const processSearchQueue = useCallback(async () => {

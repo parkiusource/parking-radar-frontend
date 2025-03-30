@@ -182,20 +182,30 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
     // Solo mostrar el modal si:
     // 1. No se ha inicializado antes
     // 2. No tenemos ubicación del usuario O la ubicación es la default
+    // 3. No tenemos una ubicación válida en el contexto
     const isDefaultLocation = userLoc &&
       userLoc.lat === MAP_CONSTANTS.DEFAULT_LOCATION.lat &&
       userLoc.lng === MAP_CONSTANTS.DEFAULT_LOCATION.lng;
 
-    if (!hasInitialized.current && (!userLoc || isDefaultLocation)) {
+    const hasValidLocation = userLoc &&
+      !isDefaultLocation &&
+      isFinite(userLoc.lat) &&
+      isFinite(userLoc.lng);
+
+    if (!hasInitialized.current && !hasValidLocation) {
       debug('📍 Mostrando modal de ubicación - No hay ubicación válida');
       setShowLocationModal(true);
     } else {
-      debug('📍 No es necesario mostrar modal de ubicación', { hasInitialized: hasInitialized.current, userLoc });
+      debug('📍 No es necesario mostrar modal de ubicación', {
+        hasInitialized: hasInitialized.current,
+        userLoc,
+        hasValidLocation
+      });
     }
 
     // Optimización para móviles
     const isMobile = window.innerWidth < 768;
-    if (isMobile && map && userLoc && !isDefaultLocation) {
+    if (isMobile && map && hasValidLocation) {
       setTimeout(() => {
         searchNearbyParking(userLoc, 17, false)
           .then(() => {
@@ -229,6 +239,132 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
     }
   }, []);
 
+  // Inicialización automática
+  useEffect(() => {
+    if (!mapInstance || !userLoc) return;
+
+    const isDefaultLocation =
+      userLoc.lat === MAP_CONSTANTS.DEFAULT_LOCATION.lat &&
+      userLoc.lng === MAP_CONSTANTS.DEFAULT_LOCATION.lng;
+
+    // Si es una búsqueda forzada desde el HomePage, ignoramos las verificaciones de inicialización
+    const urlParams = new URLSearchParams(window.location.search);
+    const forceSearch = urlParams.get('forceSearch') === 'true';
+    const searchLat = urlParams.get('lat');
+    const searchLng = urlParams.get('lng');
+    const fromHomePage = urlParams.get('source') === 'search';
+
+    // Si ya se realizó una búsqueda desde HomePage, no inicializar automáticamente
+    if (sessionStorage.getItem('initialHomePageSearch') === 'true') {
+      hasInitialized.current = true;
+      return;
+    }
+
+    // Verificar si ya tenemos una búsqueda en curso
+    if (isSearchingRef.current) {
+      debug('🔄 Búsqueda en curso, omitiendo inicialización');
+      return;
+    }
+
+    // Si es una búsqueda forzada con coordenadas válidas
+    if (forceSearch && searchLat && searchLng) {
+      const searchLocation = {
+        lat: parseFloat(searchLat),
+        lng: parseFloat(searchLng)
+      };
+
+      if (!isFinite(searchLocation.lat) || !isFinite(searchLocation.lng)) {
+        debug('❌ Coordenadas de búsqueda forzada inválidas');
+        return;
+      }
+
+      debug('🔍 Realizando búsqueda forzada desde HomePage');
+      hasInitialized.current = true;
+      isSearchingRef.current = true;
+
+      // Verificar caché primero
+      const cachedResults = getCachedResult(searchLocation);
+      if (cachedResults?.length > 0) {
+        debug('📦 Usando resultados en caché para búsqueda forzada');
+        setParkingSpots(cachedResults);
+        lastSearchLocationRef.current = searchLocation;
+        lastIdleTimeRef.current = Date.now();
+        mapInstance.panTo(searchLocation);
+        mapInstance.setZoom(17);
+        isSearchingRef.current = false;
+
+        if (fromHomePage) {
+          sessionStorage.setItem('initialHomePageSearch', 'true');
+        }
+        return;
+      }
+
+      // Si no hay caché, hacer la búsqueda
+      mapInstance.panTo(searchLocation);
+      mapInstance.setZoom(17);
+
+      searchNearbyParking(searchLocation, 17, false)
+        .then(() => {
+          if (fromHomePage) {
+            sessionStorage.setItem('initialHomePageSearch', 'true');
+          }
+        })
+        .finally(() => {
+          isSearchingRef.current = false;
+        });
+      return;
+    }
+
+    // Lógica normal de inicialización
+    if (hasInitialized.current || isDefaultLocation) {
+      debug('📍 No inicializando búsqueda - Ya inicializado o ubicación por defecto');
+      return;
+    }
+
+    hasInitialized.current = true;
+    const isMobile = window.innerWidth < 768;
+    const initDelay = isMobile ? 800 : 0;
+
+    // Verificar caché antes de cualquier búsqueda
+    const cachedResults = getCachedResult(userLoc);
+    if (cachedResults?.length > 0) {
+      debug('📦 Usando resultados en caché para inicialización');
+      setParkingSpots(cachedResults);
+      lastSearchLocationRef.current = userLoc;
+      lastIdleTimeRef.current = Date.now();
+
+      if (isMobile) {
+        setTimeout(() => {
+          mapInstance.panBy(1, 0);
+          setTimeout(() => mapInstance.panBy(-1, 0), 100);
+        }, 500);
+      }
+      return;
+    }
+
+    // Solo si no hay caché, realizar la búsqueda
+    setTimeout(() => {
+      if (!isSearchingRef.current) {
+        isSearchingRef.current = true;
+        searchNearbyParking(userLoc, 17, false)
+          .then(() => {
+            lastSearchLocationRef.current = userLoc;
+            lastIdleTimeRef.current = Date.now();
+
+            if (isMobile) {
+              setTimeout(() => {
+                mapInstance.panBy(1, 0);
+                setTimeout(() => mapInstance.panBy(-1, 0), 100);
+              }, 300);
+            }
+          })
+          .finally(() => {
+            isSearchingRef.current = false;
+          });
+      }
+    }, initDelay);
+  }, [mapInstance, userLoc, searchNearbyParking, getCachedResult, setParkingSpots]);
+
   // Manejar estado de inactividad del mapa
   const handleMapIdle = useCallback(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -256,7 +392,8 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
       lng: center.lng()
     };
 
-    if (isMapMoving) {
+    // Si el mapa está en movimiento o tenemos un spot seleccionado, no buscar
+    if (isMapMoving || selectedSpot) {
       return;
     }
 
@@ -268,11 +405,20 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
 
     lastZoomLevel.current = currentZoom;
 
-    const hasSelectedMarker = selectedSpot !== null;
+    // Verificar si necesitamos una nueva búsqueda
+    if (isLocationDistant || hasZoomChangedSignificantly) {
+      // Primero verificar el caché
+      const cachedResults = getCachedResult(newLocation);
+      if (cachedResults?.length > 0) {
+        debug('📦 Usando resultados en caché para nueva ubicación');
+        setParkingSpots(cachedResults);
+        lastSearchLocationRef.current = newLocation;
+        lastIdleTimeRef.current = now;
+        return;
+      }
 
-    if (!hasSelectedMarker && (isLocationDistant || hasZoomChangedSignificantly)) {
+      // Si no hay caché, mostrar el botón de búsqueda
       searchHereLocationRef.current = newLocation;
-
       if (searchHereTimeoutRef.current) {
         clearTimeout(searchHereTimeoutRef.current);
       }
@@ -285,7 +431,7 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
     }
 
     lastIdleTimeRef.current = now;
-  }, [mapInstance, isMapMoving, isSimilarLocation, selectedSpot]);
+  }, [mapInstance, isMapMoving, isSimilarLocation, selectedSpot, getCachedResult, setParkingSpots]);
 
   // Buscar en el área actual
   const handleSearchHereClick = useCallback(() => {
@@ -388,101 +534,6 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
       }, 500);
     }
   }, [selectedSpot, contextParkingSpots, setParkingSpots]);
-
-  // Inicialización automática
-  useEffect(() => {
-    if (!mapInstance || !userLoc) return;
-
-    const isDefaultLocation =
-      userLoc.lat === MAP_CONSTANTS.DEFAULT_LOCATION.lat &&
-      userLoc.lng === MAP_CONSTANTS.DEFAULT_LOCATION.lng;
-
-    // Si es una búsqueda forzada desde el HomePage, ignoramos las verificaciones de inicialización
-    const urlParams = new URLSearchParams(window.location.search);
-    const forceSearch = urlParams.get('forceSearch') === 'true';
-    const searchLat = urlParams.get('lat');
-    const searchLng = urlParams.get('lng');
-    const fromHomePage = urlParams.get('source') === 'search';
-
-    if (forceSearch && searchLat && searchLng) {
-      const searchLocation = {
-        lat: parseFloat(searchLat),
-        lng: parseFloat(searchLng)
-      };
-
-      debug('🔍 Realizando búsqueda forzada desde HomePage');
-      hasInitialized.current = true;
-      isSearchingRef.current = true;
-
-      // Centrar mapa en la ubicación de búsqueda
-      mapInstance.panTo(searchLocation);
-      mapInstance.setZoom(17);
-
-      // Realizar búsqueda
-      searchNearbyParking(searchLocation, 17, false)
-        .then(() => {
-          // Marcar que ya se realizó la búsqueda inicial desde HomePage
-          if (fromHomePage) {
-            sessionStorage.setItem('initialHomePageSearch', 'true');
-          }
-        })
-        .finally(() => {
-          isSearchingRef.current = false;
-        });
-      return;
-    }
-
-    // Si ya se realizó una búsqueda desde HomePage, no inicializar automáticamente
-    if (sessionStorage.getItem('initialHomePageSearch') === 'true') {
-      hasInitialized.current = true;
-      return;
-    }
-
-    // Lógica normal de inicialización
-    if (hasInitialized.current) return;
-
-    if (isDefaultLocation) {
-      debug('📍 No inicializando búsqueda - Ubicación por defecto');
-      return;
-    }
-
-    hasInitialized.current = true;
-    const isMobile = window.innerWidth < 768;
-    const initDelay = isMobile ? 800 : 0;
-
-    setTimeout(() => {
-      const cachedResults = getCachedResult(userLoc);
-      if (cachedResults?.length > 0) {
-        setParkingSpots(cachedResults);
-        lastSearchLocationRef.current = userLoc;
-        lastIdleTimeRef.current = Date.now();
-
-        if (isMobile) {
-          setTimeout(() => {
-            mapInstance.panBy(1, 0);
-            setTimeout(() => mapInstance.panBy(-1, 0), 100);
-          }, 500);
-        }
-      } else {
-        isSearchingRef.current = true;
-        searchNearbyParking(userLoc, 17, false)
-          .then(() => {
-            lastSearchLocationRef.current = userLoc;
-            lastIdleTimeRef.current = Date.now();
-
-            if (isMobile) {
-              setTimeout(() => {
-                mapInstance.panBy(1, 0);
-                setTimeout(() => mapInstance.panBy(-1, 0), 100);
-              }, 300);
-            }
-          })
-          .finally(() => {
-            isSearchingRef.current = false;
-          });
-      }
-    }, initDelay);
-  }, [mapInstance, userLoc, searchNearbyParking, getCachedResult, setParkingSpots]);
 
   // Abrir navegación
   const openNavigation = useCallback((lat, lng) => {

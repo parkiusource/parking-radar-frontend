@@ -5,7 +5,7 @@ import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
 
 import { ParkingProvider } from '@/context/ParkingProvider';
-import { QueryClientContextProvider } from '@/context/QueryClientContext';
+import QueryClientProvider from '@/context/QueryClientProvider';
 import { UserProvider } from '@/context/UserContext';
 import AppRoutes from '@/routes/AppRoutes';
 import ScrollToTop from '@/components/common/ScrollToTop';
@@ -97,7 +97,7 @@ const App = () => {
         <div className="bg-secondary-950 overflow-scroll relative h-screen no-scrollbar" role="application">
           <div className="w-full min-w-screen min-h-screen">
             <Auth0ProviderWithNavigate>
-              <QueryClientContextProvider>
+              <QueryClientProvider>
                 <UserProvider>
                   <ParkingProvider>
                     <ScrollToTop />
@@ -106,7 +106,7 @@ const App = () => {
                   </ParkingProvider>
                 </UserProvider>
                 {IS_DEV && <ReactQueryDevtools initialIsOpen={false} />}
-              </QueryClientContextProvider>
+              </QueryClientProvider>
             </Auth0ProviderWithNavigate>
           </div>
         </div>
