@@ -7,10 +7,10 @@ const MAP_MOVEMENT_DEBOUNCE = 1000; // 1 segundo de debounce para movimiento del
 const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutos de expiración del caché
 
 const SEARCH_RADIUS = {
-  VERY_CLOSE: 300, // 300 metros para zoom muy cercano
-  CLOSE: 800, // 800 metros para zoom cercano
-  MEDIUM: 1500, // 1.5 km para zoom medio
-  FAR: 2500 // 2.5 km para zoom lejano
+  VERY_CLOSE: 150, // 150 metros para zoom muy cercano (19+)
+  CLOSE: 300, // 300 metros para zoom cercano (16-18)
+  MEDIUM: 800, // 800 metros para zoom medio (14-15)
+  FAR: 1500 // 1.5 km para zoom lejano (menos de 14)
 };
 
 const FIELDS_MASK = [
@@ -71,6 +71,39 @@ const calculateDistance = (point1, point2) => {
   }
 };
 
+// Función para combinar spots sin duplicados (movida fuera del hook)
+const mergeSpots = (existingSpots, newSpots) => {
+  if (!Array.isArray(existingSpots) || !existingSpots.length) return newSpots;
+  if (!Array.isArray(newSpots) || !newSpots.length) return existingSpots;
+
+  // Crear un mapa de spots existentes por ID para búsqueda rápida
+  const spotMap = new Map();
+  existingSpots.forEach(spot => {
+    if (spot?.id) {
+      spotMap.set(spot.id, spot);
+    }
+    // También mapear por googlePlaceId si está disponible
+    if (spot?.googlePlaceId) {
+      spotMap.set(spot.googlePlaceId, spot);
+    }
+  });
+
+  // Agregar nuevos spots solo si no existen ya
+  const combinedSpots = [...existingSpots];
+
+  newSpots.forEach(newSpot => {
+    // Verificar tanto por ID como por googlePlaceId
+    const existsById = newSpot?.id && spotMap.has(newSpot.id);
+    const existsByGoogleId = newSpot?.googlePlaceId && spotMap.has(newSpot.googlePlaceId);
+
+    if (!existsById && !existsByGoogleId) {
+      combinedSpots.push(newSpot);
+    }
+  });
+
+  return combinedSpots;
+};
+
 export const useParkingSearch = (setParkingSpots, getCachedResult, setCachedResult) => {
   if (!setParkingSpots || !getCachedResult || !setCachedResult) {
     throw new Error('useParkingSearch requiere setParkingSpots, getCachedResult y setCachedResult');
@@ -84,6 +117,7 @@ export const useParkingSearch = (setParkingSpots, getCachedResult, setCachedResu
   const mapMovementTimeoutRef = useRef(null);
   const lastCachedLocationRef = useRef(null);
   const lastCacheTimeRef = useRef(0);
+  const lastIdleTimeRef = useRef(0);
 
   // Función para verificar si el caché es válido
   const isCacheValid = useCallback((location) => {
@@ -110,63 +144,49 @@ export const useParkingSearch = (setParkingSpots, getCachedResult, setCachedResu
       return;
     }
 
-    if (!GOOGLE_MAPS_API_KEY) {
-      debug('API Key de Google Maps no encontrada');
-      return;
-    }
-
-    if (isSearchingRef.current) {
-      debug('Búsqueda en progreso, omitiendo nueva búsqueda');
-      return;
-    }
-
     const currentLocation = {
       lat: parseFloat(location.lat),
       lng: parseFloat(location.lng)
     };
 
-    // Si el mapa está en movimiento, actualizar la última ubicación y retornar
-    if (isMapMoving) {
-      lastSearchLocationRef.current = currentLocation;
+    // Obtener spots actuales antes de cualquier operación
+    const currentSpots = getCachedResult(currentLocation) || [];
+
+    // Si ya hay una búsqueda en progreso, mantener los spots actuales
+    if (isSearchingRef.current) {
+      debug('Búsqueda en progreso, manteniendo spots actuales');
+      if (currentSpots.length > 0) {
+        setParkingSpots(currentSpots);
+      }
       return;
     }
 
-    // Verificar caché válido
-    if (isCacheValid(currentLocation)) {
+    // Si el mapa está en movimiento y tenemos spots, mantenerlos
+    if (isMapMoving && currentSpots.length > 0) {
+      debug('Mapa en movimiento, manteniendo spots actuales');
+      setParkingSpots(currentSpots);
+      return;
+    }
+
+    // Verificar si el caché es válido y tenemos spots
+    if (isCacheValid(currentLocation) && currentSpots.length > 0) {
       debug('Usando caché válido');
-      const cachedResults = getCachedResult(currentLocation);
-      if (cachedResults?.length > 0) {
-        setParkingSpots(cachedResults);
-        return;
-      }
-    }
-
-    // Verificar rate limit
-    if (!apiLimiter.canMakeCall()) {
-      debug('Rate limit alcanzado, usando caché');
-      const cachedResults = getCachedResult(currentLocation);
-      if (cachedResults?.length > 0) {
-        setParkingSpots(cachedResults);
-        return;
-      }
-    }
-
-    // Verificar distancia mínima
-    if (lastSearchLocationRef.current) {
-      const distance = calculateDistance(currentLocation, lastSearchLocationRef.current);
-      if (distance < MIN_DISTANCE_FOR_NEW_SEARCH) {
-        debug('Ubicación muy cercana a la última búsqueda');
-        const cachedResults = getCachedResult(currentLocation);
-        if (cachedResults?.length > 0) {
-          setParkingSpots(cachedResults);
-          return;
-        }
-      }
+      setParkingSpots(currentSpots);
+      return;
     }
 
     try {
       isSearchingRef.current = true;
       debug('Iniciando búsqueda en Places API', { location: currentLocation, zoom });
+
+      // Verificar rate limit
+      if (!apiLimiter.canMakeCall()) {
+        debug('Rate limit alcanzado, manteniendo spots actuales');
+        if (currentSpots.length > 0) {
+          setParkingSpots(currentSpots);
+        }
+        return;
+      }
 
       apiLimiter.logCall(currentLocation);
 
@@ -197,8 +217,6 @@ export const useParkingSearch = (setParkingSpots, getCachedResult, setCachedResu
         languageCode: "es"
       };
 
-      debug('Request body:', requestBody);
-
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
 
@@ -218,8 +236,14 @@ export const useParkingSearch = (setParkingSpots, getCachedResult, setCachedResu
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
 
-      if (!data.places) {
-        debug('❌ No se encontraron lugares en la respuesta');
+      // Si no hay lugares en la respuesta, mantener los spots actuales
+      if (!data.places || data.places.length === 0) {
+        debug('❌ No se encontraron lugares en la respuesta, manteniendo spots actuales');
+        if (currentSpots.length > 0) {
+          setParkingSpots(currentSpots);
+          lastSearchLocationRef.current = currentLocation;
+          lastIdleTimeRef.current = Date.now();
+        }
         return;
       }
 
@@ -248,6 +272,7 @@ export const useParkingSearch = (setParkingSpots, getCachedResult, setCachedResu
         formattedAddress: place.formattedAddress
       }));
 
+      // Calcular distancias si es posible
       if (window.google?.maps?.geometry?.spherical) {
         const origin = new window.google.maps.LatLng(currentLocation.lat, currentLocation.lng);
         googlePlacesSpots.forEach(spot => {
@@ -260,21 +285,31 @@ export const useParkingSearch = (setParkingSpots, getCachedResult, setCachedResu
         });
       }
 
-      if (googlePlacesSpots.length > 0) {
-        updateCache(currentLocation, googlePlacesSpots);
-      }
+      // Actualizar referencias
+      lastSearchLocationRef.current = currentLocation;
+      lastIdleTimeRef.current = Date.now();
 
-      setParkingSpots(googlePlacesSpots);
+      // IMPORTANTE: Siempre combinar con los spots actuales
+      const combinedSpots = mergeSpots(currentSpots, googlePlacesSpots);
+      setParkingSpots(combinedSpots);
+
     } catch (error) {
       if (error.name === 'AbortError') {
         debug('❌ Búsqueda cancelada - Timeout');
       } else {
         debug('❌ Error en búsqueda de Google Places:', error);
       }
+
+      // Si hay un error, mantener los spots actuales
+      if (currentSpots.length > 0) {
+        setParkingSpots(currentSpots);
+        lastSearchLocationRef.current = currentLocation;
+        lastIdleTimeRef.current = Date.now();
+      }
     } finally {
       isSearchingRef.current = false;
     }
-  }, [setParkingSpots, getCachedResult, isCacheValid, updateCache]);
+  }, [setParkingSpots, getCachedResult, isCacheValid]);
 
   // Función para procesar la cola de búsquedas
   const processSearchQueue = useCallback(async () => {
@@ -297,9 +332,22 @@ export const useParkingSearch = (setParkingSpots, getCachedResult, setCachedResu
     }
   }, [performSearch]);
 
-  const searchNearbyParking = useCallback((location, zoom = 15, isMapMoving = false) => {
+  const searchNearbyParking = useCallback((location, zoom = 15, isMapMoving = false, isForced = false) => {
     const now = Date.now();
     const timeSinceLastSearch = now - lastSearchTime.current;
+
+    // Obtener spots actuales antes de cualquier operación
+    const currentSpots = getCachedResult(location) || [];
+
+    // Si es una búsqueda forzada, ejecutar inmediatamente sin encolar
+    if (isForced) {
+      debug('📍 Ejecutando búsqueda forzada');
+      lastSearchTime.current = now;
+      return new Promise((resolve) => {
+        performSearch(location, zoom, false)
+          .finally(resolve);
+      });
+    }
 
     // Si el mapa está en movimiento, usar debounce
     if (isMapMoving) {
@@ -307,28 +355,70 @@ export const useParkingSearch = (setParkingSpots, getCachedResult, setCachedResu
         clearTimeout(mapMovementTimeoutRef.current);
       }
 
+      // Mantener los spots actuales mientras el mapa se mueve
+      if (currentSpots.length > 0) {
+        setParkingSpots(currentSpots);
+        updateCache(location, currentSpots);
+      }
+
       mapMovementTimeoutRef.current = setTimeout(() => {
-        performSearch(location, zoom, false);
+        if (apiLimiter.canMakeCall()) {
+          performSearch(location, zoom, false);
+        } else {
+          // Si no podemos hacer una nueva llamada, usar el caché existente
+          if (currentSpots.length > 0) {
+            setParkingSpots(currentSpots);
+            updateCache(location, currentSpots);
+          }
+        }
       }, MAP_MOVEMENT_DEBOUNCE);
 
-      return;
+      return Promise.resolve();
+    }
+
+    // Verificar si la ubicación es significativamente diferente
+    const isSameLocation = lastSearchLocationRef.current &&
+                         calculateDistance(location, lastSearchLocationRef.current) < MIN_DISTANCE_FOR_NEW_SEARCH;
+
+    // Si es la misma ubicación aproximadamente y tenemos spots, mantener los actuales
+    if (isSameLocation && currentSpots.length > 0) {
+      debug('📍 Ubicación similar a la última búsqueda, manteniendo spots actuales');
+      setParkingSpots(currentSpots);
+      updateCache(location, currentSpots);
+      return Promise.resolve();
     }
 
     // Si la última búsqueda fue hace muy poco, encolar esta búsqueda
-    if (timeSinceLastSearch < MIN_SEARCH_INTERVAL) {
+    if (timeSinceLastSearch < MIN_SEARCH_INTERVAL && !isForced) {
       debug(`⚠️ Búsqueda encolada - Demasiado frecuente (último: ${timeSinceLastSearch}ms < ${MIN_SEARCH_INTERVAL}ms)`);
+
+      // Mantener los spots actuales mientras se encola la nueva búsqueda
+      if (currentSpots.length > 0) {
+        setParkingSpots(currentSpots);
+        updateCache(location, currentSpots);
+      }
+
       searchQueueRef.current.push({ location, zoom, isMapMoving });
 
       // Iniciar el procesamiento de la cola si no está en proceso
       if (!processingQueueRef.current) {
         setTimeout(processSearchQueue, MIN_SEARCH_INTERVAL - timeSinceLastSearch);
       }
-      return;
+      return Promise.resolve();
     }
 
     lastSearchTime.current = now;
-    performSearch(location, zoom, isMapMoving);
-  }, [processSearchQueue, performSearch]);
+    return new Promise((resolve) => {
+      // Mantener los spots actuales mientras se realiza la nueva búsqueda
+      if (currentSpots.length > 0) {
+        setParkingSpots(currentSpots);
+        updateCache(location, currentSpots);
+      }
+
+      performSearch(location, zoom, isMapMoving)
+        .finally(resolve);
+    });
+  }, [processSearchQueue, performSearch, getCachedResult, setParkingSpots, updateCache]);
 
   return {
     searchNearbyParking,
