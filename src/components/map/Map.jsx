@@ -92,9 +92,12 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
     useCallback((spot) => {
       if (!spot || !mapInstance) return;
 
+      // Prevenir múltiples interacciones rápidas
+      if (isMarkerInteractionRef.current) return;
+      isMarkerInteractionRef.current = true;
+
       // Ocultar botón de búsqueda e iniciar interacción
       setShowSearchHereButton(false);
-      isMarkerInteractionRef.current = true;
 
       if (markerInteractionTimeoutRef.current) {
         clearTimeout(markerInteractionTimeoutRef.current);
@@ -102,21 +105,28 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
 
       setSelectedSpot(null);
 
+      // Usar requestAnimationFrame para suavizar la transición
       requestAnimationFrame(() => {
-        mapInstance.panTo({
+        const position = {
           lat: parseFloat(spot.latitude),
           lng: parseFloat(spot.longitude)
-        });
+        };
+
+        mapInstance.panTo(position);
         mapInstance.setZoom(17);
 
-        setSelectedSpot(spot);
-        if (onLocationChange) {
-          onLocationChange(spot);
-        }
+        // Pequeño retraso antes de mostrar el spot seleccionado
+        setTimeout(() => {
+          setSelectedSpot(spot);
+          if (onLocationChange) {
+            onLocationChange(spot);
+          }
 
-        markerInteractionTimeoutRef.current = setTimeout(() => {
-          isMarkerInteractionRef.current = false;
-        }, MARKER_INTERACTION_COOLDOWN);
+          // Restablecer el estado de interacción después de un tiempo
+          markerInteractionTimeoutRef.current = setTimeout(() => {
+            isMarkerInteractionRef.current = false;
+          }, MARKER_INTERACTION_COOLDOWN);
+        }, 100);
       });
     }, [mapInstance, onLocationChange])
   );
@@ -664,29 +674,32 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
       lng: parseFloat(userLoc.lng)
     };
 
-    // Reutilizar el marcador si ya existe y solo actualizar su posición
-    if (userMarkerRef.current) {
-      userMarkerRef.current.position = position;
-      return;
-    }
+    // Usar requestAnimationFrame para actualizar el marcador
+    requestAnimationFrame(() => {
+      // Reutilizar el marcador si ya existe
+      if (userMarkerRef.current) {
+        userMarkerRef.current.position = position;
+        return;
+      }
 
-    // Crear el marcador solo si no existe
-    const content = document.createElement('div');
-    content.className = 'user-marker';
-    Object.assign(content.style, {
-      width: '16px',
-      height: '16px',
-      backgroundColor: '#3B82F6',
-      border: '2px solid #FFFFFF',
-      borderRadius: '50%',
-      boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.5)'
-    });
+      // Crear el marcador solo si no existe
+      const content = document.createElement('div');
+      content.className = 'user-marker';
+      Object.assign(content.style, {
+        width: '16px',
+        height: '16px',
+        backgroundColor: '#3B82F6',
+        border: '2px solid #FFFFFF',
+        borderRadius: '50%',
+        boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.5)'
+      });
 
-    userMarkerRef.current = new window.google.maps.marker.AdvancedMarkerElement({
-      position,
-      map: mapInstance,
-      content,
-      zIndex: 1000
+      userMarkerRef.current = new window.google.maps.marker.AdvancedMarkerElement({
+        position,
+        map: mapInstance,
+        content,
+        zIndex: 1000
+      });
     });
 
     return () => {

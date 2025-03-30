@@ -1,6 +1,12 @@
 import { useEffect, useRef, useCallback, useMemo } from 'react';
 import { createMapMarker, createParkiuMarkerContent, createGooglePlacesMarkerContent } from '@/utils/markerUtils';
 
+// Constantes optimizadas para móvil
+const MOBILE_BATCH_SIZE = 3;
+const MOBILE_BATCH_DELAY = 50;
+const DESKTOP_BATCH_SIZE = 10;
+const DESKTOP_BATCH_DELAY = 10;
+
 // Añadimos detección de dispositivo móvil
 const isMobileDevice = () => window.innerWidth < 768;
 
@@ -9,32 +15,32 @@ const isMobileDevice = () => window.innerWidth < 768;
  */
 const haveSpotsChanged = (currentSpots, previousSpots) => {
   if (!Array.isArray(currentSpots) || !Array.isArray(previousSpots)) return true;
+  if (previousSpots.length === 0) return true;
 
-  // Si no hay spots anteriores o la diferencia de longitud es significativa, considerar como cambio
-  if (previousSpots.length === 0 || Math.abs(currentSpots.length - previousSpots.length) > 5) return true;
+  // En móviles, ser más conservador con las actualizaciones
+  if (isMobileDevice()) {
+    // Si la diferencia en cantidad es pequeña, mantener los marcadores existentes
+    const countDiff = Math.abs(currentSpots.length - previousSpots.length);
+    if (countDiff <= 2) return false;
 
-  // En móviles, ser más permisivo con actualizaciones para evitar problemas de visualización
-  if (isMobileDevice() && Math.abs(currentSpots.length - previousSpots.length) > 0) return true;
+    // Si hay una diferencia significativa, actualizar
+    if (countDiff > 5) return true;
+  }
 
-  // Crear un mapa de los spots anteriores por ID para búsqueda eficiente
-  const prevSpotsMap = new Map();
-  previousSpots.forEach(spot => {
-    if (spot.id) {
-      prevSpotsMap.set(spot.id, spot);
-    }
-  });
+  // Crear mapas para comparación eficiente
+  const currentIds = new Set(currentSpots.map(s => s.id));
+  const previousIds = new Set(previousSpots.map(s => s.id));
 
-  // Verificar si hay spots nuevos significativos (no existentes en prev)
-  const newSpotsCount = currentSpots.filter(spot => !prevSpotsMap.has(spot.id)).length;
+  // Calcular diferencias
+  const addedSpots = currentSpots.filter(s => !previousIds.has(s.id)).length;
+  const removedSpots = previousSpots.filter(s => !currentIds.has(s.id)).length;
 
-  // En móvil, cualquier cambio es significativo
-  if (isMobileDevice()) return newSpotsCount > 0;
+  // En móvil, ser más conservador con las actualizaciones
+  if (isMobileDevice()) {
+    return (addedSpots + removedSpots) > 3;
+  }
 
-  // Para escritorio, considerar cambio significativo si hay más de 3 nuevos spots
-  if (newSpotsCount > 3) return true;
-
-  // Para cambios menores, mantener los marcadores existentes y solo actualizar lo necesario
-  return false;
+  return (addedSpots + removedSpots) > 0;
 };
 
 /**
@@ -53,9 +59,6 @@ const useMapMarkers = (map, parkingSpots, onSpotClick) => {
   const markerUpdateCount = useRef(0);
   const pendingMarkerCreation = useRef(false);
   const batchTimeout = useRef(null);
-
-  // Función para detectar si es dispositivo móvil
-  const isMobile = isMobileDevice();
 
   // Memoizar la función de creación de marcadores
   const createMarker = useCallback((spot) => {
@@ -83,74 +86,6 @@ const useMapMarkers = (map, parkingSpots, onSpotClick) => {
     return marker;
   }, []);
 
-  // Función para actualizar marcadores en lotes para mejorar rendimiento
-  const batchUpdateMarkers = useCallback((validSpots) => {
-    if (pendingMarkerCreation.current || !mapInstance.current) return;
-
-    pendingMarkerCreation.current = true;
-
-    if (batchTimeout.current) {
-      clearTimeout(batchTimeout.current);
-    }
-
-    // Usar setTimeout con 0ms para permitir que el navegador renderice otras cosas primero
-    batchTimeout.current = setTimeout(() => {
-      const currentIds = new Set(validSpots.map(spot => spot.id));
-      const markersToRemove = [];
-
-      // Eliminar marcadores que ya no existen
-      markers.current.forEach((marker, id) => {
-        if (!currentIds.has(id)) {
-          marker.map = null;
-          markersToRemove.push(id);
-        }
-      });
-
-      markersToRemove.forEach(id => markers.current.delete(id));
-
-      // En móviles, crear marcadores en lotes más pequeños para evitar bloqueos
-      const createMarkersInBatches = (spots, startIndex = 0, batchSize = 5) => {
-        if (startIndex >= spots.length) {
-          pendingMarkerCreation.current = false;
-          return;
-        }
-
-        const endIndex = Math.min(startIndex + batchSize, spots.length);
-        const batch = spots.slice(startIndex, endIndex);
-
-        batch.forEach(spot => {
-          if (!markers.current.has(spot.id)) {
-            const newMarker = createMarker(spot);
-            if (newMarker) markers.current.set(spot.id, newMarker);
-          }
-        });
-
-        // Programar el siguiente lote
-        setTimeout(() => {
-          createMarkersInBatches(spots, endIndex, batchSize);
-        }, isMobile ? 30 : 10); // Más tiempo entre lotes en dispositivos móviles
-      };
-
-      // Iniciar la creación por lotes
-      createMarkersInBatches(validSpots);
-    }, 0);
-  }, [createMarker, isMobile]);
-
-  // Memoizar la función de limpieza de marcadores
-  const clearMarkers = useCallback(() => {
-    if (batchTimeout.current) {
-      clearTimeout(batchTimeout.current);
-      batchTimeout.current = null;
-    }
-
-    markers.current.forEach(marker => {
-      if (marker?.map) marker.map = null;
-    });
-    markers.current.clear();
-    markerUpdateCount.current = 0;
-    pendingMarkerCreation.current = false;
-  }, []);
-
   // Memoizar la función de actualización de marcadores
   const updateMarker = useCallback((marker, spot) => {
     if (!marker?.element) return false;
@@ -168,6 +103,83 @@ const useMapMarkers = (map, parkingSpots, onSpotClick) => {
       return false;
     }
   }, []);
+
+  // Memoizar la función de limpieza de marcadores
+  const clearMarkers = useCallback(() => {
+    if (batchTimeout.current) {
+      clearTimeout(batchTimeout.current);
+      batchTimeout.current = null;
+    }
+
+    markers.current.forEach(marker => {
+      if (marker?.map) marker.map = null;
+    });
+    markers.current.clear();
+    markerUpdateCount.current = 0;
+    pendingMarkerCreation.current = false;
+  }, []);
+
+  // Función optimizada para actualizar marcadores en lotes
+  const batchUpdateMarkers = useCallback((validSpots) => {
+    if (pendingMarkerCreation.current || !mapInstance.current) return;
+
+    pendingMarkerCreation.current = true;
+
+    if (batchTimeout.current) {
+      clearTimeout(batchTimeout.current);
+    }
+
+    const currentIds = new Set(validSpots.map(spot => spot.id));
+
+    // Primero, mantener los marcadores existentes que siguen siendo válidos
+    markers.current.forEach((marker, id) => {
+      if (!currentIds.has(id)) {
+        marker.map = null;
+        markers.current.delete(id);
+      }
+    });
+
+    // Función para procesar un lote de spots
+    const processBatch = (spots, startIndex = 0) => {
+      const isMobileNow = isMobileDevice();
+      const batchSize = isMobileNow ? MOBILE_BATCH_SIZE : DESKTOP_BATCH_SIZE;
+      const delay = isMobileNow ? MOBILE_BATCH_DELAY : DESKTOP_BATCH_DELAY;
+
+      if (startIndex >= spots.length) {
+        pendingMarkerCreation.current = false;
+        return;
+      }
+
+      const endIndex = Math.min(startIndex + batchSize, spots.length);
+      const batch = spots.slice(startIndex, endIndex);
+
+      requestAnimationFrame(() => {
+        batch.forEach(spot => {
+          if (!spot.id) return;
+
+          const existingMarker = markers.current.get(spot.id);
+          if (existingMarker) {
+            // Actualizar marcador existente si es necesario
+            updateMarker(existingMarker, spot);
+          } else {
+            // Crear nuevo marcador solo si es necesario
+            const newMarker = createMarker(spot);
+            if (newMarker) {
+              markers.current.set(spot.id, newMarker);
+            }
+          }
+        });
+
+        // Programar el siguiente lote
+        batchTimeout.current = setTimeout(() => {
+          processBatch(spots, endIndex);
+        }, delay);
+      });
+    };
+
+    // Iniciar el procesamiento por lotes
+    processBatch(validSpots);
+  }, [createMarker, updateMarker]);
 
   // Memoizar los spots válidos para evitar procesamiento innecesario
   const validSpots = useMemo(() => {
@@ -188,76 +200,49 @@ const useMapMarkers = (map, parkingSpots, onSpotClick) => {
     onSpotClickRef.current = onSpotClick;
   }, [onSpotClick]);
 
-  // Efecto principal para manejar los marcadores
+  // Efecto principal optimizado para manejar los marcadores
   useEffect(() => {
     if (!mapInstance.current || !Array.isArray(validSpots)) return;
 
-    // Limitar el número de actualizaciones consecutivas para prevenir parpadeo
-    markerUpdateCount.current++;
-    const shouldThrottleUpdates = markerUpdateCount.current > 3;
-
-    // Verificar si es necesario actualizar los marcadores
-    const shouldUpdate = isFirstRender.current ||
-                        haveSpotsChanged(validSpots, previousSpots.current) ||
-                        markers.current.size === 0;
-
-    if (!shouldUpdate) {
-      if (shouldThrottleUpdates) {
-        // Resetear el contador después de un tiempo
-        setTimeout(() => {
-          markerUpdateCount.current = 0;
-        }, 5000);
-      }
+    // Evitar actualizaciones innecesarias
+    if (!isFirstRender.current && !haveSpotsChanged(validSpots, previousSpots.current)) {
       return;
     }
 
-    // Para dispositivos móviles, usamos la creación en lotes
-    if (isMobile) {
+    // En móvil, usar siempre el método por lotes
+    if (isMobileDevice()) {
       batchUpdateMarkers(validSpots);
     } else {
-      // Para desktop, el método original es más rápido
+      // Para desktop, actualización directa
       const currentIds = new Set(validSpots.map(spot => spot.id));
-      const markersToRemove = [];
 
-      // Eliminar marcadores que ya no existen
+      // Eliminar marcadores obsoletos
       markers.current.forEach((marker, id) => {
         if (!currentIds.has(id)) {
           marker.map = null;
-          markersToRemove.push(id);
+          markers.current.delete(id);
         }
       });
 
-      markersToRemove.forEach(id => markers.current.delete(id));
-
-      // Actualizar o crear marcadores
+      // Actualizar o crear marcadores necesarios
       validSpots.forEach(spot => {
+        if (!spot.id) return;
+
         const existingMarker = markers.current.get(spot.id);
         if (existingMarker) {
-          // Intentar actualizar el marcador existente
-          if (!updateMarker(existingMarker, spot)) {
-            // Si no se puede actualizar, crear uno nuevo
-            existingMarker.map = null;
-            const newMarker = createMarker(spot);
-            if (newMarker) markers.current.set(spot.id, newMarker);
-          }
+          updateMarker(existingMarker, spot);
         } else {
-          // Crear nuevo marcador
           const newMarker = createMarker(spot);
-          if (newMarker) markers.current.set(spot.id, newMarker);
+          if (newMarker) {
+            markers.current.set(spot.id, newMarker);
+          }
         }
       });
     }
 
-    // Actualizar referencias
-    previousSpots.current = [...validSpots];
+    previousSpots.current = validSpots;
     isFirstRender.current = false;
-
-    if (shouldThrottleUpdates) {
-      // Resetear el contador después de una actualización exitosa
-      markerUpdateCount.current = 0;
-    }
-
-  }, [validSpots, createMarker, updateMarker, batchUpdateMarkers, isMobile]);
+  }, [validSpots, createMarker, updateMarker, batchUpdateMarkers]);
 
   // Limpieza al desmontar
   useEffect(() => {
