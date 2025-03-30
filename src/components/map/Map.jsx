@@ -370,8 +370,9 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
     const urlParams = new URLSearchParams(window.location.search);
     const fromHomePage = urlParams.get('source') === 'search';
 
-    // Si venimos del HomePage y ya se hizo la búsqueda inicial, no hacer búsquedas automáticas
+    // Si venimos del HomePage y ya se hizo la búsqueda inicial, permitir búsquedas manuales
     if (fromHomePage && sessionStorage.getItem('initialHomePageSearch') === 'true') {
+      setShowSearchHereButton(true);
       return;
     }
 
@@ -392,8 +393,10 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
       lng: center.lng()
     };
 
-    // Si el mapa está en movimiento o tenemos un spot seleccionado, no buscar
+    // Si el mapa está en movimiento o tenemos un spot seleccionado, no buscar automáticamente
     if (isMapMoving || selectedSpot) {
+      setShowSearchHereButton(true);
+      searchHereLocationRef.current = newLocation;
       return;
     }
 
@@ -405,64 +408,46 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
 
     lastZoomLevel.current = currentZoom;
 
-    // Verificar si necesitamos una nueva búsqueda
+    // Siempre mostrar el botón si la ubicación ha cambiado significativamente
     if (isLocationDistant || hasZoomChangedSignificantly) {
-      // Primero verificar el caché
-      const cachedResults = getCachedResult(newLocation);
-      if (cachedResults?.length > 0) {
-        debug('📦 Usando resultados en caché para nueva ubicación');
-        setParkingSpots(cachedResults);
-        lastSearchLocationRef.current = newLocation;
-        lastIdleTimeRef.current = now;
-        return;
-      }
-
-      // Si no hay caché, mostrar el botón de búsqueda
       searchHereLocationRef.current = newLocation;
-      if (searchHereTimeoutRef.current) {
-        clearTimeout(searchHereTimeoutRef.current);
-      }
-
-      searchHereTimeoutRef.current = setTimeout(() => {
-        if (!isSearchingRef.current) {
-          setShowSearchHereButton(true);
-        }
-      }, 200);
+      setShowSearchHereButton(true);
     }
 
     lastIdleTimeRef.current = now;
-  }, [mapInstance, isMapMoving, isSimilarLocation, selectedSpot, getCachedResult, setParkingSpots]);
+  }, [mapInstance, isMapMoving, isSimilarLocation, selectedSpot]);
 
   // Buscar en el área actual
   const handleSearchHereClick = useCallback(() => {
     if (!mapInstance) return;
 
+    const center = mapInstance.getCenter();
+    if (!center) return;
+
     setShowSearchHereButton(false);
     setSelectedSpot(null);
 
-    const center = mapInstance.getCenter();
     const locationToSearch = {
       lat: center.lat(),
       lng: center.lng()
     };
-    const currentZoom = mapInstance.getZoom();
 
-    // Verificar caché antes de hacer la búsqueda
-    const cachedResults = getCachedResult(locationToSearch);
-    if (cachedResults?.length > 0) {
-      debug('📦 Usando resultados en caché para búsqueda en área');
-      setParkingSpots([]); // Primero limpiamos los spots
-      requestAnimationFrame(() => {
-        setParkingSpots(cachedResults); // Luego actualizamos con los nuevos
+    debug('🔍 Iniciando búsqueda en área actual', locationToSearch);
+
+    // Primero limpiamos los spots actuales para dar feedback visual
+    setParkingSpots([]);
+
+    // Forzamos una nueva búsqueda ignorando el caché
+    searchNearbyParking(locationToSearch, mapInstance.getZoom(), false, true)
+      .then(() => {
         lastSearchLocationRef.current = locationToSearch;
+        lastIdleTimeRef.current = Date.now();
+        debug('✅ Búsqueda en área completada');
+      })
+      .catch(error => {
+        debug('❌ Error en búsqueda de área:', error);
       });
-    } else {
-      debug('🔍 No hay caché, realizando nueva búsqueda');
-      setParkingSpots([]); // Limpiamos los spots actuales
-      lastSearchLocationRef.current = locationToSearch;
-      searchNearbyParking(locationToSearch, currentZoom, false);
-    }
-  }, [mapInstance, searchNearbyParking, getCachedResult, setParkingSpots]);
+  }, [mapInstance, searchNearbyParking, setParkingSpots]);
 
   // Manejar movimiento del mapa
   const handleMapDragStart = useCallback(() => {
