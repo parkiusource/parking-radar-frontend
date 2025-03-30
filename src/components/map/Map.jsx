@@ -425,14 +425,7 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
           lng: parseFloat(userLoc.lng)
         },
         map: mapInstance,
-        icon: {
-          path: window.google.maps.SymbolPath.CIRCLE,
-          scale: 8,
-          fillColor: '#3B82F6',
-          fillOpacity: 1,
-          strokeColor: '#FFFFFF',
-          strokeWeight: 2
-        },
+        content: createUserMarkerContent(),
         zIndex: 1000
       });
 
@@ -572,6 +565,19 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
       WebkitTapHighlightColor: 'transparent'
     }
   }), []);
+
+  // Add this function before the useEffect
+  const createUserMarkerContent = () => {
+    const content = document.createElement('div');
+    content.className = 'user-marker';
+    content.style.width = '16px';
+    content.style.height = '16px';
+    content.style.backgroundColor = '#3B82F6';
+    content.style.border = '2px solid #FFFFFF';
+    content.style.borderRadius = '50%';
+    content.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.5)';
+    return content;
+  };
 
   if (loadError) return (
     <div className="w-full h-full flex items-center justify-center bg-white">
