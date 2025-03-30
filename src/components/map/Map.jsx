@@ -419,7 +419,7 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
     // Solo crear el marcador si tenemos una ubicación válida
     if (userLoc && isFinite(userLoc.lat) && isFinite(userLoc.lng)) {
       // Crear nuevo marcador estándar
-      const marker = new window.google.maps.Marker({
+      const marker = new window.google.maps.marker.AdvancedMarkerElement({
         position: {
           lat: parseFloat(userLoc.lat),
           lng: parseFloat(userLoc.lng)
