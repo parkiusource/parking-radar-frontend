@@ -65,7 +65,9 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
   const lastSearchLocationRef = useRef(null);
   const userMarkerRef = useRef(null);
   const lastIdleTimeRef = useRef(null);
-  const MIN_IDLE_INTERVAL = 2000; // 2 segundos entre búsquedas
+  const MIN_IDLE_INTERVAL = 3000; // Aumentado a 3 segundos entre búsquedas
+  const MIN_DISTANCE_THRESHOLD = 300; // Aumentado a 300 metros para considerar una ubicación como nueva
+  const isSearchingRef = useRef(false);
 
   // Usar hooks personalizados
   const {
@@ -181,7 +183,7 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
 
   // Optimizar el manejador de inactividad del mapa
   const handleMapIdle = useCallback(() => {
-    if (!mapInstance || isMarkerInteractionRef.current) return;
+    if (!mapInstance || isMarkerInteractionRef.current || isSearchingRef.current) return;
 
     const now = Date.now();
     if (now - lastIdleTimeRef.current < MIN_IDLE_INTERVAL) {
@@ -204,10 +206,13 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
 
     // Verificar si la ubicación ha cambiado significativamente
     if (lastSearchLocationRef.current &&
-        isSimilarLocation(newLocation, lastSearchLocationRef.current, 200)) { // Aumentamos el umbral a 200 metros
+        isSimilarLocation(newLocation, lastSearchLocationRef.current, MIN_DISTANCE_THRESHOLD)) {
       debug('📍 Ubicación muy cercana a la última búsqueda, omitiendo...');
       return;
     }
+
+    // Marcar que estamos en una búsqueda
+    isSearchingRef.current = true;
 
     lastIdleTimeRef.current = now;
     lastSearchLocationRef.current = newLocation;
@@ -231,7 +236,11 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
       lastSearch: new Date(lastIdleTimeRef.current).toLocaleTimeString()
     });
 
-    searchNearbyParking(newLocation, currentZoom, false);
+    searchNearbyParking(newLocation, currentZoom, false)
+      .finally(() => {
+        // Marcar que la búsqueda ha terminado
+        isSearchingRef.current = false;
+      });
   }, [mapInstance, isMapMoving, searchNearbyParking, isSimilarLocation]);
 
   // Optimizar el manejo del movimiento del mapa
@@ -255,7 +264,7 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
       if (mapInstance) {
         handleMapIdle();
       }
-    }, 500);
+    }, 1000); // Aumentado a 1 segundo de espera después de arrastrar
   }, [mapInstance, handleMapIdle]);
 
   // Efecto para limpiar timeouts
