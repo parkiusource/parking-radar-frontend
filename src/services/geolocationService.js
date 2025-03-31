@@ -58,7 +58,7 @@ export const getUserLocation = async () => {
 
     const permission = await checkGeolocationPermission();
     if (permission === 'denied') {
-      throw new Error('Permiso de ubicación denegado. Por favor, habilítalo en la configuración de tu navegador para encontrar parqueaderos cercanos.');
+      throw new Error('PERMISSION_DENIED');
     }
 
     return new Promise((resolve, reject) => {
@@ -68,14 +68,30 @@ export const getUserLocation = async () => {
         },
         (error) => {
           console.error('Error de geolocalización:', error);
-          reject(error);
+          let errorMessage;
+
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage = 'PERMISSION_DENIED';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = 'POSITION_UNAVAILABLE';
+              break;
+            case error.TIMEOUT:
+              errorMessage = 'TIMEOUT';
+              break;
+            default:
+              errorMessage = 'UNKNOWN_ERROR';
+          }
+
+          reject(new Error(errorMessage));
         },
         GEOLOCATION_CONFIG
       );
     });
   } catch (error) {
     console.error('Error al obtener ubicación:', error);
-    return DEFAULT_LOCATION;
+    throw error;
   }
 };
 

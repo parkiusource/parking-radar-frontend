@@ -6,8 +6,9 @@ import { MAP_CONSTANTS } from '@/constants/map';
 
 // Constantes para los colores de los marcadores
 export const MARKER_COLORS = {
-  PARKIU: '#34D399',         // Color verde de Parkiu
+  PARKIU: '#34D399',         // Color verde brillante de Parkiu
   GOOGLE_PLACES: '#4285F4',  // Color azul de Google
+  GOOGLE_PLACES_OPACITY: 0.85, // Opacidad para marcadores de Google
   NO_AVAILABLE: '#8B0000'    // Color rojo para no disponible
 };
 
@@ -94,7 +95,8 @@ export const createGooglePlacesMarkerContent = () => {
         <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.2"/>
       </filter>
       <path d="M20 2C13.3726 2 8 7.37258 8 14C8 18.8492 12.8033 26.6124 19.4961 31.5568C19.8111 31.8016 20.1889 31.8016 20.5039 31.5568C27.1967 26.6124 32 18.8492 32 14C32 7.37258 26.6274 2 20 2Z"
-            fill="${MAP_CONSTANTS.COLOR_GOOGLE_PLACES}"
+            fill="${MARKER_COLORS.GOOGLE_PLACES}"
+            fill-opacity="${MARKER_COLORS.GOOGLE_PLACES_OPACITY}"
             filter="url(#shadow)"/>
       <circle cx="20" cy="14" r="8"
               fill="white"
@@ -104,7 +106,7 @@ export const createGooglePlacesMarkerContent = () => {
             font-size="11"
             font-weight="bold"
             text-anchor="middle"
-            fill="${MAP_CONSTANTS.COLOR_GOOGLE_PLACES}">
+            fill="${MARKER_COLORS.GOOGLE_PLACES}">
         P
       </text>
     </svg>

@@ -46,6 +46,7 @@ export default function Parking() {
   const [searchParams] = useSearchParams();
   const [initialSearchDone, setInitialSearchDone] = useState(false);
   const lastCardClickTime = useRef(0);
+  const initialZoomRef = useRef(15);
 
   // Memoizar el centro y los spots cercanos
   const spotCenter = useMemo(() => {
@@ -128,31 +129,45 @@ export default function Parking() {
     const lat = searchParams.get('lat');
     const lng = searchParams.get('lng');
     const search = searchParams.get('search');
+    const zoom = searchParams.get('zoom');
     const nearby = searchParams.get('nearby');
+    const direct = searchParams.get('direct');
+    const type = searchParams.get('type');
+
+    // Establecer zoom inicial si se proporciona
+    if (zoom) {
+      initialZoomRef.current = parseInt(zoom, 10);
+    }
 
     if (lat && lng) {
       const parsedLat = parseFloat(lat);
       const parsedLng = parseFloat(lng);
 
       if (isFinite(parsedLat) && isFinite(parsedLng)) {
-        setTargetLocation({
+        const newLocation = {
           lat: parsedLat,
           lng: parsedLng
-        });
+        };
 
-        // Si es una búsqueda nearby, centrar el mapa inmediatamente
-        if (nearby === 'true' && mapRef.current?.centerOnSpotWithoutPopup) {
+        setTargetLocation(newLocation);
+
+        // Si es una búsqueda directa o nearby, centrar el mapa inmediatamente
+        if ((direct === 'true' || nearby === 'true') && mapRef.current?.centerOnSpotWithoutPopup) {
           requestAnimationFrame(() => {
             mapRef.current.centerOnSpotWithoutPopup({
               latitude: parsedLat,
               longitude: parsedLng
             });
+
+            // Iniciar búsqueda de parqueaderos
+            if (mapRef.current?.searchNearbyParking) {
+              mapRef.current.searchNearbyParking(newLocation);
+            }
           });
         }
       }
-    }
-
-    if (search) {
+    } else if (type === 'text' && search) {
+      // Si es una búsqueda por texto, establecer el término de búsqueda
       const decodedSearch = decodeURIComponent(search);
       setSearchTerm(decodedSearch);
     }

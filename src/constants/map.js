@@ -1,16 +1,20 @@
 export const MAP_CONSTANTS = {
-  DEFAULT_LOCATION: { lat: 4.711, lng: -74.0721 },
+  DEFAULT_LOCATION: { lat: 4.5962, lng: -74.0762 },
   MAP_ID: import.meta.env.VITE_GOOGLE_MAP_ID,
   COLOR_NO_AVAILABLE: '#DC2626',  // Rojo para no disponibles (red-600)
   COLOR_GOOGLE_PLACES: '#6B7280',  // Gris para Google (gray-500)
   COLOR_PARKIU: '#2563EB',         // Azul para Parkiu (blue-600)
   COORDINATE_TOLERANCE: 0.0005,    // Mayor tolerancia para comparar coordenadas
   MIN_LOCATION_CHANGE: 0.0005,     // Umbral de cambio de ubicación (aproximadamente 50 metros)
-  CACHE_DURATION: 2 * 60 * 1000,   // Tiempo máximo de caché (2 minutos)
+  CACHE_DURATION: 30 * 60 * 1000,   // 30 minutos para reducir llamadas a la API
   MIN_SEARCH_INTERVAL: 200,        // Tiempo mínimo entre búsquedas (200ms)
-  LIBRARIES: ['places', 'marker', 'geometry'],
-  GOOGLE_PLACE_ICON: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png',
-  PARKING_ICON: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+  SEARCH_GRID_SIZE: 0.02,         // Aproximadamente 2km
+  DEFAULT_RADIUS: 1000,
+  MARKER_COLORS: {
+    NO_AVAILABLE: '#8B0000',
+    GOOGLE_PLACES: '#4285F4',
+    PARKIU: '#34D399'
+  },
   MAP_OPTIONS: {
     mapId: import.meta.env.VITE_GOOGLE_MAP_ID,
     zoomControlOptions: {
@@ -27,30 +31,20 @@ export const MAP_CONSTANTS = {
       position: 5,
     },
     zoomControl: true,
+    mapTypeControl: false,
+    gestureHandling: 'greedy',
     clickableIcons: false,
     optimized: true,
-    gestureHandling: 'greedy',
     gestureHandlingOptions: {
-      passiveEvents: true,
-      cooperativeTouchGestures: true,
-      touchHandlingOptions: {
-        passive: true,
-        preventDefaultOnPanGesture: true
-      }
+      passiveEvents: true
     },
-    scrollwheel: true,
-    ctrlKey: true,
-    disableDoubleClickZoom: true,
-    minZoom: 12,
-    maxZoom: 20,
-    restriction: {
-      latLngBounds: {
-        north: 85,
-        south: -85,
-        west: -180,
-        east: 180
-      },
-      strictBounds: true
-    }
-  }
+    tilt: 0,
+    heading: 0,
+    mapTypeId: 'roadmap',
+    draggableCursor: 'default',
+    draggingCursor: 'grab',
+    keyboardShortcuts: false,
+    restriction: null
+  },
+  LIBRARIES: ['marker', 'geometry'] // Eliminado 'places' ya que usamos la API REST
 };

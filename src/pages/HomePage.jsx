@@ -270,22 +270,34 @@ const HomePage = () => {
       setRecentSearches(prev => [searchText, ...prev].slice(0, 3));
     }
 
-    // Redirigir a la página de parking con las coordenadas del lugar seleccionado
-    setTimeout(() => {
-      setIsSearching(false);
-      if (place.location) {
-        // Si es un resultado de Google Places con coordenadas
-        const params = new URLSearchParams({
-          search: place.displayName.text,
-          lat: place.location.latitude.toString(),
-          lng: place.location.longitude.toString()
-        });
-        navigate(`/parking?${params.toString()}`);
-      } else if (typeof place === 'string') {
-        // Si es una búsqueda reciente o texto manual, enviar solo el término de búsqueda
-        navigate(`/parking?search=${encodeURIComponent(place)}`);
-      }
-    }, 300);
+    // Redirigir inmediatamente sin setTimeout
+    if (place.location) {
+      // Si es un resultado de Google Places con coordenadas
+      const params = new URLSearchParams({
+        search: place.displayName.text,
+        lat: place.location.latitude.toString(),
+        lng: place.location.longitude.toString(),
+        zoom: '17',
+        direct: 'true',
+        source: 'search',
+        forceSearch: 'true', // Añadimos este parámetro para forzar la búsqueda
+        timestamp: Date.now().toString()
+      });
+      navigate(`/parking?${params.toString()}`);
+    } else if (typeof place === 'string') {
+      // Si es una búsqueda reciente o texto manual
+      const params = new URLSearchParams({
+        search: encodeURIComponent(place),
+        type: 'text',
+        direct: 'true',
+        source: 'recent',
+        forceSearch: 'true', // Añadimos este parámetro para forzar la búsqueda
+        timestamp: Date.now().toString()
+      });
+      navigate(`/parking?${params.toString()}`);
+    }
+
+    setIsSearching(false);
   }, [navigate, recentSearches]);
 
   const handleNearbySearch = useCallback(() => {
@@ -304,7 +316,9 @@ const HomePage = () => {
           const params = new URLSearchParams({
             lat: latitude.toString(),
             lng: longitude.toString(),
-            nearby: 'true'
+            zoom: '16', // Añadimos zoom para mejor precisión
+            nearby: 'true',
+            direct: 'true' // Indicador para centrado directo
           });
           // Navegar a la página de parking con los parámetros
           navigate(`/parking?${params.toString()}`);
@@ -331,7 +345,7 @@ const HomePage = () => {
           alert(errorMessage);
         },
         {
-          enableHighAccuracy: false,
+          enableHighAccuracy: true,
           timeout: 8000,
           maximumAge: 0
         }

@@ -3,10 +3,12 @@ import PropTypes from 'prop-types';
 import { LuSearch, LuMapPin, LuX, LuLoader, LuChevronRight, LuTarget } from 'react-icons/lu';
 import { useSearchPlaces } from '@/api/hooks/useSearchPlaces';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'react-hot-toast';
 
 export const SearchBox = forwardRef(function SearchBox(props, ref) {
   const { isOpen, setIsOpen, onSearch, className } = props;
   const [searchText, setSearchText] = useState('');
+  const [isLocating, setIsLocating] = useState(false);
   const inputRef = useRef(null);
 
   const { results, isLoading } = useSearchPlaces(searchText, {
@@ -56,23 +58,53 @@ export const SearchBox = forwardRef(function SearchBox(props, ref) {
   };
 
   const handleGetCurrentLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          if (onSearch) {
-            onSearch({
-              lat: latitude,
-              lng: longitude,
-            });
-          }
-        },
-        (error) => {
-          console.error("Error getting location: ", error);
-        },
-        { enableHighAccuracy: false }
-      );
+    if (!navigator.geolocation) {
+      toast.error('Tu navegador no soporta la geolocalización');
+      return;
     }
+
+    setIsLocating(true);
+    const toastId = toast.loading('Obteniendo tu ubicación...');
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        if (onSearch) {
+          onSearch({
+            lat: latitude,
+            lng: longitude,
+          });
+        }
+        toast.success('Ubicación obtenida correctamente', { id: toastId });
+        setIsLocating(false);
+      },
+      (error) => {
+        let errorMessage = 'No se pudo obtener tu ubicación';
+
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = 'Necesitamos tu permiso para usar tu ubicación';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Tu ubicación no está disponible en este momento';
+            break;
+          case error.TIMEOUT:
+            errorMessage = 'Se agotó el tiempo para obtener tu ubicación';
+            break;
+          default:
+            errorMessage = 'Ocurrió un error al obtener tu ubicación';
+        }
+
+        toast.error(errorMessage, { id: toastId });
+        setIsLocating(false);
+        console.error("Error getting location: ", error);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
   };
 
   return (
@@ -115,10 +147,20 @@ export const SearchBox = forwardRef(function SearchBox(props, ref) {
           <button
             className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
             onClick={handleGetCurrentLocation}
+            disabled={isLocating}
             title="Usar mi ubicación actual"
             aria-label="Usar mi ubicación actual"
           >
-            <LuTarget />
+            {isLocating ? (
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+              >
+                <LuLoader className="text-primary" />
+              </motion.div>
+            ) : (
+              <LuTarget />
+            )}
           </button>
         )}
       </div>
