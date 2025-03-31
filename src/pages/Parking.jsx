@@ -70,12 +70,10 @@ export default function Parking() {
     setParkingSpots([]);
 
     // Limpiar los marcadores si hay una referencia al mapa
-    if (mapRef.current && mapRef.current.cleanupMarkers) {
+    if (mapRef.current?.cleanupMarkers) {
       const mapCurrent = mapRef.current;
-      // Usar requestAnimationFrame para evitar problemas con referencias
-      requestAnimationFrame(() => {
-        mapCurrent.cleanupMarkers();
-      });
+      // Limpiar marcadores de manera síncrona
+      mapCurrent.cleanupMarkers();
     }
   }, [setParkingSpots]);
 
@@ -100,18 +98,30 @@ export default function Parking() {
 
       if (!mapRef.current?.searchNearbyParking) return;
 
-      // Realizar búsqueda en el mapa (limpia marcadores internamente)
-      await mapRef.current.searchNearbyParking(location);
+      // Asegurarnos de que los marcadores anteriores se hayan limpiado
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // Realizar búsqueda en el mapa
+      const results = await mapRef.current.searchNearbyParking(location);
 
       // Centrar el mapa si es necesario
       if (options.centerMap && mapRef.current?.getMapRef) {
         const mapInstance = mapRef.current.getMapRef();
         if (mapInstance) {
+          // Primero centrar el mapa
           mapInstance.panTo({
             lat: location.lat,
             lng: location.lng
           });
           mapInstance.setZoom(15);
+
+          // Esperar a que termine la animación antes de mostrar los marcadores
+          await new Promise(resolve => setTimeout(resolve, 300));
+
+          // Actualizar los marcadores después de centrar el mapa
+          if (results?.length > 0) {
+            setParkingSpots(results);
+          }
         }
       }
     } catch (error) {
@@ -124,7 +134,7 @@ export default function Parking() {
     } finally {
       setIsSearching(false);
     }
-  }, [cancelPendingSearches, cleanupState, setTargetLocation]);
+  }, [cancelPendingSearches, cleanupState, setTargetLocation, setParkingSpots]);
 
   // Memoizar el centro y los spots cercanos
   const spotCenter = useMemo(() => {
