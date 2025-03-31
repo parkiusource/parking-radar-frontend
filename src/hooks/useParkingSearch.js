@@ -6,10 +6,10 @@ const MIN_DISTANCE_FOR_NEW_SEARCH = 100; // Aumentado a 100 metros
 const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutos de expiración del caché
 
 const SEARCH_RADIUS = {
-  VERY_CLOSE: 150, // 150 metros para zoom muy cercano (19+)
-  CLOSE: 300, // 300 metros para zoom cercano (16-18)
-  MEDIUM: 800, // 800 metros para zoom medio (14-15)
-  FAR: 1500 // 1.5 km para zoom lejano (menos de 14)
+  VERY_CLOSE: 500,  // 500 metros para zoom muy cercano (19+)
+  CLOSE: 1000,      // 1 km para zoom cercano (16-18)
+  MEDIUM: 2000,     // 2 km para zoom medio (14-15)
+  FAR: 3000         // 3 km para zoom lejano (menos de 14)
 };
 
 const FIELDS_MASK = [
@@ -205,54 +205,78 @@ export const useParkingSearch = (setParkingSpots, getCachedResult, setCachedResu
 
       apiLimiter.logCall(currentLocation);
 
-      // Ajustar el radio de búsqueda según el nivel de zoom
-      let searchRadius;
-      if (zoom >= 18) {
-        searchRadius = SEARCH_RADIUS.VERY_CLOSE;
-      } else if (zoom >= 16) {
-        searchRadius = SEARCH_RADIUS.CLOSE;
-      } else if (zoom >= 14) {
-        searchRadius = SEARCH_RADIUS.MEDIUM;
-      } else {
-        searchRadius = SEARCH_RADIUS.FAR;
-      }
+      // Función auxiliar para realizar una búsqueda con un radio específico
+      const searchWithRadius = async (radius) => {
+        const requestBody = {
+          includedTypes: ['parking'],
+          maxResultCount: 20,
+          locationRestriction: {
+            circle: {
+              center: {
+                latitude: currentLocation.lat,
+                longitude: currentLocation.lng
+              },
+              radius: radius
+            }
+          },
+          languageCode: "es"
+        };
 
-      const requestBody = {
-        includedTypes: ['parking'],
-        maxResultCount: 20,
-        locationRestriction: {
-          circle: {
-            center: {
-              latitude: currentLocation.lat,
-              longitude: currentLocation.lng
-            },
-            radius: searchRadius
-          }
-        },
-        languageCode: "es"
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+        const response = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
+            'X-Goog-FieldMask': FIELDS_MASK,
+            'Accept-Language': 'es'
+          },
+          body: JSON.stringify(requestBody),
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return await response.json();
       };
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      // Determinar el radio inicial basado en el zoom
+      let initialRadius;
+      if (zoom >= 18) {
+        initialRadius = SEARCH_RADIUS.VERY_CLOSE;
+      } else if (zoom >= 16) {
+        initialRadius = SEARCH_RADIUS.CLOSE;
+      } else if (zoom >= 14) {
+        initialRadius = SEARCH_RADIUS.MEDIUM;
+      } else {
+        initialRadius = SEARCH_RADIUS.FAR;
+      }
 
-      const response = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
-          'X-Goog-FieldMask': FIELDS_MASK,
-          'Accept-Language': 'es'
-        },
-        body: JSON.stringify(requestBody),
-        signal: controller.signal
-      });
+      // Intentar búsqueda con radio inicial
+      let data = await searchWithRadius(initialRadius);
+      let spots = data.places || [];
 
-      clearTimeout(timeoutId);
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      const data = await response.json();
+      // Si no hay resultados, intentar con radios más grandes
+      if (spots.length === 0) {
+        debug('No se encontraron resultados con radio inicial, intentando con radios más grandes');
+
+        // Intentar con radio MEDIUM
+        if (initialRadius < SEARCH_RADIUS.MEDIUM) {
+          data = await searchWithRadius(SEARCH_RADIUS.MEDIUM);
+          spots = data.places || [];
+        }
+
+        // Si aún no hay resultados, intentar con radio FAR
+        if (spots.length === 0 && initialRadius < SEARCH_RADIUS.FAR) {
+          data = await searchWithRadius(SEARCH_RADIUS.FAR);
+          spots = data.places || [];
+        }
+      }
 
       // Si no hay lugares en la respuesta, mantener los spots actuales
-      if (!data.places || data.places.length === 0) {
+      if (!spots.length) {
         debug('❌ No se encontraron lugares en la respuesta, manteniendo spots actuales');
         if (currentSpots.length > 0) {
           setParkingSpots(currentSpots);
@@ -262,7 +286,7 @@ export const useParkingSearch = (setParkingSpots, getCachedResult, setCachedResu
         return;
       }
 
-      const googlePlacesSpots = data.places.map(place => ({
+      const googlePlacesSpots = spots.map(place => ({
         id: `google_${place.id}_${Date.now()}`,
         googlePlaceId: place.id,
         name: place.displayName?.text || 'Parqueadero',
