@@ -105,14 +105,23 @@ export const useMapMarkers = (map, spots = [], onMarkerClick, getMarkerOptions) 
         : createParkiuMarkerContent(spot);
 
       // Ajustar tamaño del marcador según el dispositivo
-      const markerSize = isMobileRef.current ? 40 : 32;
+      const markerSize = isMobileRef.current ? 36 : 32;
       if (content.style) {
         content.style.width = `${markerSize}px`;
         content.style.height = `${markerSize}px`;
         content.style.cursor = 'pointer';
-        // Prevenir problemas de content-visibility
+        // Forzar visibilidad del marcador
+        content.style.position = 'absolute';
+        content.style.transform = 'translate(-50%, -50%)';
+        content.style.zIndex = isMobileRef.current ? '1000' : '1';
         content.style.contain = 'none';
         content.style.contentVisibility = 'visible';
+        content.style.visibility = 'visible';
+        content.style.display = 'block';
+        content.style.pointerEvents = 'auto';
+        // Prevenir que el marcador sea ocultado por content-visibility
+        content.style.willChange = 'transform';
+        content.style.backfaceVisibility = 'visible';
       }
 
       const markerOptions = {
@@ -124,10 +133,13 @@ export const useMapMarkers = (map, spots = [], onMarkerClick, getMarkerOptions) 
         visible: true,
         clickable: true,
         draggable: false,
-        // Opciones específicas para móvil
+        // Opciones específicas para móvil mejoradas
         ...(isMobileRef.current && {
-          collisionBehavior: window.google.maps.CollisionBehavior.OPTIONAL_AND_HIDES_LOWER_PRIORITY,
+          collisionBehavior: 'OPTIONAL_AND_HIDES_LOWER_PRIORITY',
           touchAction: 'manipulation',
+          animation: window.google.maps.Animation.DROP,
+          flat: true,
+          anchor: new window.google.maps.Point(markerSize / 2, markerSize / 2),
         }),
         ...(getOptionsRef.current ? getOptionsRef.current(spot) : {})
       };
@@ -141,15 +153,15 @@ export const useMapMarkers = (map, spots = [], onMarkerClick, getMarkerOptions) 
           }
         };
 
-        // Usar solo gmp-click para todos los dispositivos
+        // Usar gmp-click para todos los dispositivos
         marker.clickListener = marker.element.addListener('gmp-click', handleMarkerClick);
 
-        // Agregar manejo táctil mejorado para móvil
+        // Mejorar el manejo táctil para móvil
         if (isMobileRef.current) {
           let touchStartY = 0;
           let touchStartTime = 0;
-          const touchThreshold = 10; // pixels
-          const timeThreshold = 200; // milliseconds
+          const touchThreshold = 15; // Aumentado de 10 a 15 pixels
+          const timeThreshold = 300; // Aumentado de 200 a 300 ms
 
           marker.element.addEventListener('touchstart', (e) => {
             touchStartY = e.touches[0].clientY;
@@ -160,9 +172,6 @@ export const useMapMarkers = (map, spots = [], onMarkerClick, getMarkerOptions) 
             const touchEndY = e.changedTouches[0].clientY;
             const touchTime = Date.now() - touchStartTime;
 
-            // Solo activar el click si:
-            // 1. El movimiento vertical es mínimo (no es scroll)
-            // 2. El toque fue rápido (no es un gesto de scroll)
             if (Math.abs(touchEndY - touchStartY) < touchThreshold &&
                 touchTime < timeThreshold) {
               handleMarkerClick();
@@ -238,33 +247,70 @@ export const useMapMarkers = (map, spots = [], onMarkerClick, getMarkerOptions) 
         validateCoordinates(spot.latitude, spot.longitude)
       );
 
-      // En móvil, limitar la cantidad de marcadores visibles
-      const maxVisibleMarkers = isMobileRef.current ? 20 : Infinity;
-      const spotsToRender = validSpots.slice(0, maxVisibleMarkers);
-
       // Crear todos los marcadores de una vez
       const newMarkers = new Map();
 
-      // Crear todos los marcadores inmediatamente
-      spotsToRender.forEach(spot => {
-        try {
-          const marker = createMarker(spot);
-          if (marker && marker.element) {
-            newMarkers.set(spot.id, marker);
-            // Asignar el mapa inmediatamente
-            marker.element.map = mapRef.current;
+      // En móvil, crear marcadores en lotes más pequeños
+      if (isMobileRef.current) {
+        const BATCH_SIZE = 5; // Procesar 5 marcadores a la vez
+        const BATCH_DELAY = 100; // 100ms entre lotes
+
+        const processBatch = (startIndex) => {
+          const batch = validSpots.slice(startIndex, startIndex + BATCH_SIZE);
+
+          batch.forEach(spot => {
+            try {
+              const marker = createMarker(spot);
+              if (marker && marker.element) {
+                newMarkers.set(spot.id, marker);
+                // Asegurar que el marcador sea visible
+                marker.element.map = mapRef.current;
+                if (marker.element.style) {
+                  marker.element.style.visibility = 'visible';
+                  marker.element.style.display = 'block';
+                }
+              }
+            } catch (err) {
+              console.warn('Error al crear marcador:', err);
+            }
+          });
+
+          // Procesar el siguiente lote si quedan spots
+          if (startIndex + BATCH_SIZE < validSpots.length) {
+            setTimeout(() => {
+              processBatch(startIndex + BATCH_SIZE);
+            }, BATCH_DELAY);
+          } else {
+            // Finalizar actualización
+            markersRef.current = newMarkers;
+            spotsRef.current = validSpots;
+            lastSpotsHashRef.current = newSpotsHash;
+            isUpdatingRef.current = false;
           }
-        } catch (err) {
-          console.warn('Error al crear marcador:', err);
-        }
-      });
+        };
 
-      // Actualizar referencias
-      markersRef.current = newMarkers;
-      spotsRef.current = spotsToRender;
-      lastSpotsHashRef.current = newSpotsHash;
-      isUpdatingRef.current = false;
+        // Iniciar el procesamiento por lotes
+        processBatch(0);
+      } else {
+        // En desktop, crear todos los marcadores inmediatamente
+        validSpots.forEach(spot => {
+          try {
+            const marker = createMarker(spot);
+            if (marker && marker.element) {
+              newMarkers.set(spot.id, marker);
+              marker.element.map = mapRef.current;
+            }
+          } catch (err) {
+            console.warn('Error al crear marcador:', err);
+          }
+        });
 
+        // Actualizar referencias inmediatamente en desktop
+        markersRef.current = newMarkers;
+        spotsRef.current = validSpots;
+        lastSpotsHashRef.current = newSpotsHash;
+        isUpdatingRef.current = false;
+      }
     } catch (error) {
       console.error('Error updating markers:', error);
       isUpdatingRef.current = false;
