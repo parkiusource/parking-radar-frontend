@@ -17,6 +17,7 @@ export const useMapMarkers = (map, spots = [], onMarkerClick, getMarkerOptions) 
   const onClickRef = useRef(onMarkerClick);
   const getOptionsRef = useRef(getMarkerOptions);
   const isUpdatingRef = useRef(false);
+  const updateTimeoutRef = useRef(null);
 
   // Actualizar referencias cuando cambian las props
   useEffect(() => {
@@ -96,7 +97,10 @@ export const useMapMarkers = (map, spots = [], onMarkerClick, getMarkerOptions) 
 
   // Función para limpiar todos los marcadores
   const clearMarkers = useCallback(() => {
-    if (isUpdatingRef.current) return;
+    if (updateTimeoutRef.current) {
+      clearTimeout(updateTimeoutRef.current);
+      updateTimeoutRef.current = null;
+    }
 
     markersRef.current.forEach(marker => {
       try {
@@ -117,11 +121,17 @@ export const useMapMarkers = (map, spots = [], onMarkerClick, getMarkerOptions) 
   // Efecto principal para actualizar marcadores cuando cambian los spots
   useEffect(() => {
     if (!mapRef.current || !Array.isArray(spots)) return;
-    if (isUpdatingRef.current) return;
 
-    isUpdatingRef.current = true;
+    // Limpiar timeout anterior si existe
+    if (updateTimeoutRef.current) {
+      clearTimeout(updateTimeoutRef.current);
+    }
 
-    requestAnimationFrame(() => {
+    // Usar requestAnimationFrame para asegurar que el mapa esté listo
+    updateTimeoutRef.current = setTimeout(() => {
+      if (isUpdatingRef.current) return;
+      isUpdatingRef.current = true;
+
       try {
         const validSpots = spots.filter(spot =>
           spot?.id && spot?.latitude && spot?.longitude
@@ -150,17 +160,30 @@ export const useMapMarkers = (map, spots = [], onMarkerClick, getMarkerOptions) 
             markersRef.current.set(spot.id, marker);
           }
         });
+
+        // Forzar una actualización visual en móviles
+        if (window.innerWidth < 768) {
+          requestAnimationFrame(() => {
+            if (mapRef.current) {
+              mapRef.current.panBy(1, 0);
+              setTimeout(() => {
+                mapRef.current.panBy(-1, 0);
+              }, 50);
+            }
+          });
+        }
       } finally {
         isUpdatingRef.current = false;
       }
-    });
+    }, 100); // Pequeño delay para asegurar que el mapa esté listo
 
     return () => {
-      if (!isUpdatingRef.current) {
-        clearMarkers();
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+        updateTimeoutRef.current = null;
       }
     };
-  }, [spots, clearMarkers, createMarker]);
+  }, [spots, createMarker]);
 
   return { clearMarkers };
 };

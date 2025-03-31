@@ -360,15 +360,25 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
     // Optimización para móviles
     const isMobile = window.innerWidth < 768;
     if (isMobile && map && hasValidLocation) {
+      // Reducir el delay inicial para móviles
       setTimeout(() => {
-        searchNearbyParking(userLoc, 17, false)
+        searchNearbyParking(userLoc, 16, false)
           .then(() => {
-            setTimeout(() => {
-              map.panBy(1, 0);
-              setTimeout(() => map.panBy(-1, 0), 100);
-            }, 500);
+            // Asegurar que el mapa esté centrado y visible
+            requestAnimationFrame(() => {
+              map.setZoom(16);
+              map.panTo(userLoc);
+
+              // Forzar una actualización visual
+              setTimeout(() => {
+                map.panBy(1, 0);
+                setTimeout(() => {
+                  map.panBy(-1, 0);
+                }, 50);
+              }, 100);
+            });
           });
-      }, 1000);
+      }, 500); // Reducido de 1000ms a 500ms
     }
   }, [originalHandleMapLoad, userLoc, searchNearbyParking]);
 
@@ -443,8 +453,21 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
         setParkingSpots(cachedResults);
         lastSearchLocationRef.current = searchLocation;
         lastIdleTimeRef.current = Date.now();
-        mapInstance.panTo(searchLocation);
-        mapInstance.setZoom(17);
+
+        // Asegurar que el mapa esté centrado y visible
+        requestAnimationFrame(() => {
+          mapInstance.panTo(searchLocation);
+          mapInstance.setZoom(16);
+
+          // Forzar una actualización visual
+          setTimeout(() => {
+            mapInstance.panBy(1, 0);
+            setTimeout(() => {
+              mapInstance.panBy(-1, 0);
+            }, 50);
+          }, 100);
+        });
+
         isSearchingRef.current = false;
 
         if (fromHomePage) {
@@ -455,9 +478,9 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
 
       // Si no hay caché, hacer la búsqueda
       mapInstance.panTo(searchLocation);
-      mapInstance.setZoom(17);
+      mapInstance.setZoom(16);
 
-      searchNearbyParking(searchLocation, 17, false)
+      searchNearbyParking(searchLocation, 16, false)
         .then(() => {
           if (fromHomePage) {
             sessionStorage.setItem('initialHomePageSearch', 'true');
@@ -477,7 +500,7 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
 
     hasInitialized.current = true;
     const isMobile = window.innerWidth < 768;
-    const initDelay = isMobile ? 800 : 0;
+    const initDelay = isMobile ? 400 : 0; // Reducido de 800ms a 400ms
 
     // Verificar caché antes de cualquier búsqueda
     const cachedResults = getCachedResult(userLoc);
@@ -488,10 +511,18 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
       lastIdleTimeRef.current = Date.now();
 
       if (isMobile) {
-        setTimeout(() => {
-          mapInstance.panBy(1, 0);
-          setTimeout(() => mapInstance.panBy(-1, 0), 100);
-        }, 500);
+        requestAnimationFrame(() => {
+          mapInstance.panTo(userLoc);
+          mapInstance.setZoom(16);
+
+          // Forzar una actualización visual
+          setTimeout(() => {
+            mapInstance.panBy(1, 0);
+            setTimeout(() => {
+              mapInstance.panBy(-1, 0);
+            }, 50);
+          }, 100);
+        });
       }
       return;
     }
@@ -500,16 +531,24 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
     setTimeout(() => {
       if (!isSearchingRef.current) {
         isSearchingRef.current = true;
-        searchNearbyParking(userLoc, 17, false)
+        searchNearbyParking(userLoc, 16, false)
           .then(() => {
             lastSearchLocationRef.current = userLoc;
             lastIdleTimeRef.current = Date.now();
 
             if (isMobile) {
-              setTimeout(() => {
-                mapInstance.panBy(1, 0);
-                setTimeout(() => mapInstance.panBy(-1, 0), 100);
-              }, 300);
+              requestAnimationFrame(() => {
+                mapInstance.panTo(userLoc);
+                mapInstance.setZoom(16);
+
+                // Forzar una actualización visual
+                setTimeout(() => {
+                  mapInstance.panBy(1, 0);
+                  setTimeout(() => {
+                    mapInstance.panBy(-1, 0);
+                  }, 50);
+                }, 100);
+              });
             }
           })
           .finally(() => {
