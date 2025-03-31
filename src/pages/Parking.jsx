@@ -276,7 +276,7 @@ export default function Parking() {
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="h-[calc(100vh-200px)] md:flex-1 relative md:col-span-8 rounded-lg md:rounded-2xl shadow-lg md:h-full overflow-hidden"
+              className="h-[calc(100vh-160px)] md:flex-1 relative md:col-span-8 rounded-lg md:rounded-2xl shadow-lg md:h-full overflow-hidden"
             >
               <Map
                 ref={mapRef}
@@ -319,7 +319,7 @@ export default function Parking() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="md:hidden flex-shrink-0 min-h-[280px] max-h-[320px] flex flex-col"
+              className="md:hidden flex-shrink-0 min-h-[140px] max-h-[240px] flex flex-col"
             >
               {isSearching ? (
                 <div className="flex items-center justify-center h-full">
