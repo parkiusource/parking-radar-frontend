@@ -46,7 +46,9 @@ export function ParkingProvider({ children }) {
     }
 
     const timestamp = Date.now();
-    const spotsWithUniqueIds = newSpots.map(spot => {
+
+    // Procesar los nuevos spots
+    const processedSpots = newSpots.map(spot => {
       if (!spot) {
         console.debug('⚠️ Spot inválido encontrado en newSpots');
         return null;
@@ -64,14 +66,37 @@ export function ParkingProvider({ children }) {
     }).filter(Boolean); // Eliminar cualquier spot null
 
     console.debug('📍 Actualizando spots de Google Places:', {
-      total: spotsWithUniqueIds.length,
+      total: processedSpots.length,
       originalTotal: newSpots.length
     });
 
-    // Actualizar solo si hay spots válidos
-    if (spotsWithUniqueIds.length > 0) {
-      setGooglePlacesSpots(spotsWithUniqueIds);
-    }
+    // Actualizar usando una función para garantizar el estado más reciente
+    setGooglePlacesSpots(prevSpots => {
+      // Crear un mapa de los spots existentes por ID
+      const existingSpotMap = new Map(
+        prevSpots.map(spot => [spot.id, spot])
+      );
+
+      // Actualizar o agregar nuevos spots
+      processedSpots.forEach(spot => {
+        existingSpotMap.set(spot.id, {
+          ...existingSpotMap.get(spot.id),
+          ...spot,
+          lastUpdated: timestamp
+        });
+      });
+
+      // Convertir el mapa de vuelta a array
+      const updatedSpots = Array.from(existingSpotMap.values());
+
+      // Ordenar por distancia si está disponible
+      return updatedSpots.sort((a, b) => {
+        if (a.distance && b.distance) {
+          return a.distance - b.distance;
+        }
+        return 0;
+      });
+    });
   }, []);
 
   // Inicializar searchNearbyParking después de tener updateParkingSpots
@@ -165,13 +190,31 @@ export function ParkingProvider({ children }) {
   // Combinar los spots de la base de datos con los de Google Places
   const parkingSpots = useMemo(() => {
     const dbSpots = dbParkingSpots || [];
-    const googleSpots = googlePlacesSpots.map(spot => ({
-      ...spot,
-      id: spot.id || generateUniqueId(spot.placeId || 'unknown', spot.timestamp),
-      source: 'google'
-    }));
+    const googleSpots = googlePlacesSpots;
 
-    return [...dbSpots, ...googleSpots];
+    // Crear un mapa para evitar duplicados
+    const spotMap = new Map();
+
+    // Primero agregar los spots de la base de datos
+    dbSpots.forEach(spot => {
+      spotMap.set(spot.id, { ...spot, source: 'db' });
+    });
+
+    // Luego agregar o actualizar con los spots de Google
+    googleSpots.forEach(spot => {
+      if (!spotMap.has(spot.id)) {
+        spotMap.set(spot.id, { ...spot, source: 'google' });
+      }
+    });
+
+    // Convertir el mapa a array y ordenar por distancia
+    return Array.from(spotMap.values())
+      .sort((a, b) => {
+        if (a.distance && b.distance) {
+          return a.distance - b.distance;
+        }
+        return 0;
+      });
   }, [dbParkingSpots, googlePlacesSpots]);
 
   // Efecto para la inicialización

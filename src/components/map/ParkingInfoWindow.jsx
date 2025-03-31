@@ -1,8 +1,73 @@
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { Navigation, Star, Clock } from 'lucide-react';
 
 const ParkingInfoWindow = memo(({ spot, onNavigate }) => {
+  const parkiuContent = useMemo(() => {
+    if (!spot) return null;
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+          <span className="text-gray-600">Espacios disponibles:</span>
+          <span className="font-semibold text-lg">
+            {spot.available_spaces}
+          </span>
+        </div>
+        <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+          <span className="text-gray-600">Estado:</span>
+          <span className={`font-medium ${spot.available_spaces > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+            {spot.available_spaces > 0 ? 'Disponible' : 'Lleno'}
+          </span>
+        </div>
+        {spot.price_per_hour > 0 && (
+          <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+            <span className="text-gray-600">Tarifa:</span>
+            <span className="font-semibold">
+              ${spot.price_per_hour.toLocaleString('es-CO')}/hora
+            </span>
+          </div>
+        )}
+      </div>
+    );
+  }, [spot]);
+
+  const googleContent = useMemo(() => {
+    if (!spot) return null;
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 text-sm">
+          <Clock className="w-4 h-4 text-gray-500" />
+          <span className={`font-medium ${spot.openNow ? 'text-emerald-600' : 'text-red-600'}`}>
+            {spot.openNow ? 'Abierto ahora' : 'Cerrado'}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between mt-2">
+          {spot.rating > 0 && (
+            <div className="flex items-center bg-gray-50 px-3 py-1.5 rounded">
+              <Star className="w-4 h-4 text-yellow-400 mr-1" />
+              <span className="font-medium">{spot.rating.toFixed(1)}</span>
+              {spot.userRatingCount > 0 && (
+                <span className="text-gray-500 text-sm ml-1">
+                  ({spot.userRatingCount})
+                </span>
+              )}
+            </div>
+          )}
+          {spot.formattedDistance && (
+            <span className="text-sm text-gray-500">
+              A {spot.formattedDistance}
+            </span>
+          )}
+        </div>
+
+        <p className="text-xs text-gray-500 mt-2 italic">
+          * Datos proporcionados por Google Places, la información puede ser inexacta.
+        </p>
+      </div>
+    );
+  }, [spot]);
+
   if (!spot) return null;
 
   const isParkiu = !spot.isGooglePlace;
@@ -13,12 +78,12 @@ const ParkingInfoWindow = memo(({ spot, onNavigate }) => {
         <h2 className="text-lg font-bold text-gray-800">{spot.name}</h2>
         {isParkiu ? (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-            <img src="/icons/providers/parkiu.svg" alt="Parkiu" className="w-3 h-3 mr-1" />
+            <img src="/icons/providers/parkiu.svg" alt="Parkiu" width={12} height={12} className="w-3 h-3 mr-1" />
             Parkiu
           </span>
         ) : (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-            <img src="/icons/providers/google.svg" alt="Google" className="w-3 h-3 mr-1" />
+            <img src="/icons/providers/google.svg" alt="Google" width={12} height={12} className="w-3 h-3 mr-1" />
             Google Places
           </span>
         )}
@@ -32,62 +97,7 @@ const ParkingInfoWindow = memo(({ spot, onNavigate }) => {
         <span className="flex-1">{spot.address}</span>
       </p>
 
-      {isParkiu ? (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
-            <span className="text-gray-600">Espacios disponibles:</span>
-            <span className="font-semibold text-lg">
-              {spot.available_spaces}
-            </span>
-          </div>
-          <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
-            <span className="text-gray-600">Estado:</span>
-            <span className={`font-medium ${spot.available_spaces > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-              {spot.available_spaces > 0 ? 'Disponible' : 'Lleno'}
-            </span>
-          </div>
-          {spot.price_per_hour > 0 && (
-            <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
-              <span className="text-gray-600">Tarifa:</span>
-              <span className="font-semibold">
-                ${spot.price_per_hour.toLocaleString('es-CO')}/hora
-              </span>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm">
-            <Clock className="w-4 h-4 text-gray-500" />
-            <span className={`font-medium ${spot.openNow ? 'text-emerald-600' : 'text-red-600'}`}>
-              {spot.openNow ? 'Abierto ahora' : 'Cerrado'}
-            </span>
-          </div>
-
-          <div className="flex items-center justify-between mt-2">
-            {spot.rating > 0 && (
-              <div className="flex items-center bg-gray-50 px-3 py-1.5 rounded">
-                <Star className="w-4 h-4 text-yellow-400 mr-1" />
-                <span className="font-medium">{spot.rating.toFixed(1)}</span>
-                {spot.userRatingCount > 0 && (
-                  <span className="text-gray-500 text-sm ml-1">
-                    ({spot.userRatingCount})
-                  </span>
-                )}
-              </div>
-            )}
-            {spot.formattedDistance && (
-              <span className="text-sm text-gray-500">
-                A {spot.formattedDistance}
-              </span>
-            )}
-          </div>
-
-          <p className="text-xs text-gray-500 mt-2 italic">
-            * Datos proporcionados por Google Places, la información puede ser inexacta.
-          </p>
-        </div>
-      )}
+      {isParkiu ? parkiuContent : googleContent}
 
       <button
         onClick={onNavigate}
@@ -99,12 +109,14 @@ const ParkingInfoWindow = memo(({ spot, onNavigate }) => {
     </div>
   );
 }, (prevProps, nextProps) => {
+  // Optimizar re-renders comparando solo las propiedades necesarias
   return prevProps.spot?.id === nextProps.spot?.id &&
          prevProps.spot?.available_spaces === nextProps.spot?.available_spaces &&
          prevProps.spot?.name === nextProps.spot?.name &&
          prevProps.spot?.address === nextProps.spot?.address &&
          prevProps.spot?.openNow === nextProps.spot?.openNow &&
-         prevProps.spot?.rating === nextProps.spot?.rating;
+         prevProps.spot?.rating === nextProps.spot?.rating &&
+         prevProps.spot?.price_per_hour === nextProps.spot?.price_per_hour;
 });
 
 ParkingInfoWindow.displayName = 'ParkingInfoWindow';

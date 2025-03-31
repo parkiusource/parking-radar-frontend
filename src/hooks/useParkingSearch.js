@@ -3,7 +3,6 @@ import { apiLimiter } from '@/services/apiLimiter';
 
 const MIN_SEARCH_INTERVAL = 3000; // Aumentado a 3 segundos entre búsquedas
 const MIN_DISTANCE_FOR_NEW_SEARCH = 100; // Aumentado a 100 metros
-const MAP_MOVEMENT_DEBOUNCE = 1000; // 1 segundo de debounce para movimiento del mapa
 const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutos de expiración del caché
 
 const SEARCH_RADIUS = {
@@ -110,11 +109,9 @@ export const useParkingSearch = (setParkingSpots, getCachedResult, setCachedResu
   }
 
   const lastSearchLocationRef = useRef(null);
-  const lastSearchTime = useRef(0);
   const isSearchingRef = useRef(false);
   const searchQueueRef = useRef([]);
   const processingQueueRef = useRef(false);
-  const mapMovementTimeoutRef = useRef(null);
   const lastCachedLocationRef = useRef(null);
   const lastCacheTimeRef = useRef(0);
   const lastIdleTimeRef = useRef(0);
@@ -354,96 +351,140 @@ export const useParkingSearch = (setParkingSpots, getCachedResult, setCachedResu
     }
   }, [performSearch]);
 
-  const searchNearbyParking = useCallback((location, zoom = 15, isMapMoving = false, isForced = false) => {
-    const now = Date.now();
-    const timeSinceLastSearch = now - lastSearchTime.current;
-
-    // Obtener spots actuales antes de cualquier operación
-    const currentSpots = getCachedResult(location) || [];
-
-    // Si es una búsqueda forzada, ejecutar inmediatamente sin encolar
-    if (isForced) {
-      debug('📍 Ejecutando búsqueda forzada');
-      lastSearchTime.current = now;
-      return new Promise((resolve) => {
-        performSearch(location, zoom, false)
-          .finally(resolve);
-      });
+  // Función para buscar parqueaderos cercanos
+  const searchNearbyParking = useCallback(async (location, zoomLevel = 15, useCache = true, forceSearch = false) => {
+    if (!location?.lat || !location?.lng) {
+      console.error('❌ Ubicación inválida para búsqueda');
+      return [];
     }
 
-    // Si el mapa está en movimiento, usar debounce
-    if (isMapMoving) {
-      if (mapMovementTimeoutRef.current) {
-        clearTimeout(mapMovementTimeoutRef.current);
+    // Verificar cache primero
+    if (useCache && !forceSearch) {
+      const cachedResults = getCachedResult?.(location);
+      if (cachedResults?.length > 0) {
+        console.log(`🗺️ [Parking] 📦 Usando ${cachedResults.length} resultados en caché`);
+        setParkingSpots(cachedResults);
+        return cachedResults;
+      }
+    }
+
+    try {
+      // Realizar búsqueda nueva
+      console.log(`🗺️ [Parking] 🔍 Buscando parqueaderos en (${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}) con zoom ${zoomLevel}`);
+
+      // Ajustar el radio de búsqueda según el nivel de zoom
+      let searchRadius;
+      if (zoomLevel >= 18) {
+        searchRadius = SEARCH_RADIUS.VERY_CLOSE;
+      } else if (zoomLevel >= 16) {
+        searchRadius = SEARCH_RADIUS.CLOSE;
+      } else if (zoomLevel >= 14) {
+        searchRadius = SEARCH_RADIUS.MEDIUM;
+      } else {
+        searchRadius = SEARCH_RADIUS.FAR;
       }
 
-      // Mantener los spots actuales mientras el mapa se mueve
-      if (currentSpots.length > 0) {
-        setParkingSpots(currentSpots);
-        updateCache(location, currentSpots);
-      }
-
-      mapMovementTimeoutRef.current = setTimeout(() => {
-        if (apiLimiter.canMakeCall()) {
-          performSearch(location, zoom, false);
-        } else {
-          // Si no podemos hacer una nueva llamada, usar el caché existente
-          if (currentSpots.length > 0) {
-            setParkingSpots(currentSpots);
-            updateCache(location, currentSpots);
+      // Usar la API de Google Places para búsqueda de parqueaderos reales
+      const requestBody = {
+        includedTypes: ['parking'],
+        maxResultCount: 20,
+        locationRestriction: {
+          circle: {
+            center: {
+              latitude: location.lat,
+              longitude: location.lng
+            },
+            radius: searchRadius
           }
+        },
+        languageCode: "es"
+      };
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      const response = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.currentOpeningHours.openNow,places.businessStatus,places.types,places.photos',
+          'Accept-Language': 'es'
+        },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const data = await response.json();
+
+      // Si no hay lugares en la respuesta
+      if (!data.places || data.places.length === 0) {
+        console.warn('🗺️ [Parking] ⚠️ No se encontraron lugares en la respuesta');
+        setParkingSpots([]);
+        return [];
+      }
+
+      const googlePlacesSpots = data.places.map(place => ({
+        id: `google_${place.id}_${Date.now()}`,
+        googlePlaceId: place.id,
+        name: place.displayName?.text || 'Parqueadero',
+        address: place.formattedAddress,
+        latitude: place.location.latitude,
+        longitude: place.location.longitude,
+        isGooglePlace: true,
+        available_spaces: place.currentOpeningHours?.openNow ? 1 : 0,
+        total_spaces: 1,
+        min_price: 0,
+        max_price: 0,
+        price_per_hour: 0,
+        is_open: place.currentOpeningHours?.openNow ?? true,
+        rating: place.rating || 0,
+        lastUpdated: Date.now(),
+        vicinity: place.formattedAddress,
+        types: place.types || ['parking'],
+        photos: place.photos || [],
+        openNow: place.currentOpeningHours?.openNow ?? true
+      }));
+
+      // Calcular distancias si es posible
+      if (window.google?.maps?.geometry?.spherical) {
+        const origin = new window.google.maps.LatLng(location.lat, location.lng);
+        googlePlacesSpots.forEach(spot => {
+          const destination = new window.google.maps.LatLng(spot.latitude, spot.longitude);
+          const distanceInMeters = window.google.maps.geometry.spherical.computeDistanceBetween(origin, destination);
+          spot.distance = distanceInMeters / 1000;
+          spot.formattedDistance = spot.distance < 1
+            ? `${Math.round(distanceInMeters)}m`
+            : `${spot.distance.toFixed(1)}km`;
+        });
+      }
+
+      if (googlePlacesSpots && Array.isArray(googlePlacesSpots)) {
+        console.log(`🗺️ [Parking] ✅ Encontrados ${googlePlacesSpots.length} parqueaderos`);
+
+        // Guardar en caché si hay resultados
+        if (googlePlacesSpots.length > 0 && setCachedResult) {
+          setCachedResult(location, googlePlacesSpots);
         }
-      }, MAP_MOVEMENT_DEBOUNCE);
 
-      return Promise.resolve();
-    }
+        // Actualizar estado
+        setParkingSpots(googlePlacesSpots);
 
-    // Verificar si la ubicación es significativamente diferente
-    const isSameLocation = lastSearchLocationRef.current &&
-                         calculateDistance(location, lastSearchLocationRef.current) < MIN_DISTANCE_FOR_NEW_SEARCH;
-
-    // Si es la misma ubicación aproximadamente y tenemos spots, mantener los actuales
-    if (isSameLocation && currentSpots.length > 0) {
-      debug('📍 Ubicación similar a la última búsqueda, manteniendo spots actuales');
-      setParkingSpots(currentSpots);
-      updateCache(location, currentSpots);
-      return Promise.resolve();
-    }
-
-    // Si la última búsqueda fue hace muy poco, encolar esta búsqueda
-    if (timeSinceLastSearch < MIN_SEARCH_INTERVAL && !isForced) {
-      debug(`⚠️ Búsqueda encolada - Demasiado frecuente (último: ${timeSinceLastSearch}ms < ${MIN_SEARCH_INTERVAL}ms)`);
-
-      // Mantener los spots actuales mientras se encola la nueva búsqueda
-      if (currentSpots.length > 0) {
-        setParkingSpots(currentSpots);
-        updateCache(location, currentSpots);
+        // Retornar resultados para uso futuro
+        return googlePlacesSpots;
+      } else {
+        console.warn('🗺️ [Parking] ⚠️ No se encontraron parqueaderos');
+        setParkingSpots([]);
+        return [];
       }
-
-      searchQueueRef.current.push({ location, zoom, isMapMoving });
-
-      // Iniciar el procesamiento de la cola si no está en proceso
-      if (!processingQueueRef.current) {
-        setTimeout(processSearchQueue, MIN_SEARCH_INTERVAL - timeSinceLastSearch);
-      }
-      return Promise.resolve();
+    } catch (error) {
+      console.error('🗺️ [Parking] ❌ Error buscando parqueaderos:', error);
+      setParkingSpots([]);
+      return [];
     }
+  }, [setParkingSpots, getCachedResult, setCachedResult]);
 
-    lastSearchTime.current = now;
-    return new Promise((resolve) => {
-      // Mantener los spots actuales mientras se realiza la nueva búsqueda
-      if (currentSpots.length > 0) {
-        setParkingSpots(currentSpots);
-        updateCache(location, currentSpots);
-      }
-
-      performSearch(location, zoom, isMapMoving)
-        .finally(resolve);
-    });
-  }, [processSearchQueue, performSearch, getCachedResult, setParkingSpots, updateCache]);
-
-  return {
-    searchNearbyParking,
-    lastSearchLocationRef
-  };
+  return { searchNearbyParking };
 };

@@ -1,130 +1,115 @@
-import { useCallback, useRef } from 'react';
+import { useRef, useCallback } from 'react';
 
-const CACHE_KEY = 'parking_location_cache';
-const CACHE_EXPIRY = 15 * 60 * 1000; // 15 minutos (igual que useSearchPlaces)
-const MAX_CACHE_ITEMS = 5;
-const LOCATION_PRECISION = 4; // 4 decimales ≈ 11 metros de precisión
+// Distancia máxima para considerar una ubicación como en caché (en metros)
+const CACHE_THRESHOLD = 150;
 
-// Función para redondear coordenadas y reducir variaciones mínimas
-const roundCoordinates = (location) => {
-  if (!location?.lat || !location?.lng) return null;
-  return {
-    lat: Number(parseFloat(location.lat).toFixed(LOCATION_PRECISION)),
-    lng: Number(parseFloat(location.lng).toFixed(LOCATION_PRECISION))
-  };
-};
+// Utilidad para calcular distancia entre dos puntos
+const getDistance = (loc1, loc2) => {
+  if (!loc1 || !loc2) return Infinity;
 
-// Función para generar una clave de caché consistente
-const generateCacheKey = (location) => {
-  const rounded = roundCoordinates(location);
-  return rounded ? `${rounded.lat},${rounded.lng}` : null;
-};
+  try {
+    // Usar fórmula de Haversine para mayor precisión
+    const toRad = (deg) => deg * Math.PI / 180;
+    const R = 6371000; // Radio de la tierra en metros
 
-export function useSearchState() {
-  const cacheRef = useRef(null);
+    const lat1 = parseFloat(loc1.lat);
+    const lon1 = parseFloat(loc1.lng);
+    const lat2 = parseFloat(loc2.lat);
+    const lon2 = parseFloat(loc2.lng);
 
-  // Inicializar el caché desde localStorage
-  const initializeCache = useCallback(() => {
-    if (cacheRef.current === null) {
-      try {
-        const savedCache = localStorage.getItem(CACHE_KEY);
-        if (savedCache) {
-          const parsedCache = JSON.parse(savedCache);
-          if (parsedCache && typeof parsedCache === 'object' && Array.isArray(parsedCache.searches)) {
-            // Limpiar entradas expiradas durante la inicialización
-            const now = Date.now();
-            parsedCache.searches = parsedCache.searches.filter(
-              search => now - search.timestamp <= CACHE_EXPIRY
-            );
-            cacheRef.current = parsedCache;
-          } else {
-            cacheRef.current = { searches: [] };
-          }
-        } else {
-          cacheRef.current = { searches: [] };
-        }
-      } catch (error) {
-        console.warn('Error al cargar el caché de ubicaciones:', error);
-        cacheRef.current = { searches: [] };
-      }
+    if (!isFinite(lat1) || !isFinite(lon1) || !isFinite(lat2) || !isFinite(lon2)) {
+      return Infinity;
     }
-    return cacheRef.current;
+
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  } catch (e) {
+    console.error('Error calculando distancia:', e);
+    return Infinity;
+  }
+};
+
+export const useSearchState = () => {
+  // Usamos un objeto para almacenar resultados con marcas de tiempo
+  const cachedResults = useRef({});
+  const lastCacheTime = useRef(Date.now());
+
+  // Limpiar caché después de 10 minutos
+  const cleanExpiredCache = useCallback(() => {
+    const now = Date.now();
+    const expirationTime = 10 * 60 * 1000; // 10 minutos en milisegundos
+
+    Object.keys(cachedResults.current).forEach(key => {
+      const entry = cachedResults.current[key];
+      if (now - entry.timestamp > expirationTime) {
+        delete cachedResults.current[key];
+      }
+    });
   }, []);
 
-  // Obtener un resultado del caché
-  const getCachedResult = useCallback((location) => {
-    if (!location?.lat || !location?.lng) return null;
+  // Guardar resultados en caché
+  const setCachedResult = useCallback((location, results) => {
+    if (!location || !Array.isArray(results)) return;
 
-    const cache = initializeCache();
-    const searchKey = generateCacheKey(location);
-    if (!searchKey) return null;
-
-    // Limpiar entradas expiradas antes de buscar
-    const now = Date.now();
-    cache.searches = cache.searches.filter(search => now - search.timestamp <= CACHE_EXPIRY);
-
-    const cachedSearch = cache.searches.find(search => search.key === searchKey);
-    if (!cachedSearch || !Array.isArray(cachedSearch.result)) {
-      return null;
+    // Limpiar caché expirada periódicamente
+    if (Date.now() - lastCacheTime.current > 30000) { // Cada 30 segundos
+      cleanExpiredCache();
+      lastCacheTime.current = Date.now();
     }
 
-    // Validar la estructura de los resultados
-    const isValidResult = cachedSearch.result.every(spot => (
-      spot?.id &&
-      spot?.name &&
-      spot?.latitude &&
-      spot?.longitude
-    ));
+    // Crear clave única basada en coordenadas redondeadas para mejorar la coincidencia
+    const key = `${parseFloat(location.lat).toFixed(5)}_${parseFloat(location.lng).toFixed(5)}`;
 
-    return isValidResult ? cachedSearch.result : null;
-  }, [initializeCache]);
-
-  // Guardar un resultado en el caché
-  const setCachedResult = useCallback((location, result) => {
-    if (!location?.lat || !location?.lng || !Array.isArray(result)) {
-      return;
-    }
-
-    const searchKey = generateCacheKey(location);
-    if (!searchKey) return;
-
-    const cache = initializeCache();
-
-    // Mantener solo las búsquedas más recientes
-    if (cache.searches.length >= MAX_CACHE_ITEMS) {
-      cache.searches.sort((a, b) => b.timestamp - a.timestamp);
-      cache.searches = cache.searches.slice(0, MAX_CACHE_ITEMS - 1);
-    }
-
-    // Validar y limpiar resultados antes de guardar
-    const validResults = result.filter(spot => (
-      spot?.id &&
-      spot?.name &&
-      spot?.latitude &&
-      spot?.longitude
-    ));
-
-    if (validResults.length === 0) return;
-
-    // Eliminar búsqueda existente si existe
-    cache.searches = cache.searches.filter(search => search.key !== searchKey);
-
-    // Agregar nueva búsqueda
-    cache.searches.push({
-      key: searchKey,
-      result: validResults,
+    cachedResults.current[key] = {
+      location,
+      results: [...results], // Crear copia para evitar mutaciones
       timestamp: Date.now()
+    };
+  }, [cleanExpiredCache]);
+
+  // Obtener resultados de caché si existe una ubicación cercana
+  const getCachedResult = useCallback((location) => {
+    if (!location) return null;
+
+    // Verificar caché expirada
+    cleanExpiredCache();
+
+    // Buscar la entrada más cercana
+    let bestMatch = null;
+    let minDistance = CACHE_THRESHOLD;
+
+    Object.values(cachedResults.current).forEach(entry => {
+      const distance = getDistance(location, entry.location);
+      if (distance < minDistance) {
+        minDistance = distance;
+        bestMatch = entry;
+      }
     });
 
-    try {
-      localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
-    } catch (error) {
-      console.warn('Error al guardar en caché de ubicaciones:', error);
+    // Si encontramos una coincidencia suficientemente cercana, usarla
+    if (bestMatch) {
+      console.log(`🔄 Usando caché de ubicación a ${minDistance.toFixed(2)}m de distancia`);
+      return bestMatch.results;
     }
-  }, [initializeCache]);
+
+    return null;
+  }, [cleanExpiredCache]);
+
+  // Invalidar todos los datos en caché
+  const invalidateCache = useCallback(() => {
+    cachedResults.current = {};
+  }, []);
 
   return {
+    setCachedResult,
     getCachedResult,
-    setCachedResult
+    invalidateCache
   };
-}
+};

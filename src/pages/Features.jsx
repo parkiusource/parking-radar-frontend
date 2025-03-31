@@ -43,6 +43,8 @@ const Features = () => {
               <img
                 src={iconGoal}
                 alt="Icono de meta"
+                width={80}
+                height={80}
                 className="w-20 h-20 mr-4 md:order-1 mb-4 md:mb-0"
               />
             </div>
@@ -51,6 +53,8 @@ const Features = () => {
               <img
                 src={iconGuide}
                 alt="Icono de guía"
+                width={80}
+                height={80}
                 className="w-20 h-20 mr-4 mb-4 md:mb-0"
               />
               <p>
@@ -73,6 +77,8 @@ const Features = () => {
               <img
                 src={iconSmartCar}
                 alt="Icono de SmartCar"
+                width={80}
+                height={80}
                 className="w-20 h-20 mr-4 md:order-1 mb-4 md:mb-0"
               />
             </div>
@@ -81,6 +87,8 @@ const Features = () => {
               <img
                 src={iconCelebrate}
                 alt="Icono de celebración"
+                width={80}
+                height={80}
                 className="w-20 h-20 mr-4 mb-4 md:mb-0"
               />
               <p>
@@ -96,6 +104,8 @@ const Features = () => {
               <img
                 src={iconLogo}
                 alt="Logo de Smart Parking"
+                width={80}
+                height={80}
                 className="w-20 h-20 mr-4 mb-4 md:mb-0"
               />
               <p>
@@ -104,6 +114,8 @@ const Features = () => {
               <img
                 src={iconInteresting}
                 alt="Icono de interesante"
+                width={80}
+                height={80}
                 className="w-20 h-20 ml-4 mb-4 md:mb-0"
               />
             </div>

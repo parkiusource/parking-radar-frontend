@@ -234,6 +234,8 @@ const AdminLandingPage = () => {
                 <img
                   src={imgParkiu}
                   alt="Beneficios de ParkiÜ"
+                  width={600}
+                  height={400}
                   className="rounded-2xl shadow-2xl"
                 />
               </motion.div>

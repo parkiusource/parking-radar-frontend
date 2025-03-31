@@ -17,6 +17,7 @@ import ParkingSpotList from '@/components/parking/ParkingSpotList';
 
 const DEFAULT_MAX_DISTANCE = 1000;
 const DEFAULT_LIMIT = 10;
+const SEARCH_DEBOUNCE_TIME = 300;
 
 // Mensaje de no resultados memoizado
 const NoResultsMessage = memo(() => (
@@ -38,15 +39,92 @@ const NoResultsMessage = memo(() => (
 NoResultsMessage.displayName = 'NoResultsMessage';
 
 export default function Parking() {
-  const { parkingSpots, targetLocation, setTargetLocation } = useContext(ParkingContext);
+  const { parkingSpots, targetLocation, setTargetLocation, setParkingSpots } = useContext(ParkingContext);
   const { user } = useContext(UserContext);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSpot, setSelectedSpot] = useState(null);
+  const [isSearching, setIsSearching] = useState(false);
   const mapRef = useRef(null);
   const [searchParams] = useSearchParams();
   const [initialSearchDone, setInitialSearchDone] = useState(false);
   const lastCardClickTime = useRef(0);
   const initialZoomRef = useRef(15);
+  const searchControllerRef = useRef(null);
+  const searchTimeoutRef = useRef(null);
+
+  // Función para cancelar búsquedas pendientes
+  const cancelPendingSearches = useCallback(() => {
+    if (searchControllerRef.current) {
+      searchControllerRef.current.abort();
+    }
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    searchControllerRef.current = new AbortController();
+  }, []);
+
+  // Función para limpiar el estado antes de una nueva búsqueda
+  const cleanupState = useCallback(() => {
+    // Limpiar el estado de spots y spot seleccionado
+    setSelectedSpot(null);
+    setParkingSpots([]);
+
+    // Limpiar los marcadores si hay una referencia al mapa
+    if (mapRef.current && mapRef.current.cleanupMarkers) {
+      const mapCurrent = mapRef.current;
+      // Usar requestAnimationFrame para evitar problemas con referencias
+      requestAnimationFrame(() => {
+        mapCurrent.cleanupMarkers();
+      });
+    }
+  }, [setParkingSpots]);
+
+  // Función para realizar búsquedas de manera controlada
+  const performSearch = useCallback(async (location, options = {}) => {
+    try {
+      cancelPendingSearches();
+
+      // Mostrar loader de búsqueda
+      setIsSearching(true);
+
+      // Limpiar estado y marcadores antes de la nueva búsqueda
+      cleanupState();
+
+      // Actualizar ubicación objetivo en contexto
+      setTargetLocation(location);
+
+      // Esperar un pequeño delay para evitar búsquedas muy frecuentes
+      await new Promise(resolve => {
+        searchTimeoutRef.current = setTimeout(resolve, SEARCH_DEBOUNCE_TIME);
+      });
+
+      if (!mapRef.current?.searchNearbyParking) return;
+
+      // Realizar búsqueda en el mapa (limpia marcadores internamente)
+      await mapRef.current.searchNearbyParking(location);
+
+      // Centrar el mapa si es necesario
+      if (options.centerMap && mapRef.current?.getMapRef) {
+        const mapInstance = mapRef.current.getMapRef();
+        if (mapInstance) {
+          mapInstance.panTo({
+            lat: location.lat,
+            lng: location.lng
+          });
+          mapInstance.setZoom(15);
+        }
+      }
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        console.log('🔍 Búsqueda cancelada');
+        return;
+      }
+      console.error('Error en búsqueda:', error);
+      cleanupState();
+    } finally {
+      setIsSearching(false);
+    }
+  }, [cancelPendingSearches, cleanupState, setTargetLocation]);
 
   // Memoizar el centro y los spots cercanos
   const spotCenter = useMemo(() => {
@@ -80,16 +158,14 @@ export default function Parking() {
   const handleParkingCardClick = useCallback((parking) => {
     if (!parking?.id) return;
 
-    // Evitar clicks muy frecuentes
-    if (lastCardClickTime.current && Date.now() - lastCardClickTime.current < 300) return;
+    if (Date.now() - lastCardClickTime.current < SEARCH_DEBOUNCE_TIME) return;
     lastCardClickTime.current = Date.now();
 
     setSelectedSpot(prev => prev?.id === parking.id ? null : parking);
 
-    // Usar requestAnimationFrame para suavizar la animación
     requestAnimationFrame(() => {
-      if (mapRef.current?.centerOnSpot) {
-        mapRef.current.centerOnSpot(parking);
+      if (mapRef.current?.handleCardClick) {
+        mapRef.current.handleCardClick(parking);
       }
     });
   }, []);
@@ -107,20 +183,10 @@ export default function Parking() {
 
     if (!isFinite(lat) || !isFinite(lng)) return;
 
-    const newLocation = {
-      lat,
-      lng
-    };
-
+    const newLocation = { lat, lng };
     setTargetLocation(newLocation);
-
-    // Disparar búsqueda de parqueaderos cercanos
-    requestAnimationFrame(() => {
-      if (mapRef.current?.searchNearbyParking) {
-        mapRef.current.searchNearbyParking(newLocation);
-      }
-    });
-  }, [setTargetLocation]);
+    performSearch(newLocation, { centerMap: true });
+  }, [setTargetLocation, performSearch]);
 
   // Efecto mejorado para manejar parámetros de URL
   useEffect(() => {
@@ -134,7 +200,6 @@ export default function Parking() {
     const direct = searchParams.get('direct');
     const type = searchParams.get('type');
 
-    // Establecer zoom inicial si se proporciona
     if (zoom) {
       initialZoomRef.current = parseInt(zoom, 10);
     }
@@ -144,46 +209,31 @@ export default function Parking() {
       const parsedLng = parseFloat(lng);
 
       if (isFinite(parsedLat) && isFinite(parsedLng)) {
-        const newLocation = {
-          lat: parsedLat,
-          lng: parsedLng
-        };
-
+        const newLocation = { lat: parsedLat, lng: parsedLng };
         setTargetLocation(newLocation);
 
-        // Si es una búsqueda directa o nearby, centrar el mapa inmediatamente
-        if ((direct === 'true' || nearby === 'true') && mapRef.current?.centerOnSpotWithoutPopup) {
-          requestAnimationFrame(() => {
-            mapRef.current.centerOnSpotWithoutPopup({
-              latitude: parsedLat,
-              longitude: parsedLng
-            });
-
-            // Iniciar búsqueda de parqueaderos
-            if (mapRef.current?.searchNearbyParking) {
-              mapRef.current.searchNearbyParking(newLocation);
-            }
-          });
+        if (direct === 'true' || nearby === 'true') {
+          performSearch(newLocation, { centerMap: true });
         }
       }
     } else if (type === 'text' && search) {
-      // Si es una búsqueda por texto, establecer el término de búsqueda
-      const decodedSearch = decodeURIComponent(search);
-      setSearchTerm(decodedSearch);
+      setSearchTerm(decodeURIComponent(search));
     }
 
     setInitialSearchDone(true);
-  }, [searchParams, setTargetLocation, initialSearchDone]);
-
-  // Limpieza de recursos al desmontar
-  useEffect(() => {
-    return () => {
-      lastCardClickTime.current = 0;
-    };
-  }, []);
+  }, [searchParams, setTargetLocation, performSearch, initialSearchDone]);
 
   // Memoizar el conteo de spots para evitar recálculos
-  const spotsCount = useMemo(() => parkingSpots?.length || 0, [parkingSpots]);
+  const spotsCount = useMemo(() => nearbySpots?.length || 0, [nearbySpots]);
+
+  // Cleanup mejorado
+  useEffect(() => {
+    return () => {
+      cancelPendingSearches();
+      lastCardClickTime.current = 0;
+      cleanupState();
+    };
+  }, [cancelPendingSearches, cleanupState]);
 
   return (
     <LazyMotion features={domAnimation}>
@@ -249,7 +299,7 @@ export default function Parking() {
                   Parqueaderos cercanos
                 </h2>
                 <p className="text-sm text-gray-600 mt-0.5">
-                  {spotsCount} encontrados
+                  {isSearching ? 'Buscando...' : `${spotsCount} encontrados`}
                 </p>
               </div>
 
@@ -271,11 +321,17 @@ export default function Parking() {
               transition={{ delay: 0.3 }}
               className="md:hidden flex-shrink-0 min-h-[280px] max-h-[320px] flex flex-col"
             >
-              {nearbySpots?.length > 0 && (
+              {isSearching ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+                </div>
+              ) : nearbySpots?.length > 0 ? (
                 <ParkingCarousel
                   parkingSpots={nearbySpots}
                   onSelect={handleParkingCardClick}
                 />
+              ) : (
+                <NoResultsMessage />
               )}
             </motion.section>
           </main>
