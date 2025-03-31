@@ -1,16 +1,37 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useEffect } from 'react';
 
-// Distancia máxima para considerar una ubicación como en caché (en metros)
-const CACHE_THRESHOLD = 150;
+// Función de debug
+const debug = (message, data) => {
+  if (import.meta.env.DEV) {
+    console.log(`🔍 [SearchState] ${message}`, data || '');
+  }
+};
+
+// Aumentar umbral para móvil
+const CACHE_THRESHOLD = window.innerWidth <= 768 ? 50 : 150; // 50m en móvil, 150m en desktop
+const CACHE_EXPIRY = 2 * 60 * 1000; // Reducir a 2 minutos en lugar de 10
 
 // Utilidad para calcular distancia entre dos puntos
 const getDistance = (loc1, loc2) => {
   if (!loc1 || !loc2) return Infinity;
 
   try {
-    // Usar fórmula de Haversine para mayor precisión
+    // Usar Google Maps para calcular distancia si está disponible
+    if (window.google?.maps?.geometry?.spherical) {
+      const p1 = new window.google.maps.LatLng(
+        parseFloat(loc1.lat),
+        parseFloat(loc1.lng)
+      );
+      const p2 = new window.google.maps.LatLng(
+        parseFloat(loc2.lat),
+        parseFloat(loc2.lng)
+      );
+      return window.google.maps.geometry.spherical.computeDistanceBetween(p1, p2);
+    }
+
+    // Fallback a Haversine si Google Maps no está disponible
     const toRad = (deg) => deg * Math.PI / 180;
-    const R = 6371000; // Radio de la tierra en metros
+    const R = 6371000;
 
     const lat1 = parseFloat(loc1.lat);
     const lon1 = parseFloat(loc1.lng);
@@ -37,14 +58,14 @@ const getDistance = (loc1, loc2) => {
 };
 
 export const useSearchState = () => {
-  // Usamos un objeto para almacenar resultados con marcas de tiempo
   const cachedResults = useRef({});
   const lastCacheTime = useRef(Date.now());
+  const isMobileRef = useRef(window.innerWidth <= 768);
 
-  // Limpiar caché después de 10 minutos
+  // Limpiar caché después de 2 minutos en móvil, 5 en desktop
   const cleanExpiredCache = useCallback(() => {
     const now = Date.now();
-    const expirationTime = 10 * 60 * 1000; // 10 minutos en milisegundos
+    const expirationTime = isMobileRef.current ? CACHE_EXPIRY : (5 * 60 * 1000);
 
     Object.keys(cachedResults.current).forEach(key => {
       const entry = cachedResults.current[key];
@@ -56,50 +77,66 @@ export const useSearchState = () => {
 
   // Guardar resultados en caché
   const setCachedResult = useCallback((location, results) => {
-    if (!location) return;
+    if (!location || !Array.isArray(results)) return;
 
-    // Limpiar caché expirada periódicamente
-    if (Date.now() - lastCacheTime.current > 30000) { // Cada 30 segundos
+    // Limpiar caché expirada más frecuentemente en móvil
+    if (Date.now() - lastCacheTime.current > (isMobileRef.current ? 15000 : 30000)) {
       cleanExpiredCache();
       lastCacheTime.current = Date.now();
     }
 
-    // Crear clave única basada en coordenadas redondeadas para mejorar la coincidencia
-    const key = `${parseFloat(location.lat).toFixed(5)},${parseFloat(location.lng).toFixed(5)}`;
+    // Crear clave única con más precisión en móvil
+    const precision = isMobileRef.current ? 6 : 5;
+    const key = `${parseFloat(location.lat).toFixed(precision)},${parseFloat(location.lng).toFixed(precision)}`;
 
-    // Crear entrada de caché con la estructura esperada
+    // Guardar solo la información necesaria
     cachedResults.current[key] = {
       location: {
         lat: parseFloat(location.lat),
         lng: parseFloat(location.lng)
       },
-      spots: Array.isArray(results) ? [...results] : [],
+      spots: results,
       timestamp: Date.now(),
       lastAccessed: Date.now()
     };
+
+    debug('💾 Actualizando caché', {
+      key,
+      spotsCount: results.length,
+      location: {
+        lat: parseFloat(location.lat),
+        lng: parseFloat(location.lng)
+      }
+    });
   }, [cleanExpiredCache]);
 
-  // Obtener resultados de caché si existe una ubicación cercana
+  // Obtener resultados de caché con validación mejorada
   const getCachedResult = useCallback((location) => {
     if (!location) return null;
 
-    // Verificar caché expirada
     cleanExpiredCache();
 
-    // Buscar la entrada más cercana
     let bestMatch = null;
-    let minDistance = CACHE_THRESHOLD;
+    let minDistance = isMobileRef.current ? 50 : CACHE_THRESHOLD;
 
     Object.entries(cachedResults.current).forEach(([, entry]) => {
       const distance = getDistance(location, entry.location);
-      if (distance < minDistance) {
+
+      // En móvil, ser más estricto con la distancia y el tiempo
+      if (isMobileRef.current) {
+        const timeSinceCache = Date.now() - entry.timestamp;
+        if (distance < minDistance && timeSinceCache < CACHE_EXPIRY) {
+          minDistance = distance;
+          bestMatch = entry;
+        }
+      } else if (distance < minDistance) {
         minDistance = distance;
         bestMatch = entry;
       }
     });
 
-    // Si encontramos una coincidencia suficientemente cercana, usarla
     if (bestMatch) {
+      bestMatch.lastAccessed = Date.now();
       console.log(`🔄 Usando caché de ubicación a ${minDistance.toFixed(2)}m de distancia`);
       return bestMatch;
     }
@@ -107,14 +144,92 @@ export const useSearchState = () => {
     return null;
   }, [cleanExpiredCache]);
 
-  // Invalidar todos los datos en caché
+  // Invalidar caché
   const invalidateCache = useCallback(() => {
     cachedResults.current = {};
   }, []);
 
+  // Actualizar isMobileRef cuando cambia el tamaño de la ventana
+  useEffect(() => {
+    const handleResize = () => {
+      isMobileRef.current = window.innerWidth <= 768;
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Improved cache validation
+  const isCacheValid = useCallback((location) => {
+    if (!location || !location.lat || !location.lng) {
+      console.error('❌ Caché no válido - Ubicación inválida');
+      return false;
+    }
+
+    const cacheKey = `${parseFloat(location.lat).toFixed(5)},${parseFloat(location.lng).toFixed(5)}`;
+    console.log(`🔍 Checking`, cacheKey);
+
+    // Debug actual cache state
+    const allCache = getCachedResult();
+    console.log(`🔍 Current State`, 'all', allCache);
+
+    const cachedEntry = getCachedResult(location);
+    console.log(`🔍 Retrieved`, cacheKey, cachedEntry);
+
+    if (!cachedEntry) {
+      console.error('❌ Caché no válido - No hay entrada en caché', {
+        cacheKey,
+        location,
+        allCacheKeys: allCache ? Object.keys(allCache) : []
+      });
+      return false;
+    }
+
+    if (!cachedEntry.spots || !Array.isArray(cachedEntry.spots)) {
+      console.error('❌ Caché no válido - Spots inválidos');
+      return false;
+    }
+
+    const timeSinceLastCache = Date.now() - cachedEntry.timestamp;
+    if (timeSinceLastCache > CACHE_EXPIRY) {
+      console.error('❌ Caché no válido - Expirado', { timeSinceLastCache, CACHE_EXPIRY });
+      return false;
+    }
+
+    // Solo validar distancia si tenemos una ubicación en caché
+    if (cachedEntry.location) {
+      const distance = getDistance(location, cachedEntry.location);
+      const isWithinDistance = distance < CACHE_THRESHOLD;
+
+      if (!isWithinDistance) {
+        console.error('❌ Caché no válido - Distancia significativa', {
+          distance,
+          threshold: CACHE_THRESHOLD,
+          currentLocation: location,
+          cachedLocation: cachedEntry.location,
+          cacheKey
+        });
+        return false;
+      }
+    }
+
+    // Update last accessed time
+    cachedEntry.lastAccessed = Date.now();
+    setCachedResult(location, cachedEntry.spots);
+
+    console.log('✅ Caché válido - Usando resultados existentes', {
+      cacheKey,
+      spotsCount: cachedEntry.spots.length,
+      timeSinceLastCache,
+      distance: cachedEntry.location ? getDistance(location, cachedEntry.location) : 'N/A'
+    });
+    return true;
+  }, [getCachedResult, setCachedResult]);
+
   return {
     setCachedResult,
     getCachedResult,
-    invalidateCache
+    invalidateCache,
+    isCacheValid
   };
 };

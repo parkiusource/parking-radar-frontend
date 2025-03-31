@@ -1,17 +1,17 @@
 import { useCallback, useRef, useEffect } from 'react';
 import { apiLimiter } from '@/services/apiLimiter';
 
-const MIN_SEARCH_INTERVAL = 3000; // Aumentado a 3 segundos entre búsquedas
-const MIN_DISTANCE_FOR_NEW_SEARCH = 100; // Aumentado a 100 metros
+const MIN_SEARCH_INTERVAL = window.innerWidth <= 768 ? 2000 : 3000; // 2 segundos en móvil
+const MIN_DISTANCE_FOR_NEW_SEARCH = window.innerWidth <= 768 ? 50 : 100; // 50m en móvil
 const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes cache expiry
 const MAX_CACHE_SIZE = 50; // Maximum number of locations to cache
 const CACHE_CLEANUP_INTERVAL = 10 * 60 * 1000; // Clean up cache every 10 minutes
 
 const SEARCH_RADIUS = {
-  VERY_CLOSE: 200,  // 200 metros para zoom muy cercano (19+)
-  CLOSE: 400,       // 400 metros para zoom cercano (16-18)
-  MEDIUM: 800,      // 800 metros para zoom medio (14-15)
-  FAR: 1200         // 1.2 km para zoom lejano (menos de 14)
+  VERY_CLOSE: window.innerWidth <= 768 ? 150 : 200,  // 150m en móvil
+  CLOSE: window.innerWidth <= 768 ? 300 : 400,       // 300m en móvil
+  MEDIUM: window.innerWidth <= 768 ? 600 : 800,      // 600m en móvil
+  FAR: window.innerWidth <= 768 ? 1000 : 1200        // 1km en móvil
 };
 
 const FIELDS_MASK = [
@@ -342,14 +342,14 @@ export const useParkingSearch = (setParkingSpots, getCachedResult, setCachedResu
       if (currentSpots.length > 0) {
         setParkingSpots(currentSpots);
       }
-      return;
+      return currentSpots;
     }
 
     // Si el mapa está en movimiento y tenemos spots, mantenerlos
     if (isMapMoving && currentSpots.length > 0) {
       debug('Mapa en movimiento, manteniendo spots actuales');
       setParkingSpots(currentSpots);
-      return;
+      return currentSpots;
     }
 
     // Verificar si el caché es válido y tenemos spots
@@ -358,7 +358,7 @@ export const useParkingSearch = (setParkingSpots, getCachedResult, setCachedResu
       setParkingSpots(currentSpots);
       lastSearchLocationRef.current = currentLocation;
       lastIdleTimeRef.current = Date.now();
-      return;
+      return currentSpots;
     }
 
     // Si no hay caché válido, realizar la búsqueda
@@ -372,7 +372,7 @@ export const useParkingSearch = (setParkingSpots, getCachedResult, setCachedResu
         if (currentSpots.length > 0) {
           setParkingSpots(currentSpots);
         }
-        return;
+        return currentSpots;
       }
 
       apiLimiter.logCall(currentLocation);
@@ -381,7 +381,7 @@ export const useParkingSearch = (setParkingSpots, getCachedResult, setCachedResu
       const searchWithRadius = async (radius) => {
         const requestBody = {
           includedTypes: ['parking'],
-          maxResultCount: 20,
+          maxResultCount: window.innerWidth <= 768 ? 15 : 20, // Reducir resultados en móvil
           locationRestriction: {
             circle: {
               center: {
@@ -395,56 +395,69 @@ export const useParkingSearch = (setParkingSpots, getCachedResult, setCachedResu
         };
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 segundos timeout
 
-        const response = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
-            'X-Goog-FieldMask': FIELDS_MASK,
-            'Accept-Language': 'es'
-          },
-          body: JSON.stringify(requestBody),
-          signal: controller.signal
-        });
+        try {
+          const response = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
+              'X-Goog-FieldMask': FIELDS_MASK,
+              'Accept-Language': 'es'
+            },
+            body: JSON.stringify(requestBody),
+            signal: controller.signal
+          });
 
-        clearTimeout(timeoutId);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        return await response.json();
+          clearTimeout(timeoutId);
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          return await response.json();
+        } catch (error) {
+          clearTimeout(timeoutId);
+          throw error;
+        }
       };
 
-      // Determinar el radio inicial basado en el zoom
+      // Determinar el radio inicial basado en el zoom y el dispositivo
       let initialRadius;
-      if (zoom >= 18) {
+      const isMobile = window.innerWidth <= 768;
+
+      // Validar y usar el zoom proporcionado o valor por defecto
+      const effectiveZoom = typeof zoom === 'number' && isFinite(zoom) ? zoom : (isMobile ? 17 : 15);
+
+      // Determinar el radio de búsqueda basado en el zoom efectivo
+      if (effectiveZoom >= 18) {
         initialRadius = SEARCH_RADIUS.VERY_CLOSE;
-      } else if (zoom >= 16) {
+      } else if (effectiveZoom >= 16) {
         initialRadius = SEARCH_RADIUS.CLOSE;
-      } else if (zoom >= 14) {
+      } else if (effectiveZoom >= 14) {
         initialRadius = SEARCH_RADIUS.MEDIUM;
       } else {
         initialRadius = SEARCH_RADIUS.FAR;
       }
 
+      debug('🔍 Iniciando búsqueda con radio:', {
+        effectiveZoom,
+        initialRadius,
+        isMobile
+      });
+
       // Intentar búsqueda con radio inicial
       let data = await searchWithRadius(initialRadius);
       let spots = data.places || [];
 
-      // Si no hay resultados, intentar con radios más grandes
-      if (spots.length === 0) {
-        debug('No se encontraron resultados con radio inicial, intentando con radios más grandes');
+      // En móvil, ser más agresivo con la expansión del radio
+      if (spots.length === 0 && isMobile) {
+        debug('No se encontraron resultados, expandiendo radio de búsqueda');
 
-        // Intentar con radio MEDIUM
-        if (initialRadius < SEARCH_RADIUS.MEDIUM) {
-          data = await searchWithRadius(SEARCH_RADIUS.MEDIUM);
-          spots = data.places || [];
-        }
+        // Intentar con el siguiente radio más grande
+        const nextRadius = initialRadius === SEARCH_RADIUS.VERY_CLOSE ? SEARCH_RADIUS.CLOSE :
+                         initialRadius === SEARCH_RADIUS.CLOSE ? SEARCH_RADIUS.MEDIUM :
+                         SEARCH_RADIUS.FAR;
 
-        // Si aún no hay resultados, intentar con radio FAR
-        if (spots.length === 0 && initialRadius < SEARCH_RADIUS.FAR) {
-          data = await searchWithRadius(SEARCH_RADIUS.FAR);
-          spots = data.places || [];
-        }
+        data = await searchWithRadius(nextRadius);
+        spots = data.places || [];
       }
 
       // Si no hay lugares en la respuesta, mantener los spots actuales
@@ -455,7 +468,7 @@ export const useParkingSearch = (setParkingSpots, getCachedResult, setCachedResu
           lastSearchLocationRef.current = currentLocation;
           lastIdleTimeRef.current = Date.now();
         }
-        return;
+        return currentSpots;
       }
 
       const googlePlacesSpots = spots.map(place => ({
@@ -483,7 +496,7 @@ export const useParkingSearch = (setParkingSpots, getCachedResult, setCachedResu
         formattedAddress: place.formattedAddress
       }));
 
-      // Calcular distancias si es posible
+      // Calcular distancias y ordenar por cercanía en móvil
       if (window.google?.maps?.geometry?.spherical) {
         const origin = new window.google.maps.LatLng(currentLocation.lat, currentLocation.lng);
         googlePlacesSpots.forEach(spot => {
@@ -494,11 +507,12 @@ export const useParkingSearch = (setParkingSpots, getCachedResult, setCachedResu
             ? `${Math.round(distanceInMeters)}m`
             : `${spot.distance.toFixed(1)}km`;
         });
-      }
 
-      // Actualizar referencias
-      lastSearchLocationRef.current = currentLocation;
-      lastIdleTimeRef.current = Date.now();
+        // En móvil, ordenar por distancia
+        if (isMobile) {
+          googlePlacesSpots.sort((a, b) => (a.distance || 0) - (b.distance || 0));
+        }
+      }
 
       // IMPORTANTE: Siempre combinar con los spots actuales
       const combinedSpots = mergeSpots(currentSpots, googlePlacesSpots);
@@ -508,6 +522,7 @@ export const useParkingSearch = (setParkingSpots, getCachedResult, setCachedResu
       updateCache(currentLocation, combinedSpots);
       debug('✅ Búsqueda completada y caché actualizado');
 
+      return combinedSpots;
     } catch (error) {
       if (error.name === 'AbortError') {
         debug('❌ Búsqueda cancelada - Timeout');
@@ -521,6 +536,8 @@ export const useParkingSearch = (setParkingSpots, getCachedResult, setCachedResu
         lastSearchLocationRef.current = currentLocation;
         lastIdleTimeRef.current = Date.now();
       }
+
+      return currentSpots;
     } finally {
       isSearchingRef.current = false;
     }

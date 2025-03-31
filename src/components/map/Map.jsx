@@ -226,6 +226,7 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
   // Manejar skip de ubicación
   const handleLocationSkip = useCallback(() => {
     setShowLocationModal(false);
+    hasInitialized.current = true;
     const defaultLocation = MAP_CONSTANTS.DEFAULT_LOCATION;
 
     // Actualizar la ubicación del usuario
@@ -249,24 +250,6 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
       // Realizar búsqueda forzada ignorando caché
       debug('🔍 Realizando búsqueda en ubicación por defecto');
       searchNearbyParking(defaultLocation, 16, false, true)
-        .then(results => {
-          if (results && results.length > 0) {
-            // Actualizar el estado con los nuevos resultados
-            setParkingSpots(results);
-            lastSearchLocationRef.current = defaultLocation;
-            lastIdleTimeRef.current = Date.now();
-
-            // Forzar actualización del mapa para refrescar los marcadores
-            if (mapInstance) {
-              setTimeout(() => {
-                mapInstance.panBy(1, 0);
-                setTimeout(() => mapInstance.panBy(-1, 0), 50);
-              }, 200);
-            }
-          } else {
-            debug('⚠️ No se encontraron resultados para ubicación por defecto');
-          }
-        })
         .catch(() => {
           debug('⚠️ No se encontraron resultados para ubicación por defecto');
         });
@@ -293,68 +276,56 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
 
       debug('📍 Ubicación obtenida:', userLocation);
 
+      // Verificar si ya tenemos resultados cercanos a esta ubicación
+      const cachedResults = getCachedResult(userLocation);
+      const hasNearbyResults = cachedResults?.spots?.length > 0;
+
       // Actualizar la ubicación del usuario
       updateUser({ location: userLocation });
 
       // Actualizar target location primero para que se actualice el contexto
       setTargetLocation(userLocation);
 
+      // Ocultar el modal de ubicación
+      setShowLocationModal(false);
+
       // Centrar el mapa en la nueva ubicación con zoom específico
       if (mapInstance) {
-        // Detectar si estamos en móvil
-        const isMobile = window.innerWidth <= 768;
-        const zoomLevel = isMobile ? 17 : 15; // Aumentar zoom en móvil
+        const zoomLevel = window.innerWidth <= 768 ? 17 : 15;
+        mapInstance.setZoom(zoomLevel);
+        mapInstance.panTo(userLocation);
 
-        // Usar requestAnimationFrame para sincronizar con el ciclo de renderizado
-        requestAnimationFrame(() => {
-          // Primero establecer el zoom y luego centrar
-          mapInstance.setZoom(zoomLevel);
-          mapInstance.panTo(userLocation);
+        // Si no hay resultados cercanos o se fuerza la búsqueda, realizar nueva búsqueda
+        if (!hasNearbyResults) {
+          debug('🔍 No hay resultados cercanos, realizando nueva búsqueda');
+          await searchNearbyParking(userLocation, zoomLevel, true);
+        } else {
+          debug('📍 Usando spots existentes cercanos');
+          setParkingSpots(cachedResults.spots);
+        }
 
-          // Solo limpiar spots si no hay un spot seleccionado
-          if (!selectedSpot) {
-            setParkingSpots([]);
-          }
-
-          // Realizar búsqueda forzada ignorando caché
-          debug('🔍 Realizando búsqueda forzada en ubicación actual');
-          searchNearbyParking(userLocation, zoomLevel, false, true)
-            .then(results => {
-              if (results && results.length > 0) {
-                setParkingSpots(results);
-                lastSearchLocationRef.current = userLocation;
-                lastIdleTimeRef.current = Date.now();
-
-                // Forzar actualización visual de los marcadores
-                setTimeout(() => {
-                  if (mapInstance) {
-                    mapInstance.panBy(0, 1);
-                    setTimeout(() => {
-                      mapInstance.panBy(0, -1);
-                    }, 50);
-                  }
-                }, 100);
-              }
-              setShowLocationModal(false);
-            })
-            .catch(error => {
-              console.error('Error en búsqueda:', error);
-              if (!selectedSpot) {
-                setParkingSpots([]);
-              }
-              handleLocationSkip();
-            });
-        });
+        // Forzar actualización visual suave
+        setTimeout(() => {
+          mapInstance.panBy(1, 0);
+          setTimeout(() => mapInstance.panBy(-1, 0), 50);
+        }, 100);
       }
+
+      hasInitialized.current = true;
     } catch (error) {
-      debug('❌ Error al obtener ubicación:', error);
-      // En caso de error, solo limpiar si no hay spot seleccionado
-      if (!selectedSpot) {
-        setParkingSpots([]);
-      }
-      handleLocationSkip();
+      console.error('Error al obtener ubicación:', error);
+      setShowLocationModal(true);
+      throw error;
     }
-  }, [getCurrentLocation, updateUser, mapInstance, searchNearbyParking, setParkingSpots, setTargetLocation, handleLocationSkip, selectedSpot]);
+  }, [
+    getCurrentLocation,
+    updateUser,
+    mapInstance,
+    getCachedResult,
+    setTargetLocation,
+    searchNearbyParking,
+    setParkingSpots
+  ]);
 
   // Verificar similitud de ubicaciones
   const isSimilarLocation = useCallback((location1, location2, threshold = 100) => {
@@ -651,16 +622,30 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
       mapMoveTimeoutRef.current = null;
     }
 
+    // Forzar actualización de marcadores después del arrastre
+    if (contextParkingSpots?.length > 0) {
+      requestAnimationFrame(() => {
+        updateMarkers(contextParkingSpots);
+      });
+    }
+
     mapMoveTimeoutRef.current = setTimeout(() => {
       setIsMapMoving(false);
-      mapInstance?.handleMapIdle?.();
-    }, 500);
-  }, [mapInstance]);
+      handleMapIdle();
+    }, 300);
+  }, [contextParkingSpots, updateMarkers, handleMapIdle]);
 
   // Manejar zoom del mapa
   const handleMapZoomChanged = useCallback(() => {
     if (!mapInstance) return;
-  }, [mapInstance]);
+
+    // Forzar actualización de marcadores después del zoom
+    if (contextParkingSpots?.length > 0) {
+      requestAnimationFrame(() => {
+        updateMarkers(contextParkingSpots);
+      });
+    }
+  }, [mapInstance, contextParkingSpots, updateMarkers]);
 
   // Centrar mapa en ubicación objetivo
   useEffect(() => {
@@ -933,8 +918,8 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
         maxZoom: 20,
         minZoom: 3,
         mapTypeId: 'roadmap',
-        gestureHandling: 'greedy',
-        optimized: true
+        gestureHandling: 'auto',
+        optimized: false
       };
     }
 
@@ -953,13 +938,12 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
       maxZoom: isMobile ? 18 : 20,
       minZoom: isMobile ? 10 : 3,
       mapTypeId: 'roadmap',
-      gestureHandling: isMobile ? 'greedy' : 'cooperative',
-      optimized: true,
+      gestureHandling: 'auto',
+      optimized: false,
       renderer: window.google.maps.RenderingType?.WEBGL || 'webgl',
       animation: window.google.maps.Animation?.DROP,
       // Opciones específicas para móvil
       ...(isMobile && {
-        gestureHandling: 'greedy',
         zoomControl: true,
         zoomControlOptions: {
           position: window.google.maps.ControlPosition.RIGHT_BOTTOM
@@ -973,7 +957,7 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
         // Mejorar interacción táctil
         clickableIcons: false,
         // Reducir la frecuencia de actualizaciones
-        updateInterval: 1000,
+        updateInterval: 500,
         // Forzar renderizado de marcadores
         renderer: window.google.maps.RenderingType?.WEBGL || 'webgl',
         // Asegurar que los marcadores sean visibles
@@ -983,57 +967,42 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
   }, [isLoaded]);
 
   // Optimizar estilos del contenedor
-  const containerStyles = useMemo(() => {
-    const isMobile = window.innerWidth <= 768;
-
-    return {
-      mapContainer: {
-        width: '100%',
-        height: '100%',
-        backgroundColor: 'white',
-        contain: 'layout style paint',
-        touchAction: isMobile ? 'pan-x pan-y' : 'none',
-        WebkitOverflowScrolling: 'touch',
-        userSelect: 'none',
-        willChange: 'transform',
-        // Optimizaciones específicas para móvil
-        ...(isMobile && {
-          WebkitTapHighlightColor: 'transparent',
-          // Mejorar rendimiento de scroll
-          WebkitOverflowScrolling: 'touch',
-          // Optimizar para GPU
-          transform: 'translateZ(0)',
-          backfaceVisibility: 'hidden'
-        })
-      },
-      outerContainer: {
-        touchAction: isMobile ? 'pan-x pan-y' : 'none',
-        WebkitTapHighlightColor: 'transparent',
-        WebkitUserSelect: 'none',
-        userSelect: 'none',
-        contain: 'layout style',
-        // Optimizaciones específicas para móvil
-        ...(isMobile && {
-          WebkitOverflowScrolling: 'touch',
-          // Optimizar para GPU
-          transform: 'translateZ(0)',
-          backfaceVisibility: 'hidden'
-        })
-      },
-      innerContainer: {
-        touchAction: isMobile ? 'pan-x pan-y' : 'none',
-        WebkitTapHighlightColor: 'transparent',
-        contain: 'layout style',
-        // Optimizaciones específicas para móvil
-        ...(isMobile && {
-          WebkitOverflowScrolling: 'touch',
-          // Optimizar para GPU
-          transform: 'translateZ(0)',
-          backfaceVisibility: 'hidden'
-        })
-      }
-    };
-  }, []);
+  const containerStyles = useMemo(() => ({
+    mapContainer: {
+      width: '100%',
+      height: '100%',
+      backgroundColor: 'white',
+      contain: 'layout style paint',
+      touchAction: 'none',
+      WebkitOverflowScrolling: 'touch',
+      userSelect: 'none',
+      willChange: 'transform',
+      WebkitTapHighlightColor: 'transparent',
+      // Optimizar para GPU
+      transform: 'translateZ(0)',
+      backfaceVisibility: 'hidden'
+    },
+    outerContainer: {
+      touchAction: 'none',
+      WebkitTapHighlightColor: 'transparent',
+      WebkitUserSelect: 'none',
+      userSelect: 'none',
+      contain: 'layout style',
+      WebkitOverflowScrolling: 'touch',
+      // Optimizar para GPU
+      transform: 'translateZ(0)',
+      backfaceVisibility: 'hidden'
+    },
+    innerContainer: {
+      touchAction: 'none',
+      WebkitTapHighlightColor: 'transparent',
+      contain: 'layout style',
+      WebkitOverflowScrolling: 'touch',
+      // Optimizar para GPU
+      transform: 'translateZ(0)',
+      backfaceVisibility: 'hidden'
+    }
+  }), []);
 
   const { mapContainer, outerContainer, innerContainer } = containerStyles;
 
@@ -1046,20 +1015,6 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
     className: "flex-1 relative w-full h-full google-map",
     style: innerContainer
   }), [innerContainer]);
-
-  // Manejar eventos táctiles específicamente para móvil
-  const handleMapTouchStart = useCallback((event) => {
-    if (!event?.domEvent?.target) return;
-
-    const target = event.domEvent.target;
-    // Solo cerrar el InfoWindow si el clic fue fuera de un marcador o InfoWindow
-    if (target.closest('.gm-style') &&
-        !target.closest('.marker-content') &&
-        !target.closest('.info-window')) {
-      setSelectedSpot(null);
-      setShowSearchHereButton(true);
-    }
-  }, []);
 
   // Cargar el mapa
   const handleMapLoad = useCallback((map) => {
@@ -1086,6 +1041,7 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
 
     // Detectar si estamos en móvil
     const isMobile = window.innerWidth <= 768;
+    const defaultZoom = isMobile ? 17 : 15;
 
     // Solo mostrar el modal si:
     // 1. No se ha inicializado antes
@@ -1108,45 +1064,46 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
         userLoc,
         hasValidLocation
       });
+      setShowLocationModal(false);
     }
 
     // Inicializar búsqueda si tenemos ubicación válida
     if (map && hasValidLocation) {
       // Usar requestAnimationFrame para sincronizar con el ciclo de renderizado
       requestAnimationFrame(() => {
-        // Ajustar el zoom inicial según el dispositivo
-        const initialZoom = isMobile ? 17 : 15;
+        try {
+          // Verificar que el mapa sigue siendo válido
+          if (!map || typeof map.setZoom !== 'function' || typeof map.panTo !== 'function') {
+            console.error('🗺️ Instancia del mapa no válida');
+            return;
+          }
 
-        searchNearbyParking(userLoc, initialZoom, false)
-          .then(() => {
-            map.setZoom(initialZoom);
-            map.panTo(userLoc);
+          // Ajustar el zoom inicial según el dispositivo
+          map.setZoom(defaultZoom);
+          map.panTo(userLoc);
 
-            // Forzar una actualización visual suave
-            setTimeout(() => {
-              // Forzar un pequeño movimiento para asegurar que los marcadores se rendericen
-              map.panBy(1, 0);
-              setTimeout(() => {
-                map.panBy(-1, 0);
-              }, 50);
-            }, 100);
-
-            // En móvil, forzar una segunda actualización después de un breve delay
-            if (isMobile) {
-              setTimeout(() => {
-                map.panBy(0, 1);
-                setTimeout(() => {
-                  map.panBy(0, -1);
-                }, 50);
-              }, 300);
-            }
-          })
-          .catch(error => {
-            console.error('Error en búsqueda inicial:', error);
-          });
+          searchNearbyParking(userLoc, defaultZoom, false)
+            .then(() => {
+              hasInitialized.current = true;
+              setShowLocationModal(false);
+            })
+            .catch(error => {
+              console.error('Error en búsqueda inicial:', error);
+            });
+        } catch (error) {
+          console.error('Error al inicializar el mapa:', error);
+        }
       });
     }
-  }, [originalHandleMapLoad, userLoc, searchNearbyParking, setShowLocationModal]);
+  }, [originalHandleMapLoad, userLoc, searchNearbyParking]);
+
+  // Manejar eventos táctiles específicamente para móvil
+  const handleMapTouchStart = useCallback((event) => {
+    if (!event?.domEvent) return;
+
+    // No prevenir eventos táctiles por defecto
+    // Dejar que el mapa maneje los gestos naturalmente
+  }, []);
 
   if (loadError) return (
     <div className="w-full h-full flex items-center justify-center bg-white">
