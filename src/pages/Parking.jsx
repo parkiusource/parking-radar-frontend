@@ -70,12 +70,10 @@ export default function Parking() {
     setParkingSpots([]);
 
     // Limpiar los marcadores si hay una referencia al mapa
-    if (mapRef.current && mapRef.current.cleanupMarkers) {
+    if (mapRef.current?.cleanupMarkers) {
       const mapCurrent = mapRef.current;
-      // Usar requestAnimationFrame para evitar problemas con referencias
-      requestAnimationFrame(() => {
-        mapCurrent.cleanupMarkers();
-      });
+      // Limpiar marcadores de manera síncrona
+      mapCurrent.cleanupMarkers();
     }
   }, [setParkingSpots]);
 
@@ -100,18 +98,30 @@ export default function Parking() {
 
       if (!mapRef.current?.searchNearbyParking) return;
 
-      // Realizar búsqueda en el mapa (limpia marcadores internamente)
-      await mapRef.current.searchNearbyParking(location);
+      // Asegurarnos de que los marcadores anteriores se hayan limpiado
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // Realizar búsqueda en el mapa
+      const results = await mapRef.current.searchNearbyParking(location);
 
       // Centrar el mapa si es necesario
       if (options.centerMap && mapRef.current?.getMapRef) {
         const mapInstance = mapRef.current.getMapRef();
         if (mapInstance) {
+          // Primero centrar el mapa
           mapInstance.panTo({
             lat: location.lat,
             lng: location.lng
           });
           mapInstance.setZoom(15);
+
+          // Esperar a que termine la animación antes de mostrar los marcadores
+          await new Promise(resolve => setTimeout(resolve, 300));
+
+          // Actualizar los marcadores después de centrar el mapa
+          if (results?.length > 0) {
+            setParkingSpots(results);
+          }
         }
       }
     } catch (error) {
@@ -124,7 +134,7 @@ export default function Parking() {
     } finally {
       setIsSearching(false);
     }
-  }, [cancelPendingSearches, cleanupState, setTargetLocation]);
+  }, [cancelPendingSearches, cleanupState, setTargetLocation, setParkingSpots]);
 
   // Memoizar el centro y los spots cercanos
   const spotCenter = useMemo(() => {
@@ -276,7 +286,7 @@ export default function Parking() {
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="h-[calc(100vh-200px)] md:flex-1 relative md:col-span-8 rounded-lg md:rounded-2xl shadow-lg md:h-full overflow-hidden"
+              className="h-[calc(100vh-160px)] md:flex-1 relative md:col-span-8 rounded-lg md:rounded-2xl shadow-lg md:h-full overflow-hidden"
             >
               <Map
                 ref={mapRef}
@@ -319,7 +329,7 @@ export default function Parking() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="md:hidden flex-shrink-0 min-h-[280px] max-h-[320px] flex flex-col"
+              className="md:hidden flex-shrink-0 min-h-[140px] max-h-[240px] flex flex-col"
             >
               {isSearching ? (
                 <div className="flex items-center justify-center h-full">

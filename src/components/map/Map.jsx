@@ -22,6 +22,7 @@ import { useParkingSearch } from '@/hooks/useParkingSearch';
 import { useGeolocation } from '@/services/geolocationService';
 import ParkingInfoWindow from './ParkingInfoWindow';
 import { LocationRequestModal } from './LocationRequestModal';
+import ParkingCarousel from './ParkingCarousel';
 
 // Función de debug que solo muestra logs en desarrollo
 const debug = (message, data) => {
@@ -66,12 +67,11 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
   const isSearchingRef = useRef(false);
   const lastZoomLevel = useRef(null);
   const searchHereLocationRef = useRef(null);
-  const searchHereTimeoutRef = useRef(null);
   const isMarkerInteractionRef = useRef(false);
   const markerInteractionTimeoutRef = useRef(null);
 
   // Constantes
-  const MIN_IDLE_INTERVAL = 1500; // Reducido de 3000ms a 1500ms
+  const MIN_IDLE_INTERVAL = 1500;
 
   // Inicializar hooks personalizados
   const { searchNearbyParking } = useParkingSearch(setParkingSpots, getCachedResult, setCachedResult);
@@ -103,12 +103,36 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
     const isSelected = spot.id === selectedSpotId || spot.googlePlaceId === selectedSpotId;
     return {
       opacity: isSelected ? 1 : 0.8,
-      zIndex: isSelected ? 2 : 1
+      zIndex: isSelected ? 2 : 1,
+      optimized: false // Desactivar optimización para evitar parpadeos
     };
   }, [selectedSpotId]);
 
-  // Usar useMapMarkers con la función getMarkerOptions
-  const { clearMarkers } = useMapMarkers(
+  // Función para ajustar el mapa cuando se abre un InfoWindow
+  const adjustMapForInfoWindow = useCallback((position) => {
+    if (!mapInstance) return;
+
+    // Calcular el offset para el InfoWindow (aproximadamente 100px hacia arriba)
+    const offset = new window.google.maps.Point(0, -100);
+
+    // Convertir el offset a coordenadas del mapa
+    const projection = mapInstance.getProjection();
+    if (!projection) return;
+
+    const scale = 1 << mapInstance.getZoom();
+    const worldPoint = projection.fromLatLngToPoint(position);
+    const newWorldPoint = new window.google.maps.Point(
+      worldPoint.x,
+      worldPoint.y + (offset.y / scale)
+    );
+    const newLatLng = projection.fromPointToLatLng(newWorldPoint);
+
+    // Animar el mapa suavemente a la nueva posición
+    mapInstance.panTo(newLatLng);
+  }, [mapInstance]);
+
+  // Modificar el manejo de marcadores para incluir el ajuste del mapa
+  const { clearMarkers, updateMarkers } = useMapMarkers(
     mapInstance,
     contextParkingSpots,
     useCallback((spot) => {
@@ -127,42 +151,26 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
       markSpotAsSelected(spot);
       setSelectedSpot(spot);
 
-      // Centrar el mapa en la ubicación
-      mapInstance.panTo(position);
-      mapInstance.setZoom(17);
+      // Ajustar el mapa para el InfoWindow sin limpiar marcadores
+      adjustMapForInfoWindow(new window.google.maps.LatLng(position));
 
       if (onLocationChange) {
         onLocationChange(spot);
       }
 
-      // Forzar actualización suave del mapa
-      requestAnimationFrame(() => {
-        mapInstance.panBy(0.5, 0);
-        setTimeout(() => {
-          mapInstance.panBy(-0.5, 0);
-          // Permitir nuevas interacciones después de la animación
-          isMarkerInteractionRef.current = false;
-        }, 50);
-      });
+      // Permitir nuevas interacciones después de la animación
+      if (markerInteractionTimeoutRef.current) {
+        clearTimeout(markerInteractionTimeoutRef.current);
+      }
+      markerInteractionTimeoutRef.current = setTimeout(() => {
+        isMarkerInteractionRef.current = false;
+      }, 300);
 
-      // Ocultar el botón de búsqueda
+      // Ocultar el botón de búsqueda sin limpiar marcadores
       setShowSearchHereButton(false);
-    }, [mapInstance, onLocationChange, markSpotAsSelected]),
+    }, [mapInstance, onLocationChange, markSpotAsSelected, adjustMapForInfoWindow]),
     getMarkerOptions
   );
-
-  // Función para limpiar todos los marcadores
-  const cleanupMarkers = useCallback(() => {
-    clearMarkers();
-    if (mapInstance?.data) {
-      mapInstance.data.forEach(feature => {
-        mapInstance.data.remove(feature);
-      });
-    }
-    if (userMarkerRef.current) {
-      userMarkerRef.current.setMap(null);
-    }
-  }, [clearMarkers, mapInstance]);
 
   // Abrir navegación
   const openNavigation = useCallback((lat, lng) => {
@@ -183,7 +191,7 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
     }
   }, []);
 
-  // Renderizar InfoWindow con la nueva lógica
+  // Modificar el renderInfoWindow para ajustar el mapa cuando se abre
   const renderInfoWindow = useMemo(() => {
     if (!selectedSpot) return null;
 
@@ -196,11 +204,15 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
       <InfoWindowF
         position={position}
         onCloseClick={handleInfoWindowClose}
+        onLoad={() => {
+          // Ajustar el mapa cuando el InfoWindow se carga
+          adjustMapForInfoWindow(new window.google.maps.LatLng(position));
+        }}
         options={{
           pixelOffset: new window.google.maps.Size(0, -40),
           maxWidth: 280,
-          disableAutoPan: true, // Evitamos que el mapa se mueva automáticamente
-          zIndex: 10 // Aseguramos que el InfoWindow siempre esté por encima
+          disableAutoPan: true,
+          zIndex: 10
         }}
       >
         <ParkingInfoWindow
@@ -209,11 +221,12 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
         />
       </InfoWindowF>
     );
-  }, [selectedSpot, handleInfoWindowClose, openNavigation]);
+  }, [selectedSpot, handleInfoWindowClose, openNavigation, adjustMapForInfoWindow]);
 
   // Manejar skip de ubicación
   const handleLocationSkip = useCallback(() => {
     setShowLocationModal(false);
+    hasInitialized.current = true;
     const defaultLocation = MAP_CONSTANTS.DEFAULT_LOCATION;
 
     // Actualizar la ubicación del usuario
@@ -237,24 +250,6 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
       // Realizar búsqueda forzada ignorando caché
       debug('🔍 Realizando búsqueda en ubicación por defecto');
       searchNearbyParking(defaultLocation, 16, false, true)
-        .then(results => {
-          if (results && results.length > 0) {
-            // Actualizar el estado con los nuevos resultados
-            setParkingSpots(results);
-            lastSearchLocationRef.current = defaultLocation;
-            lastIdleTimeRef.current = Date.now();
-
-            // Forzar actualización del mapa para refrescar los marcadores
-            if (mapInstance) {
-              setTimeout(() => {
-                mapInstance.panBy(1, 0);
-                setTimeout(() => mapInstance.panBy(-1, 0), 50);
-              }, 200);
-            }
-          } else {
-            debug('⚠️ No se encontraron resultados para ubicación por defecto');
-          }
-        })
         .catch(() => {
           debug('⚠️ No se encontraron resultados para ubicación por defecto');
         });
@@ -269,11 +264,21 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
 
       // Primero obtener la ubicación sin limpiar nada aún
       const userLocation = await getCurrentLocation();
-      if (!userLocation || !isFinite(userLocation.lat) || !isFinite(userLocation.lng)) {
+
+      // Validar la ubicación obtenida
+      if (!userLocation ||
+          !isFinite(userLocation.lat) ||
+          !isFinite(userLocation.lng) ||
+          userLocation.lat < -90 || userLocation.lat > 90 ||
+          userLocation.lng < -180 || userLocation.lng > 180) {
         throw new Error('Ubicación inválida');
       }
 
       debug('📍 Ubicación obtenida:', userLocation);
+
+      // Verificar si ya tenemos resultados cercanos a esta ubicación
+      const cachedResults = getCachedResult(userLocation);
+      const hasNearbyResults = cachedResults?.spots?.length > 0;
 
       // Actualizar la ubicación del usuario
       updateUser({ location: userLocation });
@@ -281,100 +286,50 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
       // Actualizar target location primero para que se actualice el contexto
       setTargetLocation(userLocation);
 
-      // Centrar el mapa en la nueva ubicación con zoom específico
-      if (mapInstance) {
-        mapInstance.setZoom(16); // Mismo zoom que en HomePage
-        mapInstance.panTo(userLocation);
-      }
-
-      // Limpiar estado visual
-      setSelectedSpot(null);
-      setParkingSpots([]);
-
-      // Esperar breve momento para que se actualice la UI
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Realizar búsqueda forzada ignorando caché
-      debug('🔍 Realizando búsqueda forzada en ubicación actual');
-      const results = await searchNearbyParking(userLocation, 16, false, true);
-
-      // Si hay resultados, actualizar el estado
-      if (results && results.length > 0) {
-        // Actualizar el estado con los nuevos resultados
-        setParkingSpots(results);
-        lastSearchLocationRef.current = userLocation;
-        lastIdleTimeRef.current = Date.now();
-      } else {
-        debug('⚠️ No se encontraron resultados');
-      }
-
+      // Ocultar el modal de ubicación
       setShowLocationModal(false);
 
-      // Forzar actualización del mapa para refrescar los marcadores
+      // Centrar el mapa en la nueva ubicación con zoom específico
       if (mapInstance) {
+        const zoomLevel = window.innerWidth <= 768 ? 17 : 15;
+        mapInstance.setZoom(zoomLevel);
+        mapInstance.panTo(userLocation);
+
+        // Si no hay resultados cercanos o se fuerza la búsqueda, realizar nueva búsqueda
+        if (!hasNearbyResults) {
+          debug('🔍 No hay resultados cercanos, realizando nueva búsqueda');
+          await searchNearbyParking(userLocation, zoomLevel, true);
+        } else {
+          debug('📍 Usando spots existentes cercanos');
+          setParkingSpots(cachedResults.spots);
+        }
+
+        // Forzar actualización visual suave
         setTimeout(() => {
           mapInstance.panBy(1, 0);
           setTimeout(() => mapInstance.panBy(-1, 0), 50);
-        }, 200);
+        }, 100);
       }
+
+      hasInitialized.current = true;
     } catch (error) {
-      debug('❌ Error al obtener ubicación:', error);
-      // En caso de error, limpiar el estado y mostrar la ubicación por defecto
-      setParkingSpots([]);
-      setSelectedSpot(null);
-
-      // Intentar con ubicación por defecto
-      handleLocationSkip();
-    }
-  }, [getCurrentLocation, updateUser, mapInstance, searchNearbyParking, setParkingSpots, setTargetLocation, handleLocationSkip]);
-
-  // Cargar el mapa
-  const handleMapLoad = useCallback((map) => {
-    originalHandleMapLoad(map);
-    setMapInstance(map);
-
-    // Solo mostrar el modal si:
-    // 1. No se ha inicializado antes
-    // 2. No tenemos ubicación del usuario O la ubicación es la default
-    // 3. No tenemos una ubicación válida en el contexto
-    const isDefaultLocation = userLoc &&
-      userLoc.lat === MAP_CONSTANTS.DEFAULT_LOCATION.lat &&
-      userLoc.lng === MAP_CONSTANTS.DEFAULT_LOCATION.lng;
-
-    const hasValidLocation = userLoc &&
-      !isDefaultLocation &&
-      isFinite(userLoc.lat) &&
-      isFinite(userLoc.lng);
-
-    if (!hasInitialized.current && !hasValidLocation) {
-      debug('📍 Mostrando modal de ubicación - No hay ubicación válida');
+      console.error('Error al obtener ubicación:', error);
       setShowLocationModal(true);
-    } else {
-      debug('📍 No es necesario mostrar modal de ubicación', {
-        hasInitialized: hasInitialized.current,
-        userLoc,
-        hasValidLocation
-      });
+      throw error;
     }
-
-    // Optimización para móviles
-    const isMobile = window.innerWidth < 768;
-    if (isMobile && map && hasValidLocation) {
-      setTimeout(() => {
-        searchNearbyParking(userLoc, 17, false)
-          .then(() => {
-            setTimeout(() => {
-              map.panBy(1, 0);
-              setTimeout(() => map.panBy(-1, 0), 100);
-            }, 500);
-          });
-      }, 1000);
-    }
-  }, [originalHandleMapLoad, userLoc, searchNearbyParking]);
+  }, [
+    getCurrentLocation,
+    updateUser,
+    mapInstance,
+    getCachedResult,
+    setTargetLocation,
+    searchNearbyParking,
+    setParkingSpots
+  ]);
 
   // Verificar similitud de ubicaciones
   const isSimilarLocation = useCallback((location1, location2, threshold = 100) => {
-    if (!location1 || !location2) return false;
+    if (!location1 || !location2 || !isLoaded || !window.google?.maps?.geometry?.spherical) return false;
 
     try {
       const p1 = new window.google.maps.LatLng(
@@ -391,7 +346,7 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
     } catch {
       return false;
     }
-  }, []);
+  }, [isLoaded]);
 
   // Inicialización automática
   useEffect(() => {
@@ -438,13 +393,26 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
 
       // Verificar caché primero
       const cachedResults = getCachedResult(searchLocation);
-      if (cachedResults?.length > 0) {
+      if (cachedResults?.spots?.length > 0) {
         debug('📦 Usando resultados en caché para búsqueda forzada');
-        setParkingSpots(cachedResults);
+        setParkingSpots(cachedResults.spots);
         lastSearchLocationRef.current = searchLocation;
         lastIdleTimeRef.current = Date.now();
-        mapInstance.panTo(searchLocation);
-        mapInstance.setZoom(17);
+
+        // Asegurar que el mapa esté centrado y visible
+        requestAnimationFrame(() => {
+          mapInstance.panTo(searchLocation);
+          mapInstance.setZoom(15);
+
+          // Forzar una actualización visual
+          setTimeout(() => {
+            mapInstance.panBy(1, 0);
+            setTimeout(() => {
+              mapInstance.panBy(-1, 0);
+            }, 50);
+          }, 100);
+        });
+
         isSearchingRef.current = false;
 
         if (fromHomePage) {
@@ -455,9 +423,9 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
 
       // Si no hay caché, hacer la búsqueda
       mapInstance.panTo(searchLocation);
-      mapInstance.setZoom(17);
+      mapInstance.setZoom(15);
 
-      searchNearbyParking(searchLocation, 17, false)
+      searchNearbyParking(searchLocation, 15, false)
         .then(() => {
           if (fromHomePage) {
             sessionStorage.setItem('initialHomePageSearch', 'true');
@@ -476,23 +444,28 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
     }
 
     hasInitialized.current = true;
-    const isMobile = window.innerWidth < 768;
-    const initDelay = isMobile ? 800 : 0;
+    const initDelay = 400;
 
     // Verificar caché antes de cualquier búsqueda
     const cachedResults = getCachedResult(userLoc);
-    if (cachedResults?.length > 0) {
+    if (cachedResults?.spots?.length > 0) {
       debug('📦 Usando resultados en caché para inicialización');
-      setParkingSpots(cachedResults);
+      setParkingSpots(cachedResults.spots);
       lastSearchLocationRef.current = userLoc;
       lastIdleTimeRef.current = Date.now();
 
-      if (isMobile) {
+      requestAnimationFrame(() => {
+        mapInstance.panTo(userLoc);
+        mapInstance.setZoom(15);
+
+        // Forzar una actualización visual
         setTimeout(() => {
           mapInstance.panBy(1, 0);
-          setTimeout(() => mapInstance.panBy(-1, 0), 100);
-        }, 500);
-      }
+          setTimeout(() => {
+            mapInstance.panBy(-1, 0);
+          }, 50);
+        }, 100);
+      });
       return;
     }
 
@@ -500,17 +473,23 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
     setTimeout(() => {
       if (!isSearchingRef.current) {
         isSearchingRef.current = true;
-        searchNearbyParking(userLoc, 17, false)
+        searchNearbyParking(userLoc, 15, false)
           .then(() => {
             lastSearchLocationRef.current = userLoc;
             lastIdleTimeRef.current = Date.now();
 
-            if (isMobile) {
+            requestAnimationFrame(() => {
+              mapInstance.panTo(userLoc);
+              mapInstance.setZoom(15);
+
+              // Forzar una actualización visual
               setTimeout(() => {
                 mapInstance.panBy(1, 0);
-                setTimeout(() => mapInstance.panBy(-1, 0), 100);
-              }, 300);
-            }
+                setTimeout(() => {
+                  mapInstance.panBy(-1, 0);
+                }, 50);
+              }, 100);
+            });
           })
           .finally(() => {
             isSearchingRef.current = false;
@@ -524,9 +503,8 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
     const urlParams = new URLSearchParams(window.location.search);
     const fromHomePage = urlParams.get('source') === 'search';
 
-    // Si venimos del HomePage y ya se hizo la búsqueda inicial, permitir búsquedas manuales
+    // Si venimos del HomePage y ya se hizo la búsqueda inicial, no mostrar el botón automáticamente
     if (fromHomePage && sessionStorage.getItem('initialHomePageSearch') === 'true') {
-      setShowSearchHereButton(true);
       return;
     }
 
@@ -547,31 +525,42 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
       lng: center.lng()
     };
 
-    // Si el mapa está en movimiento o tenemos un spot seleccionado, no buscar automáticamente
+    // Si el mapa está en movimiento o tenemos un spot seleccionado, no mostrar el botón
     if (isMapMoving || selectedSpot) {
-      setShowSearchHereButton(true);
-      searchHereLocationRef.current = newLocation;
       return;
     }
 
     const currentZoom = mapInstance.getZoom();
-    const hasZoomChangedSignificantly = Math.abs((lastZoomLevel.current || 0) - currentZoom) >= 2;
-    const SIGNIFICANT_DISTANCE_CHANGE = 300;
+    const hasZoomChangedSignificantly = Math.abs((lastZoomLevel.current || 0) - currentZoom) >= 3;
+    const SIGNIFICANT_DISTANCE_CHANGE = 500; // Aumentado a 500 metros
+
     const isLocationDistant = !lastSearchLocationRef.current ||
                             !isSimilarLocation(newLocation, lastSearchLocationRef.current, SIGNIFICANT_DISTANCE_CHANGE);
 
-    lastZoomLevel.current = currentZoom;
+    // Solo actualizar el zoom si realmente cambió
+    if (currentZoom !== lastZoomLevel.current) {
+      lastZoomLevel.current = currentZoom;
+    }
 
-    // Siempre mostrar el botón si la ubicación ha cambiado significativamente
-    if (isLocationDistant || hasZoomChangedSignificantly) {
+    // Mostrar el botón solo si:
+    // 1. La ubicación ha cambiado significativamente (más de 500m)
+    // 2. El zoom ha cambiado significativamente (3 o más niveles)
+    // 3. No hay una búsqueda en curso
+    // 4. No hay un spot seleccionado
+    if ((isLocationDistant || hasZoomChangedSignificantly) &&
+        !isSearchingRef.current &&
+        !selectedSpot &&
+        !isMapMoving) {
       searchHereLocationRef.current = newLocation;
       setShowSearchHereButton(true);
+    } else if (!isLocationDistant && !hasZoomChangedSignificantly) {
+      setShowSearchHereButton(false);
     }
 
     lastIdleTimeRef.current = now;
   }, [mapInstance, isMapMoving, isSimilarLocation, selectedSpot]);
 
-  // Modificar handleSearchHereClick
+  // Modificar handleSearchHereClick para mantener los marcadores correctamente
   const handleSearchHereClick = useCallback(() => {
     if (!mapInstance) return;
 
@@ -579,28 +568,30 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
     if (!center) return;
 
     setShowSearchHereButton(false);
-    setSelectedSpot(null);
 
     const locationToSearch = {
       lat: center.lat(),
       lng: center.lng()
     };
 
-    // Limpiar estado y marcadores
-    setParkingSpots([]);
-    cleanupMarkers();
-
-    // Forzamos una nueva búsqueda ignorando el caché
+    // Primero actualizar el contexto
     searchNearbyParking(locationToSearch, mapInstance.getZoom(), false, true)
-      .then(() => {
-        lastSearchLocationRef.current = locationToSearch;
-        lastIdleTimeRef.current = Date.now();
+      .then((results) => {
+        if (results?.length > 0) {
+          setParkingSpots(results); // Actualizar el contexto primero
+          lastSearchLocationRef.current = locationToSearch;
+          lastIdleTimeRef.current = Date.now();
+
+          // Luego actualizar los marcadores
+          updateMarkers(results);
+        }
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error('Error en búsqueda:', error);
         setParkingSpots([]);
-        cleanupMarkers();
+        clearMarkers();
       });
-  }, [mapInstance, searchNearbyParking, setParkingSpots, cleanupMarkers]);
+  }, [mapInstance, searchNearbyParking, setParkingSpots, clearMarkers, updateMarkers]);
 
   // Manejar click en el mapa
   const handleMapClick = useCallback((event) => {
@@ -631,16 +622,30 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
       mapMoveTimeoutRef.current = null;
     }
 
+    // Forzar actualización de marcadores después del arrastre
+    if (contextParkingSpots?.length > 0) {
+      requestAnimationFrame(() => {
+        updateMarkers(contextParkingSpots);
+      });
+    }
+
     mapMoveTimeoutRef.current = setTimeout(() => {
       setIsMapMoving(false);
-      mapInstance?.handleMapIdle?.();
-    }, 500);
-  }, [mapInstance]);
+      handleMapIdle();
+    }, 300);
+  }, [contextParkingSpots, updateMarkers, handleMapIdle]);
 
   // Manejar zoom del mapa
   const handleMapZoomChanged = useCallback(() => {
     if (!mapInstance) return;
-  }, [mapInstance]);
+
+    // Forzar actualización de marcadores después del zoom
+    if (contextParkingSpots?.length > 0) {
+      requestAnimationFrame(() => {
+        updateMarkers(contextParkingSpots);
+      });
+    }
+  }, [mapInstance, contextParkingSpots, updateMarkers]);
 
   // Centrar mapa en ubicación objetivo
   useEffect(() => {
@@ -653,9 +658,7 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
 
         if (!isFinite(position.lat) || !isFinite(position.lng)) return;
 
-        const isMobile = window.innerWidth < 768;
-        const baseZoom = isMobile ? 16 : 17;
-        const zoomLevel = Math.min(baseZoom, 19);
+        const zoomLevel = 15;
 
         // Ocultar el botón de búsqueda ya que acabamos de buscar en esta ubicación
         setShowSearchHereButton(false);
@@ -679,52 +682,53 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
   // Manejar actualizaciones forzadas
   useEffect(() => {
     if (forceMapUpdate && mapInstance && effectiveTargetLocation) {
+      const position = {
+        lat: parseFloat(effectiveTargetLocation.lat),
+        lng: parseFloat(effectiveTargetLocation.lng)
+      };
+
+      if (!isFinite(position.lat) || !isFinite(position.lng)) return;
+
+      // Usar requestAnimationFrame para sincronizar con el ciclo de renderizado
       requestAnimationFrame(() => {
-        const position = {
-          lat: parseFloat(effectiveTargetLocation.lat),
-          lng: parseFloat(effectiveTargetLocation.lng)
-        };
-
-        if (!isFinite(position.lat) || !isFinite(position.lng)) return;
-
         // Ocultar el botón de búsqueda ya que acabamos de buscar en esta ubicación
         setShowSearchHereButton(false);
         lastSearchLocationRef.current = position;
         lastIdleTimeRef.current = Date.now();
 
-        const isMobile = window.innerWidth < 768;
-        const zoomLevel = isMobile ? 16 : 17;
-
         mapInstance.panTo(position);
-        mapInstance.setZoom(zoomLevel);
+        mapInstance.setZoom(15);
 
         setForceMapUpdate(false);
       });
     }
   }, [forceMapUpdate, effectiveTargetLocation, mapInstance, setForceMapUpdate]);
 
-  // Limpiar timeouts
+  // Efecto para limpiar timeouts
   useEffect(() => {
-    const timeouts = [
-      mapMoveTimeoutRef,
-      searchHereTimeoutRef,
-      markerInteractionTimeoutRef
-    ];
-
     return () => {
+      const timeouts = [
+        mapMoveTimeoutRef,
+        markerInteractionTimeoutRef
+      ];
+
       timeouts.forEach(timeout => {
         if (timeout.current) {
           clearTimeout(timeout.current);
           timeout.current = null;
         }
       });
+
+      // Limpiar marcadores al desmontar
+      clearMarkers();
     };
-  }, []);
+  }, [clearMarkers]);
 
   // Optimizar manejo de marcador de usuario
   useEffect(() => {
     if (!mapInstance || !userLoc?.lat || !userLoc?.lng ||
-        !isFinite(userLoc.lat) || !isFinite(userLoc.lng)) {
+        !isFinite(userLoc.lat) || !isFinite(userLoc.lng) ||
+        !isLoaded || !window.google?.maps?.marker) {
       if (userMarkerRef.current) {
         userMarkerRef.current.setMap(null);
         userMarkerRef.current = null;
@@ -737,7 +741,7 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
       lng: parseFloat(userLoc.lng)
     };
 
-    // Usar requestAnimationFrame para actualizar el marcador
+    // Usar requestAnimationFrame para sincronizar con el ciclo de renderizado
     requestAnimationFrame(() => {
       // Reutilizar el marcador si ya existe
       if (userMarkerRef.current) {
@@ -754,15 +758,18 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
         backgroundColor: '#3B82F6',
         border: '2px solid #FFFFFF',
         borderRadius: '50%',
-        boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.5)'
+        boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.5)',
+        willChange: 'transform'
       });
 
-      userMarkerRef.current = new window.google.maps.marker.AdvancedMarkerElement({
-        position,
-        map: mapInstance,
-        content,
-        zIndex: 1000
-      });
+      if (window.google?.maps?.marker?.AdvancedMarkerElement) {
+        userMarkerRef.current = new window.google.maps.marker.AdvancedMarkerElement({
+          position,
+          map: mapInstance,
+          content,
+          zIndex: 1000
+        });
+      }
     });
 
     return () => {
@@ -771,46 +778,43 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
         userMarkerRef.current = null;
       }
     };
-  }, [mapInstance, userLoc]);
+  }, [mapInstance, userLoc, isLoaded]);
 
   // Exponer funciones a través de useImperativeHandle
   useImperativeHandle(ref, () => ({
     handleCardClick: (spot) => {
       if (!spot || !mapInstance) return;
 
-      const spotLocation = {
+      const position = {
         lat: parseFloat(spot.latitude),
         lng: parseFloat(spot.longitude)
       };
 
-      if (!isFinite(spotLocation.lat) || !isFinite(spotLocation.lng)) return;
+      if (!isFinite(position.lat) || !isFinite(position.lng)) return;
 
-      // Solo actualizamos el marcador seleccionado visualmente y centramos el mapa
+      // Prevenir múltiples interacciones rápidas
+      if (isMarkerInteractionRef.current) return;
+      isMarkerInteractionRef.current = true;
+
+      // Asegurarnos de que los marcadores estén actualizados
+      if (contextParkingSpots?.length > 0) {
+        updateMarkers(contextParkingSpots);
+      }
+
+      // Actualizar el marcador seleccionado visualmente
       markSpotAsSelected(spot);
+      setSelectedSpot(spot);
 
-      // Asegurarnos de que el InfoWindow esté cerrado
-      setSelectedSpot(null);
+      // Ajustar el mapa para el InfoWindow
+      adjustMapForInfoWindow(new window.google.maps.LatLng(position));
 
-      mapInstance.panTo(spotLocation);
-
-      // Actualizar referencias de ubicación
-      lastSearchLocationRef.current = spotLocation;
-      lastIdleTimeRef.current = Date.now();
-
-      // Hacer zoom
-      setTimeout(() => {
-        mapInstance.setZoom(17);
-      }, 300);
-
-      // Forzar actualización suave del mapa
-      requestAnimationFrame(() => {
-        mapInstance.panBy(0.5, 0);
-        setTimeout(() => {
-          mapInstance.panBy(-0.5, 0);
-        }, 50);
-      });
-
+      // Ocultar el botón de búsqueda
       setShowSearchHereButton(false);
+
+      // Permitir nuevas interacciones después de un delay
+      setTimeout(() => {
+        isMarkerInteractionRef.current = false;
+      }, 300);
     },
     searchNearbyParking: async (location) => {
       if (!location || !mapInstance) return;
@@ -818,11 +822,17 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
       setShowSearchHereButton(false);
       setSelectedSpot(null);
 
+      // Limpiar marcadores existentes antes de la búsqueda
+      clearMarkers();
+
       const cachedResults = getCachedResult(location);
-      if (cachedResults?.length > 0) {
-        setParkingSpots(cachedResults);
+      if (cachedResults?.spots?.length > 0) {
+        setParkingSpots(cachedResults.spots);
         lastSearchLocationRef.current = location;
         lastIdleTimeRef.current = Date.now();
+
+        // Actualizar los marcadores con los resultados en caché
+        updateMarkers(cachedResults.spots);
 
         mapInstance.setZoom(15);
         mapInstance.panTo({
@@ -830,51 +840,35 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
           lng: parseFloat(location.lng)
         });
 
-        return cachedResults;
+        return cachedResults.spots;
       }
-
-      setParkingSpots([]);
-      cleanupMarkers();
-
-      mapInstance.setZoom(15);
-      mapInstance.panTo({
-        lat: parseFloat(location.lat),
-        lng: parseFloat(location.lng)
-      });
 
       try {
         const results = await searchNearbyParking(location, 15, false, true);
-        lastSearchLocationRef.current = location;
-        lastIdleTimeRef.current = Date.now();
+        if (results?.length > 0) {
+          setParkingSpots(results);
+          lastSearchLocationRef.current = location;
+          lastIdleTimeRef.current = Date.now();
+
+          // Actualizar los marcadores con los nuevos resultados
+          updateMarkers(results);
+        }
+
         return results;
       } catch (error) {
+        console.error('Error en búsqueda:', error);
         setParkingSpots([]);
-        cleanupMarkers();
+        clearMarkers();
         throw error;
       }
     },
     getMapRef: () => mapInstance,
     cleanupMarkers: () => {
-      cleanupMarkers();
+      clearMarkers();
       setParkingSpots([]);
       setSelectedSpot(null);
     }
-  }), [
-    mapInstance,
-    searchNearbyParking,
-    markSpotAsSelected,
-    getCachedResult,
-    setParkingSpots,
-    cleanupMarkers
-  ]);
-
-  // Cleanup al desmontar
-  useEffect(() => {
-    return () => {
-      sessionStorage.removeItem('initialHomePageSearch');
-      cleanupMarkers();
-    };
-  }, [cleanupMarkers]);
+  }), [mapInstance, contextParkingSpots, markSpotAsSelected, adjustMapForInfoWindow, updateMarkers, getCachedResult, setParkingSpots, searchNearbyParking, clearMarkers]);
 
   // Botón de localización
   const locateUserButton = useMemo(() => (
@@ -911,21 +905,66 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
   ), [showSearchHereButton, handleSearchHereClick]);
 
   // Optimizar opciones del mapa
-  const mapOptions = useMemo(() => ({
-    ...MAP_CONSTANTS.MAP_OPTIONS,
-    mapId: import.meta.env.VITE_GOOGLE_MAP_ID,
-    streetViewControl: false,
-    fullscreenControl: false,
-    mapTypeControl: false,
-    clickableIcons: false,
-    tilt: 0,
-    backgroundColor: '#fff',
-    maxZoom: 20,
-    minZoom: 3,
-    mapTypeId: 'roadmap',
-    gestureHandling: 'greedy',
-    optimized: true
-  }), []);
+  const mapOptions = useMemo(() => {
+    // Verificar que la API de Google Maps esté cargada
+    if (!isLoaded || !window.google?.maps) {
+      return {
+        streetViewControl: false,
+        fullscreenControl: false,
+        mapTypeControl: false,
+        clickableIcons: false,
+        tilt: 0,
+        backgroundColor: '#fff',
+        maxZoom: 20,
+        minZoom: 3,
+        mapTypeId: 'roadmap',
+        gestureHandling: 'auto',
+        optimized: false
+      };
+    }
+
+    // Detectar si estamos en móvil
+    const isMobile = window.innerWidth <= 768;
+
+    return {
+      ...MAP_CONSTANTS.MAP_OPTIONS,
+      mapId: import.meta.env.VITE_GOOGLE_MAP_ID,
+      streetViewControl: false,
+      fullscreenControl: false,
+      mapTypeControl: false,
+      clickableIcons: false,
+      tilt: 0,
+      backgroundColor: '#fff',
+      maxZoom: isMobile ? 18 : 20,
+      minZoom: isMobile ? 10 : 3,
+      mapTypeId: 'roadmap',
+      gestureHandling: 'auto',
+      optimized: false,
+      renderer: window.google.maps.RenderingType?.WEBGL || 'webgl',
+      animation: window.google.maps.Animation?.DROP,
+      // Opciones específicas para móvil
+      ...(isMobile && {
+        zoomControl: true,
+        zoomControlOptions: {
+          position: window.google.maps.ControlPosition.RIGHT_BOTTOM
+        },
+        // Mejorar rendimiento en móvil
+        maxZoom: 18,
+        minZoom: 10,
+        // Optimizar para táctil
+        tilt: 0,
+        heading: 0,
+        // Mejorar interacción táctil
+        clickableIcons: false,
+        // Reducir la frecuencia de actualizaciones
+        updateInterval: 500,
+        // Forzar renderizado de marcadores
+        renderer: window.google.maps.RenderingType?.WEBGL || 'webgl',
+        // Asegurar que los marcadores sean visibles
+        optimized: false
+      })
+    };
+  }, [isLoaded]);
 
   // Optimizar estilos del contenedor
   const containerStyles = useMemo(() => ({
@@ -936,17 +975,32 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
       contain: 'layout style paint',
       touchAction: 'none',
       WebkitOverflowScrolling: 'touch',
-      userSelect: 'none'
+      userSelect: 'none',
+      willChange: 'transform',
+      WebkitTapHighlightColor: 'transparent',
+      // Optimizar para GPU
+      transform: 'translateZ(0)',
+      backfaceVisibility: 'hidden'
     },
     outerContainer: {
       touchAction: 'none',
       WebkitTapHighlightColor: 'transparent',
       WebkitUserSelect: 'none',
-      userSelect: 'none'
+      userSelect: 'none',
+      contain: 'layout style',
+      WebkitOverflowScrolling: 'touch',
+      // Optimizar para GPU
+      transform: 'translateZ(0)',
+      backfaceVisibility: 'hidden'
     },
     innerContainer: {
       touchAction: 'none',
-      WebkitTapHighlightColor: 'transparent'
+      WebkitTapHighlightColor: 'transparent',
+      contain: 'layout style',
+      WebkitOverflowScrolling: 'touch',
+      // Optimizar para GPU
+      transform: 'translateZ(0)',
+      backfaceVisibility: 'hidden'
     }
   }), []);
 
@@ -961,6 +1015,95 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
     className: "flex-1 relative w-full h-full google-map",
     style: innerContainer
   }), [innerContainer]);
+
+  // Cargar el mapa
+  const handleMapLoad = useCallback((map) => {
+    if (!map) return;
+
+    originalHandleMapLoad(map);
+    setMapInstance(map);
+
+    // Asegurarnos de que la API de Google Maps esté disponible
+    if (!window.google?.maps) {
+      console.error('🗺️ Google Maps API no está disponible');
+      return;
+    }
+
+    // Validar ubicación del usuario
+    const validateLocation = (location) => {
+      if (!location) return false;
+      const lat = parseFloat(location.lat);
+      const lng = parseFloat(location.lng);
+      return isFinite(lat) && isFinite(lng) &&
+             lat >= -90 && lat <= 90 &&
+             lng >= -180 && lng <= 180;
+    };
+
+    // Detectar si estamos en móvil
+    const isMobile = window.innerWidth <= 768;
+    const defaultZoom = isMobile ? 17 : 15;
+
+    // Solo mostrar el modal si:
+    // 1. No se ha inicializado antes
+    // 2. No tenemos ubicación del usuario O la ubicación es la default
+    // 3. No tenemos una ubicación válida en el contexto
+    const isDefaultLocation = userLoc &&
+      userLoc.lat === MAP_CONSTANTS.DEFAULT_LOCATION.lat &&
+      userLoc.lng === MAP_CONSTANTS.DEFAULT_LOCATION.lng;
+
+    const hasValidLocation = userLoc &&
+      !isDefaultLocation &&
+      validateLocation(userLoc);
+
+    if (!hasInitialized.current && !hasValidLocation) {
+      debug('📍 Mostrando modal de ubicación - No hay ubicación válida');
+      setShowLocationModal(true);
+    } else {
+      debug('📍 No es necesario mostrar modal de ubicación', {
+        hasInitialized: hasInitialized.current,
+        userLoc,
+        hasValidLocation
+      });
+      setShowLocationModal(false);
+    }
+
+    // Inicializar búsqueda si tenemos ubicación válida
+    if (map && hasValidLocation) {
+      // Usar requestAnimationFrame para sincronizar con el ciclo de renderizado
+      requestAnimationFrame(() => {
+        try {
+          // Verificar que el mapa sigue siendo válido
+          if (!map || typeof map.setZoom !== 'function' || typeof map.panTo !== 'function') {
+            console.error('🗺️ Instancia del mapa no válida');
+            return;
+          }
+
+          // Ajustar el zoom inicial según el dispositivo
+          map.setZoom(defaultZoom);
+          map.panTo(userLoc);
+
+          searchNearbyParking(userLoc, defaultZoom, false)
+            .then(() => {
+              hasInitialized.current = true;
+              setShowLocationModal(false);
+            })
+            .catch(error => {
+              console.error('Error en búsqueda inicial:', error);
+            });
+        } catch (error) {
+          console.error('Error al inicializar el mapa:', error);
+        }
+      });
+    }
+  }, [originalHandleMapLoad, userLoc, searchNearbyParking]);
+
+  // Manejar eventos táctiles específicamente para móvil
+  const handleMapTouchStart = useCallback((event) => {
+    if (!event?.domEvent) return;
+
+    // No prevenir eventos táctiles por defecto
+    // Dejar que el mapa maneje los gestos naturalmente
+  }, []);
 
   if (loadError) return (
     <div className="w-full h-full flex items-center justify-center bg-white">
@@ -983,6 +1126,7 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
           zoom={17}
           onLoad={handleMapLoad}
           onClick={handleMapClick}
+          onTouchStart={handleMapTouchStart}
           onDragStart={handleMapDragStart}
           onDragEnd={handleMapDragEnd}
           onZoomChanged={handleMapZoomChanged}
@@ -1002,6 +1146,46 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
             error={geoError}
           />
         )}
+        <div className="flex-1 overflow-y-auto py-1.5">
+          <ParkingCarousel
+            parkingSpots={contextParkingSpots}
+            onSelect={(spot) => {
+              if (!spot || !mapInstance) return;
+
+              const position = {
+                lat: parseFloat(spot.latitude),
+                lng: parseFloat(spot.longitude)
+              };
+
+              if (!isFinite(position.lat) || !isFinite(position.lng)) return;
+
+              // Prevenir múltiples interacciones rápidas
+              if (isMarkerInteractionRef.current) return;
+              isMarkerInteractionRef.current = true;
+
+              // Asegurarnos de que los marcadores estén actualizados
+              if (contextParkingSpots?.length > 0) {
+                updateMarkers(contextParkingSpots);
+              }
+
+              // Actualizar el marcador seleccionado visualmente
+              markSpotAsSelected(spot);
+              setSelectedSpot(spot);
+
+              // Ajustar el mapa para el InfoWindow
+              adjustMapForInfoWindow(new window.google.maps.LatLng(position));
+
+              // Ocultar el botón de búsqueda
+              setShowSearchHereButton(false);
+
+              // Permitir nuevas interacciones después de un delay
+              setTimeout(() => {
+                isMarkerInteractionRef.current = false;
+              }, 300);
+            }}
+            selectedSpotId={selectedSpot?.id}
+          />
+        </div>
       </div>
     </div>
   );

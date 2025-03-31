@@ -86,8 +86,8 @@ const GooglePlacesParking = ({ mapRef, center, radius = 1000 }) => {
 
     // Intentar obtener resultados del caché
     const cachedResults = getCachedResult(currentLocation);
-    if (cachedResults) {
-      setGoogleParkingSpots(cachedResults);
+    if (cachedResults?.spots?.length > 0) {
+      setGoogleParkingSpots(cachedResults.spots);
       return;
     }
 
