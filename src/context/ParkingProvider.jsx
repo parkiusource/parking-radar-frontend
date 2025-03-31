@@ -47,6 +47,9 @@ export function ParkingProvider({ children }) {
 
     const timestamp = Date.now();
 
+    // Limpiar spots antiguos primero
+    setGooglePlacesSpots([]); // Limpiar estado anterior
+
     // Procesar los nuevos spots
     const processedSpots = newSpots.map(spot => {
       if (!spot) {
@@ -54,49 +57,24 @@ export function ParkingProvider({ children }) {
         return null;
       }
 
-      // Si el spot ya tiene un ID, lo mantenemos
-      if (spot.id) return { ...spot, source: 'google' };
-
+      // Generar siempre un nuevo ID para evitar persistencia
       return {
         ...spot,
         timestamp,
-        id: generateUniqueId(spot.placeId || 'unknown', timestamp),
-        source: 'google'
+        id: generateUniqueId(spot.placeId || spot.googlePlaceId || 'unknown', timestamp),
+        source: 'google',
+        lastUpdated: timestamp
       };
     }).filter(Boolean); // Eliminar cualquier spot null
 
     console.debug('📍 Actualizando spots de Google Places:', {
       total: processedSpots.length,
-      originalTotal: newSpots.length
+      originalTotal: newSpots.length,
+      timestamp
     });
 
-    // Actualizar usando una función para garantizar el estado más reciente
-    setGooglePlacesSpots(prevSpots => {
-      // Crear un mapa de los spots existentes por ID
-      const existingSpotMap = new Map(
-        prevSpots.map(spot => [spot.id, spot])
-      );
-
-      // Actualizar o agregar nuevos spots
-      processedSpots.forEach(spot => {
-        existingSpotMap.set(spot.id, {
-          ...existingSpotMap.get(spot.id),
-          ...spot,
-          lastUpdated: timestamp
-        });
-      });
-
-      // Convertir el mapa de vuelta a array
-      const updatedSpots = Array.from(existingSpotMap.values());
-
-      // Ordenar por distancia si está disponible
-      return updatedSpots.sort((a, b) => {
-        if (a.distance && b.distance) {
-          return a.distance - b.distance;
-        }
-        return 0;
-      });
-    });
+    // Actualizar directamente con los nuevos spots procesados
+    setGooglePlacesSpots(processedSpots);
   }, []);
 
   // Inicializar searchNearbyParking después de tener updateParkingSpots

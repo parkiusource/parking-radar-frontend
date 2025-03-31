@@ -207,9 +207,8 @@ export const useMapMarkers = (map, spots = [], onMarkerClick, getMarkerOptions) 
         updateTimeoutRef.current = null;
       }
 
-      // Limpiar marcadores de manera segura y síncrona
-      const markersToRemove = Array.from(markersRef.current.values());
-      markersToRemove.forEach(marker => {
+      // Limpiar marcadores de manera más efectiva
+      markersRef.current.forEach(marker => {
         try {
           // Remover listeners
           if (marker.clickListener) {
@@ -217,9 +216,16 @@ export const useMapMarkers = (map, spots = [], onMarkerClick, getMarkerOptions) 
             marker.clickListener = null;
           }
 
-          // Remover el marcador del mapa directamente
+          // Forzar la eliminación del marcador del mapa
           if (marker.element) {
             marker.element.map = null;
+            // Asegurar que el marcador sea realmente removido
+            requestAnimationFrame(() => {
+              if (marker.element && marker.element.style) {
+                marker.element.style.display = 'none';
+                marker.element.style.visibility = 'hidden';
+              }
+            });
           }
         } catch (err) {
           console.warn('Error al limpiar marcador individual:', err);
@@ -227,7 +233,7 @@ export const useMapMarkers = (map, spots = [], onMarkerClick, getMarkerOptions) 
       });
 
       // Limpiar todas las referencias
-      markersRef.current = new Map();
+      markersRef.current.clear();
       spotsRef.current = [];
       lastSpotsHashRef.current = '';
       isUpdatingRef.current = false;
@@ -239,8 +245,15 @@ export const useMapMarkers = (map, spots = [], onMarkerClick, getMarkerOptions) 
   const updateMarkers = useCallback((newSpots = null) => {
     if (!mapRef.current || isUpdatingRef.current) return;
 
-    const spotsToUpdate = newSpots || spotsRef.current;
-    if (!Array.isArray(spotsToUpdate)) return;
+    // Forzar limpieza antes de actualizar
+    clearMarkers();
+
+    // Si no hay nuevos spots, no continuar
+    if (!newSpots || !Array.isArray(newSpots)) {
+      return;
+    }
+
+    const spotsToUpdate = newSpots;
 
     // Verificar si los spots han cambiado realmente
     const newSpotsHash = generateSpotsHash(spotsToUpdate);
@@ -251,9 +264,6 @@ export const useMapMarkers = (map, spots = [], onMarkerClick, getMarkerOptions) 
     isUpdatingRef.current = true;
 
     try {
-      // Limpiar marcadores existentes
-      clearMarkers();
-
       // Filtrar spots válidos
       const validSpots = spotsToUpdate.filter(spot =>
         spot?.id && spot?.latitude && spot?.longitude &&
@@ -344,12 +354,14 @@ export const useMapMarkers = (map, spots = [], onMarkerClick, getMarkerOptions) 
   useEffect(() => {
     if (!mapRef.current || !Array.isArray(spots)) return;
 
-    // Limpiar marcadores existentes primero
+    // Forzar limpieza inmediata
     clearMarkers();
 
     // Actualizar solo si hay nuevos spots
     if (spots.length > 0) {
-      updateMarkers(spots);
+      requestAnimationFrame(() => {
+        updateMarkers(spots);
+      });
     }
 
     return () => {
@@ -357,7 +369,6 @@ export const useMapMarkers = (map, spots = [], onMarkerClick, getMarkerOptions) 
         clearTimeout(updateTimeoutRef.current);
         updateTimeoutRef.current = null;
       }
-      // Limpiar marcadores al desmontar
       clearMarkers();
     };
   }, [spots, updateMarkers, clearMarkers]);

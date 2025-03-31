@@ -1,11 +1,17 @@
 import { useCallback, useRef, useEffect } from 'react';
 import { apiLimiter } from '@/services/apiLimiter';
 
-const MIN_SEARCH_INTERVAL = window.innerWidth <= 768 ? 2000 : 3000; // 2 segundos en móvil
 const MIN_DISTANCE_FOR_NEW_SEARCH = window.innerWidth <= 768 ? 50 : 100; // 50m en móvil
 const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes cache expiry
 const MAX_CACHE_SIZE = 50; // Maximum number of locations to cache
 const CACHE_CLEANUP_INTERVAL = 10 * 60 * 1000; // Clean up cache every 10 minutes
+const SEARCH_INTERVALS = {
+  MOBILE: 2000,  // 2 seconds on mobile
+  DESKTOP: 3000, // 3 seconds on desktop
+  get current() {
+    return window.innerWidth <= 768 ? this.MOBILE : this.DESKTOP;
+  }
+};
 
 const SEARCH_RADIUS = {
   VERY_CLOSE: window.innerWidth <= 768 ? 150 : 200,  // 150m en móvil
@@ -135,6 +141,19 @@ const debugCache = (action, cacheKey, data = null) => {
   }
 };
 
+// Add debounce utility at the top level
+const debounce = (func, wait) => {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+};
+
 export const useParkingSearch = (setParkingSpots, getCachedResult, setCachedResult) => {
   if (!setParkingSpots || !getCachedResult || !setCachedResult) {
     throw new Error('useParkingSearch requiere setParkingSpots, getCachedResult y setCachedResult');
@@ -148,6 +167,10 @@ export const useParkingSearch = (setParkingSpots, getCachedResult, setCachedResu
   const lastCacheTimeRef = useRef(0);
   const lastIdleTimeRef = useRef(0);
   const cacheCleanupIntervalRef = useRef(null);
+
+  // Add new refs for debounced search
+  const debouncedSearchRef = useRef(null);
+  const lastSearchTimeRef = useRef(0);
 
   // Cache cleanup function - moved before useEffect
   const cleanupCache = useCallback(() => {
@@ -543,7 +566,26 @@ export const useParkingSearch = (setParkingSpots, getCachedResult, setCachedResu
     }
   }, [setParkingSpots, getCachedResult, isCacheValid, updateCache, validateLocation]);
 
-  // Función para procesar la cola de búsquedas
+  // Modify the debounced search effect
+  useEffect(() => {
+    debouncedSearchRef.current = debounce(async (location, zoom, isMapMoving) => {
+      const now = Date.now();
+      if (now - lastSearchTimeRef.current < SEARCH_INTERVALS.current) {
+        debug('⏱️ Ignorando búsqueda - Intervalo mínimo no alcanzado');
+        return;
+      }
+      lastSearchTimeRef.current = now;
+      await performSearch(location, zoom, isMapMoving);
+    }, 500); // 500ms debounce
+
+    return () => {
+      if (debouncedSearchRef.current) {
+        debouncedSearchRef.current.cancel?.();
+      }
+    };
+  }, [performSearch]);
+
+  // Modify processSearchQueue to use the new interval
   const processSearchQueue = useCallback(async () => {
     if (processingQueueRef.current || searchQueueRef.current.length === 0) return;
 
@@ -557,40 +599,44 @@ export const useParkingSearch = (setParkingSpots, getCachedResult, setCachedResu
     } finally {
       processingQueueRef.current = false;
 
-      // Procesar siguiente búsqueda si hay más en la cola
+      // Process next search if there are more in the queue
       if (searchQueueRef.current.length > 0) {
-        setTimeout(processSearchQueue, MIN_SEARCH_INTERVAL);
+        setTimeout(processSearchQueue, SEARCH_INTERVALS.current);
       }
     }
   }, [performSearch]);
 
-  // Función para buscar parqueaderos cercanos
+  // Modify searchNearbyParking to use debounced search
   const searchNearbyParking = useCallback(async (location, zoomLevel = 15, useCache = true, forceSearch = false) => {
-    // Validar ubicación
     if (!validateLocation(location)) {
       console.warn('🗺️ [Parking] ⚠️ Ubicación inválida para búsqueda');
       setParkingSpots([]);
       return [];
     }
 
-    // Verificar si Google Maps está disponible
     if (!isGoogleMapsAvailable()) {
       setParkingSpots([]);
       return [];
     }
 
-    // Verificar cache primero
+    // Check cache first if not forcing search
     if (useCache && !forceSearch) {
       const cacheKey = generateCacheKey(location);
       const cachedEntry = getCachedResult(cacheKey);
       if (cachedEntry?.spots?.length > 0 && isCacheValid(location)) {
-        console.log(`🗺️ [Parking] 📦 Usando ${cachedEntry.spots.length} resultados en caché`);
+        debug('📦 Usando resultados en caché');
         setParkingSpots(cachedEntry.spots);
         return cachedEntry.spots;
       }
     }
 
-    // Si no hay caché válido o se fuerza la búsqueda, realizar nueva búsqueda
+    // Use debounced search for non-forced searches
+    if (!forceSearch && debouncedSearchRef.current) {
+      debouncedSearchRef.current(location, zoomLevel, false);
+      return getCachedResult(location)?.spots || [];
+    }
+
+    // Perform immediate search for forced searches
     return performSearch(location, zoomLevel, false);
   }, [setParkingSpots, getCachedResult, isCacheValid, performSearch, validateLocation]);
 
