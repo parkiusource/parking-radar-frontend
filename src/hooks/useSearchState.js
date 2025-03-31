@@ -56,7 +56,7 @@ export const useSearchState = () => {
 
   // Guardar resultados en caché
   const setCachedResult = useCallback((location, results) => {
-    if (!location || !Array.isArray(results)) return;
+    if (!location) return;
 
     // Limpiar caché expirada periódicamente
     if (Date.now() - lastCacheTime.current > 30000) { // Cada 30 segundos
@@ -65,12 +65,17 @@ export const useSearchState = () => {
     }
 
     // Crear clave única basada en coordenadas redondeadas para mejorar la coincidencia
-    const key = `${parseFloat(location.lat).toFixed(5)}_${parseFloat(location.lng).toFixed(5)}`;
+    const key = `${parseFloat(location.lat).toFixed(5)},${parseFloat(location.lng).toFixed(5)}`;
 
+    // Crear entrada de caché con la estructura esperada
     cachedResults.current[key] = {
-      location,
-      results: [...results], // Crear copia para evitar mutaciones
-      timestamp: Date.now()
+      location: {
+        lat: parseFloat(location.lat),
+        lng: parseFloat(location.lng)
+      },
+      spots: Array.isArray(results) ? [...results] : [],
+      timestamp: Date.now(),
+      lastAccessed: Date.now()
     };
   }, [cleanExpiredCache]);
 
@@ -85,7 +90,7 @@ export const useSearchState = () => {
     let bestMatch = null;
     let minDistance = CACHE_THRESHOLD;
 
-    Object.values(cachedResults.current).forEach(entry => {
+    Object.entries(cachedResults.current).forEach(([, entry]) => {
       const distance = getDistance(location, entry.location);
       if (distance < minDistance) {
         minDistance = distance;
@@ -96,7 +101,7 @@ export const useSearchState = () => {
     // Si encontramos una coincidencia suficientemente cercana, usarla
     if (bestMatch) {
       console.log(`🔄 Usando caché de ubicación a ${minDistance.toFixed(2)}m de distancia`);
-      return bestMatch.results;
+      return bestMatch;
     }
 
     return null;
