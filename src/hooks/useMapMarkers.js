@@ -245,19 +245,24 @@ export const useMapMarkers = (map, spots = [], onMarkerClick, getMarkerOptions) 
   const updateMarkers = useCallback((newSpots = null) => {
     if (!mapRef.current || isUpdatingRef.current) return;
 
-    // Forzar limpieza antes de actualizar
-    clearMarkers();
-
-    // Si no hay nuevos spots, no continuar
-    if (!newSpots || !Array.isArray(newSpots)) {
+    // Si no hay nuevos spots, mantener los actuales
+    if (!newSpots || !Array.isArray(newSpots) || newSpots.length === 0) {
       return;
     }
 
-    const spotsToUpdate = newSpots;
-
     // Verificar si los spots han cambiado realmente
-    const newSpotsHash = generateSpotsHash(spotsToUpdate);
+    const newSpotsHash = generateSpotsHash(newSpots);
     if (newSpotsHash === lastSpotsHashRef.current) {
+      // Si los spots no han cambiado, solo actualizar sus propiedades visuales
+      if (getOptionsRef.current) {
+        markersRef.current.forEach((marker, spotId) => {
+          const spot = spotsRef.current.find(s => s.id === spotId);
+          if (spot && marker.element) {
+            const options = getOptionsRef.current(spot);
+            Object.assign(marker.element, options);
+          }
+        });
+      }
       return;
     }
 
@@ -265,81 +270,129 @@ export const useMapMarkers = (map, spots = [], onMarkerClick, getMarkerOptions) 
 
     try {
       // Filtrar spots válidos
-      const validSpots = spotsToUpdate.filter(spot =>
+      const validSpots = newSpots.filter(spot =>
         spot?.id && spot?.latitude && spot?.longitude &&
         validateCoordinates(spot.latitude, spot.longitude)
       );
 
-      // Crear todos los marcadores de una vez
-      const newMarkers = new Map();
+      // Identificar qué spots agregar, actualizar o eliminar
+      const currentSpotIds = new Set(markersRef.current.keys());
+      const newSpotIds = new Set(validSpots.map(spot => spot.id));
 
-      // En móvil, crear marcadores en lotes más pequeños
+      // Spots a eliminar (están en markersRef pero no en newSpots)
+      const spotsToRemove = [...currentSpotIds].filter(id => !newSpotIds.has(id));
+
+      // Eliminar marcadores que ya no existen
+      spotsToRemove.forEach(id => {
+        const marker = markersRef.current.get(id);
+        if (marker) {
+          if (marker.clickListener) {
+            marker.clickListener.remove();
+          }
+          if (marker.element) {
+            marker.element.map = null;
+          }
+          markersRef.current.delete(id);
+        }
+      });
+
+      // Crear o actualizar marcadores en función del dispositivo
       if (isMobileRef.current) {
-        const BATCH_SIZE = 3; // Reducir el tamaño del lote para mejor rendimiento
-        const BATCH_DELAY = 50; // Reducir el delay entre lotes
+        // En móvil, procesar en lotes para mejor rendimiento
+        const BATCH_SIZE = 3;
+        const BATCH_DELAY = 50;
 
         const processBatch = (startIndex) => {
           const batch = validSpots.slice(startIndex, startIndex + BATCH_SIZE);
 
           batch.forEach(spot => {
             try {
-              const marker = createMarker(spot);
-              if (marker && marker.element) {
-                newMarkers.set(spot.id, marker);
-                // Asegurar que el marcador sea visible
-                marker.element.map = mapRef.current;
-                requestAnimationFrame(() => {
-                  if (marker.element.style) {
-                    marker.element.style.visibility = 'visible';
-                    marker.element.style.display = 'block';
-                    marker.element.style.opacity = '1';
+              const existingMarker = markersRef.current.get(spot.id);
+
+              if (existingMarker) {
+                // Actualizar marcador existente
+                if (existingMarker.element) {
+                  const position = {
+                    lat: parseFloat(spot.latitude),
+                    lng: parseFloat(spot.longitude)
+                  };
+                  existingMarker.element.position = position;
+
+                  // Actualizar opciones visuales
+                  if (getOptionsRef.current) {
+                    const options = getOptionsRef.current(spot);
+                    Object.assign(existingMarker.element, options);
                   }
-                });
+
+                  // Asegurar que sea visible
+                  existingMarker.element.map = mapRef.current;
+                  if (existingMarker.element.style) {
+                    existingMarker.element.style.visibility = 'visible';
+                    existingMarker.element.style.display = 'block';
+                  }
+                }
+              } else {
+                // Crear nuevo marcador solo para spots que no existen
+                const marker = createMarker(spot);
+                if (marker && marker.element) {
+                  markersRef.current.set(spot.id, marker);
+                }
               }
             } catch (err) {
-              console.warn('Error al crear marcador:', err);
+              console.warn('Error al actualizar marcador:', err);
             }
           });
 
-          // Procesar el siguiente lote si quedan spots
+          // Procesar siguiente lote
           if (startIndex + BATCH_SIZE < validSpots.length) {
             setTimeout(() => {
               processBatch(startIndex + BATCH_SIZE);
             }, BATCH_DELAY);
           } else {
-            // Finalizar actualización y forzar refresco visual
-            markersRef.current = newMarkers;
+            // Finalizar actualización
             spotsRef.current = validSpots;
             lastSpotsHashRef.current = newSpotsHash;
             isUpdatingRef.current = false;
-
-            // Forzar refresco visual de los marcadores
-            if (mapRef.current) {
-              requestAnimationFrame(() => {
-                mapRef.current.panBy(0, 0);
-              });
-            }
           }
         };
 
-        // Iniciar el procesamiento por lotes
         processBatch(0);
       } else {
-        // En desktop, crear todos los marcadores inmediatamente
+        // En desktop, procesar todos inmediatamente
         validSpots.forEach(spot => {
           try {
-            const marker = createMarker(spot);
-            if (marker && marker.element) {
-              newMarkers.set(spot.id, marker);
-              marker.element.map = mapRef.current;
+            const existingMarker = markersRef.current.get(spot.id);
+
+            if (existingMarker) {
+              // Actualizar marcador existente
+              if (existingMarker.element) {
+                const position = {
+                  lat: parseFloat(spot.latitude),
+                  lng: parseFloat(spot.longitude)
+                };
+                existingMarker.element.position = position;
+
+                // Actualizar opciones visuales
+                if (getOptionsRef.current) {
+                  const options = getOptionsRef.current(spot);
+                  Object.assign(existingMarker.element, options);
+                }
+
+                existingMarker.element.map = mapRef.current;
+              }
+            } else {
+              // Crear nuevo marcador solo para spots que no existen
+              const marker = createMarker(spot);
+              if (marker && marker.element) {
+                markersRef.current.set(spot.id, marker);
+              }
             }
           } catch (err) {
-            console.warn('Error al crear marcador:', err);
+            console.warn('Error al actualizar marcador:', err);
           }
         });
 
-        // Actualizar referencias inmediatamente en desktop
-        markersRef.current = newMarkers;
+        // Actualizar referencias
         spotsRef.current = validSpots;
         lastSpotsHashRef.current = newSpotsHash;
         isUpdatingRef.current = false;
@@ -348,20 +401,26 @@ export const useMapMarkers = (map, spots = [], onMarkerClick, getMarkerOptions) 
       console.error('Error updating markers:', error);
       isUpdatingRef.current = false;
     }
-  }, [clearMarkers, createMarker, validateCoordinates, generateSpotsHash]);
+  }, [validateCoordinates, createMarker, generateSpotsHash]);
 
   // Efecto para actualizar marcadores cuando cambian los spots
   useEffect(() => {
     if (!mapRef.current || !Array.isArray(spots)) return;
 
-    // Forzar limpieza inmediata
-    clearMarkers();
+    // Comparar si los spots han cambiado realmente
+    const newSpotsHash = generateSpotsHash(spots);
+    if (newSpotsHash === lastSpotsHashRef.current) {
+      return; // No actualizar si los spots no han cambiado
+    }
 
-    // Actualizar solo si hay nuevos spots
+    // Verificar si hay spots para mostrar
     if (spots.length > 0) {
       requestAnimationFrame(() => {
         updateMarkers(spots);
       });
+    } else if (markersRef.current.size > 0) {
+      // Solo limpiar si tenemos marcadores y no hay spots
+      clearMarkers();
     }
 
     return () => {
@@ -369,9 +428,8 @@ export const useMapMarkers = (map, spots = [], onMarkerClick, getMarkerOptions) 
         clearTimeout(updateTimeoutRef.current);
         updateTimeoutRef.current = null;
       }
-      clearMarkers();
     };
-  }, [spots, updateMarkers, clearMarkers]);
+  }, [spots, updateMarkers, clearMarkers, generateSpotsHash]);
 
   return { clearMarkers, updateMarkers };
 };

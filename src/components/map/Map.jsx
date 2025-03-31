@@ -400,27 +400,15 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
       clearTimeout(mapMoveTimeoutRef.current);
     }
 
-    // Update markers after drag without triggering a search
-    if (contextParkingSpots?.length > 0) {
-      requestAnimationFrame(() => {
-        updateMarkers(contextParkingSpots);
-      });
-    }
-
-    handleMapIdle(); // This will only update search button visibility
-  }, [contextParkingSpots, updateMarkers, handleMapIdle]);
+    // Solo actualizar la visibilidad del botón de búsqueda sin redibujar marcadores
+    handleMapIdle();
+  }, [handleMapIdle]);
 
   // Update zoom change handler
   const handleMapZoomChanged = useCallback(() => {
-    if (!mapInstance) return;
-
-    // Only update markers without triggering a search
-    if (contextParkingSpots?.length > 0) {
-      requestAnimationFrame(() => {
-        updateMarkers(contextParkingSpots);
-      });
-    }
-  }, [mapInstance, contextParkingSpots, updateMarkers]);
+    // No hacer nada aquí - los marcadores ya se actualizarán por sí solos
+    // cuando cambien sus propiedades visuales en useMapMarkers
+  }, []);
 
   // Centrar mapa en ubicación objetivo
   useEffect(() => {
@@ -845,6 +833,10 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
 
     // Inicializar búsqueda si tenemos ubicación válida
     if (map && hasValidLocation) {
+      // Verificar primero si hay resultados en caché
+      const cachedResults = getCachedResult(userLoc);
+      const hasCache = cachedResults?.spots?.length > 0;
+
       // Usar requestAnimationFrame para sincronizar con el ciclo de renderizado
       requestAnimationFrame(() => {
         try {
@@ -858,20 +850,28 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
           map.setZoom(defaultZoom);
           map.panTo(userLoc);
 
-          searchNearbyParking(userLoc, defaultZoom, false)
-            .then(() => {
-              hasInitialized.current = true;
-              setShowLocationModal(false);
-            })
-            .catch(error => {
-              console.error('Error en búsqueda inicial:', error);
-            });
+          // Solo buscar si no hay caché
+          if (!hasCache) {
+            searchNearbyParking(userLoc, defaultZoom, false)
+              .then(() => {
+                hasInitialized.current = true;
+                setShowLocationModal(false);
+              })
+              .catch(error => {
+                console.error('Error en búsqueda inicial:', error);
+              });
+          } else {
+            // Usar resultados en caché
+            setParkingSpots(cachedResults.spots);
+            hasInitialized.current = true;
+            setShowLocationModal(false);
+          }
         } catch (error) {
           console.error('Error al inicializar el mapa:', error);
         }
       });
     }
-  }, [originalHandleMapLoad, userLoc, searchNearbyParking]);
+  }, [originalHandleMapLoad, userLoc, searchNearbyParking, setParkingSpots, getCachedResult]);
 
   // Manejar eventos táctiles específicamente para móvil
   const handleMapTouchStart = useCallback((event) => {

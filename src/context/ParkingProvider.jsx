@@ -45,10 +45,46 @@ export function ParkingProvider({ children }) {
       return;
     }
 
+    // Si no hay spots nuevos, mantener los actuales
+    if (newSpots.length === 0) {
+      return;
+    }
+
     const timestamp = Date.now();
 
-    // Limpiar spots antiguos primero
-    setGooglePlacesSpots([]); // Limpiar estado anterior
+    // Comparar si los nuevos spots son idénticos a los actuales
+    // utilizando una lógica de diferenciación simple
+    const areSpotsSame = (oldSpots, newSpots) => {
+      if (oldSpots.length !== newSpots.length) return false;
+
+      // Crear un mapa de spots por placeId para comparación rápida
+      const oldSpotsMap = new Map();
+      oldSpots.forEach(spot => {
+        const key = spot.placeId || spot.googlePlaceId || spot.id;
+        oldSpotsMap.set(key, spot);
+      });
+
+      // Verificar si todos los nuevos spots ya existen
+      return newSpots.every(newSpot => {
+        const key = newSpot.placeId || newSpot.googlePlaceId || 'unknown';
+        const oldSpot = oldSpotsMap.get(key);
+
+        // Si no existe el spot, son diferentes
+        if (!oldSpot) return false;
+
+        // Comparar coordenadas
+        return (
+          Math.abs(parseFloat(newSpot.latitude) - parseFloat(oldSpot.latitude)) < 0.000001 &&
+          Math.abs(parseFloat(newSpot.longitude) - parseFloat(oldSpot.longitude)) < 0.000001
+        );
+      });
+    };
+
+    // Si los spots son idénticos, no actualizar
+    if (areSpotsSame(googlePlacesSpots, newSpots)) {
+      console.debug('📍 No hay cambios en los spots, omitiendo actualización');
+      return;
+    }
 
     // Procesar los nuevos spots
     const processedSpots = newSpots.map(spot => {
@@ -75,7 +111,7 @@ export function ParkingProvider({ children }) {
 
     // Actualizar directamente con los nuevos spots procesados
     setGooglePlacesSpots(processedSpots);
-  }, []);
+  }, [googlePlacesSpots]);
 
   // Inicializar searchNearbyParking después de tener updateParkingSpots
   const { searchNearbyParking } = useParkingSearch(updateParkingSpots, getCachedResult, setCachedResult);
