@@ -301,9 +301,14 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
 
       // Centrar el mapa en la nueva ubicación con zoom específico
       if (mapInstance) {
+        // Detectar si estamos en móvil
+        const isMobile = window.innerWidth <= 768;
+        const zoomLevel = isMobile ? 17 : 15; // Aumentar zoom en móvil
+
         // Usar requestAnimationFrame para sincronizar con el ciclo de renderizado
         requestAnimationFrame(() => {
-          mapInstance.setZoom(15);
+          // Primero establecer el zoom y luego centrar
+          mapInstance.setZoom(zoomLevel);
           mapInstance.panTo(userLocation);
 
           // Solo limpiar spots si no hay un spot seleccionado
@@ -313,12 +318,22 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
 
           // Realizar búsqueda forzada ignorando caché
           debug('🔍 Realizando búsqueda forzada en ubicación actual');
-          searchNearbyParking(userLocation, 15, false, true)
+          searchNearbyParking(userLocation, zoomLevel, false, true)
             .then(results => {
               if (results && results.length > 0) {
                 setParkingSpots(results);
                 lastSearchLocationRef.current = userLocation;
                 lastIdleTimeRef.current = Date.now();
+
+                // Forzar actualización visual de los marcadores
+                setTimeout(() => {
+                  if (mapInstance) {
+                    mapInstance.panBy(0, 1);
+                    setTimeout(() => {
+                      mapInstance.panBy(0, -1);
+                    }, 50);
+                  }
+                }, 100);
               }
               setShowLocationModal(false);
             })
@@ -340,93 +355,6 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
       handleLocationSkip();
     }
   }, [getCurrentLocation, updateUser, mapInstance, searchNearbyParking, setParkingSpots, setTargetLocation, handleLocationSkip, selectedSpot]);
-
-  // Cargar el mapa
-  const handleMapLoad = useCallback((map) => {
-    if (!map) return;
-
-    originalHandleMapLoad(map);
-    setMapInstance(map);
-
-    // Asegurarnos de que la API de Google Maps esté disponible
-    if (!window.google?.maps) {
-      console.error('🗺️ Google Maps API no está disponible');
-      return;
-    }
-
-    // Validar ubicación del usuario
-    const validateLocation = (location) => {
-      if (!location) return false;
-      const lat = parseFloat(location.lat);
-      const lng = parseFloat(location.lng);
-      return isFinite(lat) && isFinite(lng) &&
-             lat >= -90 && lat <= 90 &&
-             lng >= -180 && lng <= 180;
-    };
-
-    // Detectar si estamos en móvil
-    const isMobile = window.innerWidth <= 768;
-
-    // Solo mostrar el modal si:
-    // 1. No se ha inicializado antes
-    // 2. No tenemos ubicación del usuario O la ubicación es la default
-    // 3. No tenemos una ubicación válida en el contexto
-    const isDefaultLocation = userLoc &&
-      userLoc.lat === MAP_CONSTANTS.DEFAULT_LOCATION.lat &&
-      userLoc.lng === MAP_CONSTANTS.DEFAULT_LOCATION.lng;
-
-    const hasValidLocation = userLoc &&
-      !isDefaultLocation &&
-      validateLocation(userLoc);
-
-    if (!hasInitialized.current && !hasValidLocation) {
-      debug('📍 Mostrando modal de ubicación - No hay ubicación válida');
-      setShowLocationModal(true);
-    } else {
-      debug('📍 No es necesario mostrar modal de ubicación', {
-        hasInitialized: hasInitialized.current,
-        userLoc,
-        hasValidLocation
-      });
-    }
-
-    // Inicializar búsqueda si tenemos ubicación válida
-    if (map && hasValidLocation) {
-      // Usar requestAnimationFrame para sincronizar con el ciclo de renderizado
-      requestAnimationFrame(() => {
-        // Ajustar el zoom inicial según el dispositivo
-        const initialZoom = isMobile ? 15 : 17;
-
-        searchNearbyParking(userLoc, initialZoom, false)
-          .then(() => {
-            map.setZoom(initialZoom);
-            map.panTo(userLoc);
-
-            // Forzar una actualización visual suave
-            setTimeout(() => {
-              // Forzar un pequeño movimiento para asegurar que los marcadores se rendericen
-              map.panBy(1, 0);
-              setTimeout(() => {
-                map.panBy(-1, 0);
-              }, 50);
-            }, 100);
-
-            // En móvil, forzar una segunda actualización después de un breve delay
-            if (isMobile) {
-              setTimeout(() => {
-                map.panBy(0, 1);
-                setTimeout(() => {
-                  map.panBy(0, -1);
-                }, 50);
-              }, 300);
-            }
-          })
-          .catch(error => {
-            console.error('Error en búsqueda inicial:', error);
-          });
-      });
-    }
-  }, [originalHandleMapLoad, userLoc, searchNearbyParking]);
 
   // Verificar similitud de ubicaciones
   const isSimilarLocation = useCallback((location1, location2, threshold = 100) => {
@@ -1132,6 +1060,93 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
       setShowSearchHereButton(true);
     }
   }, []);
+
+  // Cargar el mapa
+  const handleMapLoad = useCallback((map) => {
+    if (!map) return;
+
+    originalHandleMapLoad(map);
+    setMapInstance(map);
+
+    // Asegurarnos de que la API de Google Maps esté disponible
+    if (!window.google?.maps) {
+      console.error('🗺️ Google Maps API no está disponible');
+      return;
+    }
+
+    // Validar ubicación del usuario
+    const validateLocation = (location) => {
+      if (!location) return false;
+      const lat = parseFloat(location.lat);
+      const lng = parseFloat(location.lng);
+      return isFinite(lat) && isFinite(lng) &&
+             lat >= -90 && lat <= 90 &&
+             lng >= -180 && lng <= 180;
+    };
+
+    // Detectar si estamos en móvil
+    const isMobile = window.innerWidth <= 768;
+
+    // Solo mostrar el modal si:
+    // 1. No se ha inicializado antes
+    // 2. No tenemos ubicación del usuario O la ubicación es la default
+    // 3. No tenemos una ubicación válida en el contexto
+    const isDefaultLocation = userLoc &&
+      userLoc.lat === MAP_CONSTANTS.DEFAULT_LOCATION.lat &&
+      userLoc.lng === MAP_CONSTANTS.DEFAULT_LOCATION.lng;
+
+    const hasValidLocation = userLoc &&
+      !isDefaultLocation &&
+      validateLocation(userLoc);
+
+    if (!hasInitialized.current && !hasValidLocation) {
+      debug('📍 Mostrando modal de ubicación - No hay ubicación válida');
+      setShowLocationModal(true);
+    } else {
+      debug('📍 No es necesario mostrar modal de ubicación', {
+        hasInitialized: hasInitialized.current,
+        userLoc,
+        hasValidLocation
+      });
+    }
+
+    // Inicializar búsqueda si tenemos ubicación válida
+    if (map && hasValidLocation) {
+      // Usar requestAnimationFrame para sincronizar con el ciclo de renderizado
+      requestAnimationFrame(() => {
+        // Ajustar el zoom inicial según el dispositivo
+        const initialZoom = isMobile ? 17 : 15;
+
+        searchNearbyParking(userLoc, initialZoom, false)
+          .then(() => {
+            map.setZoom(initialZoom);
+            map.panTo(userLoc);
+
+            // Forzar una actualización visual suave
+            setTimeout(() => {
+              // Forzar un pequeño movimiento para asegurar que los marcadores se rendericen
+              map.panBy(1, 0);
+              setTimeout(() => {
+                map.panBy(-1, 0);
+              }, 50);
+            }, 100);
+
+            // En móvil, forzar una segunda actualización después de un breve delay
+            if (isMobile) {
+              setTimeout(() => {
+                map.panBy(0, 1);
+                setTimeout(() => {
+                  map.panBy(0, -1);
+                }, 50);
+              }, 300);
+            }
+          })
+          .catch(error => {
+            console.error('Error en búsqueda inicial:', error);
+          });
+      });
+    }
+  }, [originalHandleMapLoad, userLoc, searchNearbyParking, setShowLocationModal]);
 
   if (loadError) return (
     <div className="w-full h-full flex items-center justify-center bg-white">

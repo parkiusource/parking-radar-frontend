@@ -113,31 +113,33 @@ export const useMapMarkers = (map, spots = [], onMarkerClick, getMarkerOptions) 
         // Forzar visibilidad del marcador
         content.style.position = 'absolute';
         content.style.transform = 'translate(-50%, -50%)';
-        content.style.zIndex = isMobileRef.current ? '1000' : '1';
+        content.style.zIndex = isMobileRef.current ? '9999' : '1';
         content.style.contain = 'none';
         content.style.contentVisibility = 'visible';
         content.style.visibility = 'visible';
         content.style.display = 'block';
         content.style.pointerEvents = 'auto';
-        // Prevenir que el marcador sea ocultado por content-visibility
         content.style.willChange = 'transform';
         content.style.backfaceVisibility = 'visible';
+        // Asegurar que el marcador siempre esté visible
+        content.style.opacity = '1';
+        content.style.isolation = 'isolate';
       }
 
       const markerOptions = {
         position,
         map: mapRef.current,
         content,
-        optimized: false, // Desactivar optimización para evitar problemas de visibilidad
-        zIndex: isMobileRef.current ? 1000 : 1,
+        optimized: false,
+        zIndex: isMobileRef.current ? 9999 : 1,
         visible: true,
         clickable: true,
         draggable: false,
         // Opciones específicas para móvil mejoradas
         ...(isMobileRef.current && {
-          collisionBehavior: 'OPTIONAL_AND_HIDES_LOWER_PRIORITY',
+          collisionBehavior: window.google.maps.CollisionBehavior?.OPTIONAL_AND_HIDES_LOWER_PRIORITY || 'OPTIONAL_AND_HIDES_LOWER_PRIORITY',
           touchAction: 'manipulation',
-          animation: window.google.maps.Animation.DROP,
+          animation: null, // Remover animación para mejor rendimiento
           flat: true,
           anchor: new window.google.maps.Point(markerSize / 2, markerSize / 2),
         }),
@@ -145,6 +147,17 @@ export const useMapMarkers = (map, spots = [], onMarkerClick, getMarkerOptions) 
       };
 
       const marker = createMapMarker(markerOptions);
+
+      // Asegurar que el marcador sea visible después de crearlo
+      if (marker.element) {
+        requestAnimationFrame(() => {
+          if (marker.element.style) {
+            marker.element.style.visibility = 'visible';
+            marker.element.style.display = 'block';
+            marker.element.style.opacity = '1';
+          }
+        });
+      }
 
       if (onClickRef.current && marker.element) {
         const handleMarkerClick = () => {
@@ -252,8 +265,8 @@ export const useMapMarkers = (map, spots = [], onMarkerClick, getMarkerOptions) 
 
       // En móvil, crear marcadores en lotes más pequeños
       if (isMobileRef.current) {
-        const BATCH_SIZE = 5; // Procesar 5 marcadores a la vez
-        const BATCH_DELAY = 100; // 100ms entre lotes
+        const BATCH_SIZE = 3; // Reducir el tamaño del lote para mejor rendimiento
+        const BATCH_DELAY = 50; // Reducir el delay entre lotes
 
         const processBatch = (startIndex) => {
           const batch = validSpots.slice(startIndex, startIndex + BATCH_SIZE);
@@ -265,10 +278,13 @@ export const useMapMarkers = (map, spots = [], onMarkerClick, getMarkerOptions) 
                 newMarkers.set(spot.id, marker);
                 // Asegurar que el marcador sea visible
                 marker.element.map = mapRef.current;
-                if (marker.element.style) {
-                  marker.element.style.visibility = 'visible';
-                  marker.element.style.display = 'block';
-                }
+                requestAnimationFrame(() => {
+                  if (marker.element.style) {
+                    marker.element.style.visibility = 'visible';
+                    marker.element.style.display = 'block';
+                    marker.element.style.opacity = '1';
+                  }
+                });
               }
             } catch (err) {
               console.warn('Error al crear marcador:', err);
@@ -281,11 +297,18 @@ export const useMapMarkers = (map, spots = [], onMarkerClick, getMarkerOptions) 
               processBatch(startIndex + BATCH_SIZE);
             }, BATCH_DELAY);
           } else {
-            // Finalizar actualización
+            // Finalizar actualización y forzar refresco visual
             markersRef.current = newMarkers;
             spotsRef.current = validSpots;
             lastSpotsHashRef.current = newSpotsHash;
             isUpdatingRef.current = false;
+
+            // Forzar refresco visual de los marcadores
+            if (mapRef.current) {
+              requestAnimationFrame(() => {
+                mapRef.current.panBy(0, 0);
+              });
+            }
           }
         };
 
