@@ -4,7 +4,6 @@ import { Route, Routes, Navigate } from 'react-router-dom';
 // Lazy load components
 const HomePage = lazy(() => import('@/pages/HomePage'));
 const About = lazy(() => import('@/pages/About'));
-const Features = lazy(() => import('@/pages/Features'));
 const Parking = lazy(() => import('@/pages/Parking'));
 const SupportForm = lazy(() => import('@/pages/SupportForm'));
 const AdminLandingPage = lazy(() => import('@/pages/AdminLandingPage'));
@@ -24,7 +23,6 @@ const AppRoutes = () => (
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/about" element={<About />} />
-      <Route path="/features" element={<Features />} />
       <Route path="/parking" element={<Parking />} />
       <Route path="/support" element={<SupportForm />} />
       <Route path="/admin-landing" element={<AdminLandingPage />} />

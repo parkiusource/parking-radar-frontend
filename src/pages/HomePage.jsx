@@ -111,24 +111,47 @@ const styleSheet = document.createElement("style");
 styleSheet.innerText = styles;
 document.head.appendChild(styleSheet);
 
-// Componente para renderizar un Feature en el hero con animación
-const HeroFeature = ({ icon, text, index }) => (
+// Memoized components
+const HeroFeature = memo(({ icon, text, index }) => (
   <motion.div
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay: 0.8 + (index * 0.1) }}
-    className="flex items-center gap-3 px-4 py-2.5 bg-white/10 backdrop-blur-sm rounded-full border border-white/20 shadow-md hover:bg-white/15 transition-colors group"
+    className="flex items-center gap-4 px-6 py-4 bg-white/15 backdrop-blur-lg rounded-2xl border border-white/30 shadow-lg hover:bg-white/20 transition-all duration-300 group hover:scale-105"
   >
-    <span className="bg-primary-500 p-2 rounded-full text-white">{icon}</span>
-    <span className="text-sm md:text-base whitespace-nowrap text-white font-medium group-hover:text-white/90">{text}</span>
+    <div className="bg-gradient-to-br from-primary-500 to-primary-600 p-3 rounded-xl text-white shadow-lg group-hover:scale-110 transition-transform duration-300">
+      {icon}
+    </div>
+    <span className="text-base md:text-lg text-white font-semibold group-hover:text-white transition-colors">
+      {text}
+    </span>
   </motion.div>
-);
+));
 
-HeroFeature.propTypes = {
-  icon: PropTypes.node.isRequired,
-  text: PropTypes.string.isRequired,
-  index: PropTypes.number.isRequired
-};
+HeroFeature.displayName = 'HeroFeature';
+
+const StatCard = memo(({ value, label, description, icon }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ once: true }}
+    className="relative group"
+  >
+    <div className="absolute inset-0 bg-gradient-to-br from-primary-50 to-primary-100 rounded-2xl transform group-hover:scale-105 transition-transform duration-300" />
+    <div className="relative p-8 text-center backdrop-blur-sm bg-white/90 rounded-2xl border border-white/50 shadow-xl">
+      <div className="inline-flex items-center justify-center w-16 h-16 mb-4 rounded-2xl bg-primary-600 text-white group-hover:scale-110 transition-transform">
+        {icon}
+      </div>
+      <div className="text-4xl md:text-5xl font-bold text-primary-700 mb-2 group-hover:scale-110 transition-transform">
+        {value}
+      </div>
+      <div className="text-gray-800 font-semibold mb-2">{label}</div>
+      <div className="text-gray-700">{description}</div>
+    </div>
+  </motion.div>
+));
+
+StatCard.displayName = 'StatCard';
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -150,7 +173,7 @@ const HomePage = () => {
       });
   }, []);
 
-  const HERO_FEATURES = useMemo(() => [
+  const heroFeatures = useMemo(() => [
     {
       icon: <FaMapMarkerAlt className="text-primary-300" />,
       text: t('hero.features.availability', 'Disponibilidad en tiempo real')
@@ -169,7 +192,7 @@ const HomePage = () => {
     }
   ], [t]);
 
-  const STATS_CARDS = useMemo(() => [
+  const statsCards = useMemo(() => [
     {
       value: "500+",
       label: t('stats.cards.parking.title', 'Parqueaderos'),
@@ -471,8 +494,8 @@ const HomePage = () => {
             className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-1000"
             style={{
               backgroundImage: heroImageLoaded ?
-                `linear-gradient(to bottom, rgba(7, 89, 133, 0.85), rgba(7, 89, 133, 0.9)), url(${bgMapHero})` :
-                'linear-gradient(to bottom ,rgba(7, 89, 133, 0.85), rgba(7, 89, 133, 0.9))',
+                `linear-gradient(to bottom, rgba(7, 89, 133, 0.95), rgba(7, 89, 133, 0.98)), url(${bgMapHero})` :
+                'linear-gradient(to bottom ,rgba(7, 89, 133, 0.95), rgba(7, 89, 133, 0.98))',
               transform: 'scale(1.1)',
             }}
           >
@@ -488,11 +511,9 @@ const HomePage = () => {
             >
               <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-8 tracking-tight leading-tight">
                 <span className="block mb-2">{t('hero.title', 'Encuentra el parqueadero')}</span>
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-amber-400 to-amber-600">
-                  {t('hero.titleHighlighted', 'ideal en segundos')}
-                </span>
+                <span className="text-amber-400">{t('hero.titleHighlighted', 'ideal en segundos')}</span>
               </h1>
-              <p className="text-xl sm:text-2xl md:text-3xl text-gray-100 max-w-3xl mx-auto leading-relaxed">
+              <p className="text-xl sm:text-2xl md:text-3xl text-white max-w-3xl mx-auto leading-relaxed">
                 {t('hero.subtitle', 'Información en tiempo real sobre disponibilidad, tarifas y seguridad')}
               </p>
             </motion.div>
@@ -561,7 +582,7 @@ const HomePage = () => {
                 <Link to="/parking" className="w-full sm:w-auto">
                   <Button
                     variant="light"
-                    className="w-full px-8 py-4 bg-white/10 backdrop-blur-sm text-white border border-white/20 hover:bg-white/20 transition-all duration-300 rounded-full font-medium flex items-center justify-center gap-2"
+                    className="w-full px-8 py-4 bg-white/20 backdrop-blur-sm text-white border border-white/30 hover:bg-white/30 transition-all duration-300 rounded-full font-semibold flex items-center justify-center gap-2"
                   >
                     <LuSearch className="text-xl" />
                     <span>{t('hero.btn.seeAllParkingLots', 'Ver todos los parqueaderos')}</span>
@@ -572,26 +593,13 @@ const HomePage = () => {
 
             {/* Features Grid - Simplified */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-6xl mx-auto">
-              {HERO_FEATURES.map((feature, index) => (
-                <motion.div
+              {heroFeatures.map((feature, index) => (
+                <HeroFeature
                   key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.8 + index * 0.1 }}
-                  className="group relative"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-white/5 rounded-2xl transform group-hover:scale-105 transition-transform duration-300 border border-white/20" />
-                  <div className="relative bg-white/5 backdrop-blur-sm rounded-2xl transform group-hover:scale-105 transition-transform duration-300 p-6 h-full overflow-hidden flex items-center gap-4">
-                    <div className="bg-gradient-to-br from-primary-400 to-primary-600 w-14 h-14 rounded-xl flex items-center justify-center shrink-0 shadow-lg group-hover:scale-110 transition-transform">
-                      <span className="text-white text-2xl">
-                        {feature.icon}
-                      </span>
-                    </div>
-                    <h3 className="text-white font-semibold text-lg group-hover:text-white/90 transition-colors">
-                      {feature.text}
-                    </h3>
-                  </div>
-                </motion.div>
+                  icon={feature.icon}
+                  text={feature.text}
+                  index={index}
+                />
               ))}
             </div>
           </div>
@@ -604,34 +612,21 @@ const HomePage = () => {
           </div>
           <div className="container mx-auto px-4">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto relative z-10">
-              {STATS_CARDS.map((stat, index) => (
-                <motion.div
+              {statsCards.map((stat, index) => (
+                <StatCard
                   key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                  className="relative group"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary-50 to-primary-50/20 rounded-2xl transform group-hover:scale-105 transition-transform duration-300" />
-                  <div className="relative p-8 text-center">
-                    <div className="inline-flex items-center justify-center w-16 h-16 mb-4 rounded-2xl bg-primary/10 text-primary group-hover:scale-110 transition-transform">
-                      {stat.icon}
-                    </div>
-                    <div className="text-4xl md:text-5xl font-bold text-primary mb-2 group-hover:scale-110 transition-transform">
-                      {stat.value}
-                    </div>
-                    <div className="text-gray-900 font-semibold mb-1">{stat.label}</div>
-                    <div className="text-sm text-gray-600">{stat.description}</div>
-                  </div>
-                </motion.div>
+                  value={stat.value}
+                  label={stat.label}
+                  description={stat.description}
+                  icon={stat.icon}
+                />
               ))}
             </div>
           </div>
         </section>
 
         {/* Admin Section - Enhanced */}
-        <section className="py-24 bg-gradient-to-b from-primary-600 to-primary-800 relative overflow-hidden">
+        <section className="py-24 bg-gradient-to-b from-primary-700 to-primary-800 relative overflow-hidden">
 
           <div className="container mx-auto px-4 relative z-10">
             <motion.div
@@ -644,7 +639,7 @@ const HomePage = () => {
                 <div>
                   <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
                   {t('admin.sectionTitle', 'Potencia tu negocio con') + ' '}
-                    <span className="text-amber-400">ParkiÜ</span>
+                    <span className="text-amber-300">ParkiÜ</span>
                   </h2>
                   <p className="text-xl md:text-2xl text-white/90 mb-8 leading-relaxed">
                     {t('admin.description', 'Únete a la red de parqueaderos más grande y moderna. Optimiza tus operaciones y aumenta tus ingresos.')}
@@ -702,8 +697,11 @@ const HomePage = () => {
                   <img
                     src={imgParkiu}
                     alt="Plataforma de administración ParkiÜ"
-                    className="relative rounded-2xl shadow-2xl border-4 border-white/20 transform hover:scale-105 transition-transform duration-300"
+                    width={800}
+                    height={600}
+                    className="relative rounded-2xl shadow-2xl border-4 border-white/20 transform hover:scale-105 transition-transform duration-300 w-full h-auto"
                     loading="lazy"
+                    role="img"
                   />
                 </div>
               </motion.div>
