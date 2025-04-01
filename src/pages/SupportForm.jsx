@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
+import { CheckCircle, Send, AlertCircle, MailIcon, PhoneIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+
 import { Header } from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { Button, Card } from '@/components/common';
 import { CardContent } from '@/components/common/Card';
-import { CheckCircle, Send, AlertCircle, MailIcon, PhoneIcon } from 'lucide-react';
 
 import iconsupport from '@/assets/Icon-support.png';
 
@@ -15,6 +17,7 @@ const API_URL = 'https://eo5k21qt8rpapp6.m.pipedream.net';
 const SupportForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState(null); // 'success', 'error', null
+  const { t } = useTranslation();
 
   const {
     register,
@@ -77,7 +80,7 @@ const SupportForm = () => {
       <main className="bg-secondary-50 min-h-full flex items-center pt-24 pb-12">
         <div className="w-full max-w-4xl mx-auto px-4 sm:px-6">
           <h1 className="text-3xl font-bold text-center text-gray-800 mb-8">
-            Centro de Soporte
+            {t('support.title', 'Centro de Soporte')}
           </h1>
 
           {/* Form Card - Perfectly centered */}
@@ -88,9 +91,9 @@ const SupportForm = () => {
                 <div className="bg-primary-600 text-white p-5 sm:p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h2 className="text-xl font-bold">¿Cómo podemos ayudarte?</h2>
+                      <h2 className="text-xl font-bold">{t('support.form.title', '¿Cómo podemos ayudarte?')}</h2>
                       <p className="mt-1 text-sm text-primary-100">
-                        Completa el formulario y nuestro equipo te responderá a la brevedad
+                        {t('support.form.description', 'Completa el formulario y nuestro equipo te responderá a la brevedad')}
                       </p>
                     </div>
                     <img
@@ -111,7 +114,7 @@ const SupportForm = () => {
                     animate={{ opacity: 1, height: 'auto' }}
                   >
                     <CheckCircle className="w-5 h-5 mr-2 flex-shrink-0" />
-                    <span>¡Tu solicitud ha sido enviada correctamente! Te contactaremos pronto.</span>
+                    <span>{t('support.form.submitStatus.success', '¡Tu solicitud ha sido enviada correctamente! Te contactaremos pronto.')}</span>
                   </motion.div>
                 )}
 
@@ -122,7 +125,7 @@ const SupportForm = () => {
                     animate={{ opacity: 1, height: 'auto' }}
                   >
                     <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0" />
-                    <span>Hubo un problema al enviar tu solicitud. Por favor, intenta nuevamente.</span>
+                    <span>{t('support.form.submitStatus.error', 'Hubo un problema al enviar tu solicitud. Por favor, intenta nuevamente.')}</span>
                   </motion.div>
                 )}
 
@@ -135,15 +138,15 @@ const SupportForm = () => {
                         htmlFor="username"
                         className="block text-sm font-medium text-gray-700 mb-1"
                       >
-                        Nombre <span className="text-red-500">*</span>
+                        {t('support.form.fields.name', 'Nombre')} <span className="text-red-500">*</span>
                       </label>
                       <input
                         id="username"
                         type="text"
                         className={`w-full px-3 py-2 rounded-lg border ${errors.username ? 'border-red-500' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-primary-500`}
-                        placeholder="Escribe tu nombre"
+                        placeholder={t('support.form.placeholder.name', 'Escribe tu nombre')}
                         {...register("username", {
-                          required: "El nombre es obligatorio"
+                          required: t('support.form.required.name', 'El nombre es obligatorio')
                         })}
                       />
                       {errors.username && (
@@ -159,15 +162,15 @@ const SupportForm = () => {
                         htmlFor="email"
                         className="block text-sm font-medium text-gray-700 mb-1"
                       >
-                        Correo electrónico <span className="text-red-500">*</span>
+                        {t('support.form.fields.email', 'Correo electrónico')} <span className="text-red-500">*</span>
                       </label>
                       <input
                         id="email"
                         type="email"
                         className={`w-full px-3 py-2 rounded-lg border ${errors.email ? 'border-red-500' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-primary-500`}
-                        placeholder="tu@correo.com"
+                        placeholder={t('support.form.placeholder.email', 'tu@correo.com')}
                         {...register("email", {
-                          required: "El correo electrónico es obligatorio",
+                          required: t('support.form.required.email', 'El correo electrónico es obligatorio'),
                           pattern: {
                             value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
                             message: "Ingresa un correo electrónico válido"
@@ -188,15 +191,15 @@ const SupportForm = () => {
                       htmlFor="subject"
                       className="block text-sm font-medium text-gray-700 mb-1"
                     >
-                      Asunto <span className="text-red-500">*</span>
+                      {t('support.form.fields.subject', 'Asunto')} <span className="text-red-500">*</span>
                     </label>
                     <input
                       id="subject"
                       type="text"
                       className={`w-full px-3 py-2 rounded-lg border ${errors.subject ? 'border-red-500' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-primary-500`}
-                      placeholder="Ej. Problema con mi reserva"
+                      placeholder={t('support.form.placeholder.subject', 'Ej. Problema con mi reserva')}
                       {...register("subject", {
-                        required: "El asunto es obligatorio"
+                        required: t('support.form.required.subject', 'El asunto es obligatorio')
                       })}
                     />
                     {errors.subject && (
@@ -212,15 +215,15 @@ const SupportForm = () => {
                       htmlFor="description"
                       className="block text-sm font-medium text-gray-700 mb-1"
                     >
-                      Descripción <span className="text-red-500">*</span>
+                      {t('support.form.fields.description', 'Descripción')} <span className="text-red-500">*</span>
                     </label>
                     <textarea
                       id="description"
                       rows="5"
                       className={`w-full px-3 py-2 rounded-lg border ${errors.description ? 'border-red-500' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-primary-500`}
-                      placeholder="Describe detalladamente tu petición, queja, sugerencia o reclamo"
+                      placeholder={t('support.form.placeholder.description', 'Describe detalladamente tu petición, queja, sugerencia o reclamo')}
                       {...register("description", {
-                        required: "La descripción es obligatoria",
+                        required: t('support.form.required.description', 'La descripción es obligatoria'),
                         minLength: {
                           value: 20,
                           message: "Por favor proporciona una descripción más detallada (mínimo 20 caracteres)"
@@ -233,7 +236,7 @@ const SupportForm = () => {
                       </p>
                     )}
                     <p className="mt-1 text-xs text-gray-500">
-                      Todos los campos marcados con <span className="text-red-500">*</span> son obligatorios
+                      {t('support.form.fieldsComplete', 'Todos los campos marcados con * son obligatorios')}
                     </p>
                   </div>
 
@@ -247,12 +250,12 @@ const SupportForm = () => {
                       {isSubmitting ? (
                         <>
                           <div className="animate-spin w-5 h-5 border-2 border-white border-r-transparent rounded-full" />
-                          <span>Enviando...</span>
+                          <span>{t('support.form.btn.sending', 'Enviando...')}</span>
                         </>
                       ) : (
                         <>
                           <Send className="w-5 h-5" />
-                          <span>Enviar solicitud</span>
+                          <span>{t('support.form.btn.submit', 'Enviar solicitud')}</span>
                         </>
                       )}
                     </Button>
@@ -264,7 +267,7 @@ const SupportForm = () => {
             {/* Simple contact info - better alignment for mobile */}
             <div className="mt-6 sm:mt-8 mb-8 text-center">
               <p className="text-gray-600 mb-2">
-                ¿Necesitas ayuda inmediata? Contáctanos:
+                {t('support.simpleContactInfo', '¿Necesitas ayuda inmediata? Contáctanos:')}
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 mt-2">
                 <a href="mailto:soporte@parkiu.com" className="flex items-center text-primary-600 hover:underline">
