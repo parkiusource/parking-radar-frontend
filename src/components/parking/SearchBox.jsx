@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, forwardRef } from 'react';
+import { useState, useEffect, useCallback, forwardRef, memo } from 'react';
 
 import isEmpty from 'lodash/isEmpty';
 import PropTypes from 'prop-types';
@@ -15,12 +15,47 @@ import {
 } from '@/components/common/Popover';
 import { Input } from '@/components/common/Input';
 
-const getStatusMessage = ({ loading, results }) => {
-  if (loading) return 'Cargando...';
-  if (isEmpty(results)) return 'No se encontraron resultados';
+// Memoize static messages
+const STATUS_MESSAGES = {
+  loading: 'Cargando...',
+  noResults: 'No se encontraron resultados'
 };
 
-// Convertir a forwardRef para poder recibir referencias desde el componente padre
+// Memoized result item component
+const ResultItem = memo(({ result, onSelect, onClose }) => (
+  <div className="w-full">
+    <PopoverClose asChild>
+      <Button
+        variant="flat"
+        className="flex-col items-start py-2 w-full h-full text-left gap-1"
+        onClick={() => {
+          onClose();
+          onSelect(result);
+        }}
+        role="option"
+        aria-selected={false}
+      >
+        <h3 className="flex items-center gap-2 w-full text-sm text-ellipsis overflow-hidden font-light">
+          <LuMapPin className="text-primary text-xs" aria-hidden="true" />
+          {result.displayName.text}
+        </h3>
+        <p className="w-full text-xs text-ellipsis overflow-hidden">
+          {result.formattedAddress}
+        </p>
+      </Button>
+    </PopoverClose>
+  </div>
+));
+
+ResultItem.displayName = 'ResultItem';
+
+// Memoized status message component
+const StatusMessage = memo(({ message }) => (
+  <p className="text-secondary-500 p-4" role="status">{message}</p>
+));
+
+StatusMessage.displayName = 'StatusMessage';
+
 const SearchBox = forwardRef(({
   children,
   className,
@@ -32,7 +67,6 @@ const SearchBox = forwardRef(({
   const [searchTerm, setSearchTerm] = useState(value || '');
   const [popoverOpen, setPopoverOpen] = useState(false);
 
-  // Actualizar searchTerm cuando cambia el valor externo
   useEffect(() => {
     if (value !== undefined) {
       setSearchTerm(value);
@@ -41,22 +75,30 @@ const SearchBox = forwardRef(({
 
   const { results, isPending: loading } = useSearchHook(searchTerm);
 
-  // Función optimizada para manejar cambios en el input
   const handleInputChange = useCallback((e) => {
     const newValue = e.target.value;
     setSearchTerm(newValue);
-
-    // Solo mostramos el popover si hay texto
-    if (!isEmpty(newValue)) {
-      setPopoverOpen(true);
-    } else {
-      setPopoverOpen(false);
-    }
+    setPopoverOpen(!isEmpty(newValue));
   }, []);
 
-  // Función para limpiar la búsqueda
   const handleClearSearch = useCallback(() => {
     setSearchTerm('');
+    setPopoverOpen(false);
+  }, []);
+
+  const handleResultSelect = useCallback((result) => {
+    onResultSelected(result);
+  }, [onResultSelected]);
+
+  const handlePopoverClose = useCallback(() => {
+    setPopoverOpen(false);
+  }, []);
+
+  const handlePopoverOpen = useCallback((e) => {
+    e.preventDefault();
+  }, []);
+
+  const handleInteractOutside = useCallback(() => {
     setPopoverOpen(false);
   }, []);
 
@@ -72,6 +114,11 @@ const SearchBox = forwardRef(({
               value={searchTerm}
               onChange={handleInputChange}
               className="w-full py-2 pl-8 pr-4 text-base"
+              aria-label="Buscar lugar"
+              aria-expanded={popoverOpen}
+              aria-controls="search-results"
+              aria-haspopup="listbox"
+              role="combobox"
             />
             {children}
             {!isEmpty(searchTerm) && (
@@ -92,47 +139,27 @@ const SearchBox = forwardRef(({
             style={{
               width: 'var(--radix-popover-trigger-width)',
             }}
-            onOpenAutoFocus={(e) => {
-              e.preventDefault();
-            }}
-            onInteractOutside={() => {
-              setPopoverOpen(false);
-            }}
+            onOpenAutoFocus={handlePopoverOpen}
+            onInteractOutside={handleInteractOutside}
+            role="listbox"
+            id="search-results"
+            aria-label="Resultados de búsqueda"
           >
-            {loading && (
-              <p className="text-secondary-500 p-4">Cargando...</p>
-            )}
-
-            {!loading && !isEmpty(results) ? (
+            {loading ? (
+              <StatusMessage message={STATUS_MESSAGES.loading} />
+            ) : !isEmpty(results) ? (
               <div className="h-full w-full flex flex-col divide-solid divide-y-[1px] divide-neutral-200 p-0 items-center justify-center">
                 {results.map((result, index) => (
-                  <div className="w-full" key={index}>
-                    <PopoverClose asChild>
-                      <Button
-                        variant="flat"
-                        className="flex-col items-start py-2 w-full h-full text-left gap-1"
-                        onClick={() => {
-                          // Cerramos el popover y limpiamos la búsqueda
-                          setPopoverOpen(false);
-                          onResultSelected(result);
-                        }}
-                      >
-                        <h3 className="flex items-center gap-2 w-full text-sm text-ellipsis overflow-hidden font-light">
-                          <LuMapPin className="text-primary text-xs" />
-                          {result.displayName.text}
-                        </h3>
-                        <p className="w-full text-xs text-ellipsis overflow-hidden">
-                          {result.formattedAddress}
-                        </p>
-                      </Button>
-                    </PopoverClose>
-                  </div>
+                  <ResultItem
+                    key={index}
+                    result={result}
+                    onSelect={handleResultSelect}
+                    onClose={handlePopoverClose}
+                  />
                 ))}
               </div>
-            ) : !loading && (
-              <p className="text-secondary-500 p-4">
-                {getStatusMessage({ loading, searchTerm, results })}
-              </p>
+            ) : (
+              <StatusMessage message={STATUS_MESSAGES.noResults} />
             )}
           </PopoverContent>
         </PopoverPortal>
