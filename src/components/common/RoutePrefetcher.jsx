@@ -5,7 +5,6 @@ import { useLocation } from 'react-router-dom';
 const mainRoutes = [
   () => import('@/pages/HomePage'),
   () => import('@/pages/About'),
-  () => import('@/pages/Features'),
   () => import('@/pages/Parking'),
 ];
 
