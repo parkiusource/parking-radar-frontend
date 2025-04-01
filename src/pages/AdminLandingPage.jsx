@@ -119,7 +119,7 @@ const AdminLandingPage = () => {
                   <span className="text-amber-400">{t('adminLanding.hero.titleHighlighted', 'tecnología inteligente')}</span>
                 </h1>
                 <p className="text-xl md:text-2xl text-white/90 mb-8 leading-relaxed">
-                {t('adminLanding.hero.description', 'Únete a la red de parqueaderos más innovadora de Colombia y transforma la manera en que gestionas tu negocio.')}
+                  {t('adminLanding.hero.description', 'Únete a la red de parqueaderos más innovadora de Colombia y transforma la manera en que gestionas tu negocio.')}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                   <Link to="/register">

@@ -404,6 +404,41 @@ const resources = {
           }
         }
       },
+      support: {
+        title: 'Centro de Soporte',
+        form: {
+          title: '¿Cómo podemos ayudarte?',
+          description: 'Completa el formulario y nuestro equipo te responderá a la brevedad',
+          submitStatus:{
+            success: '¡Tu solicitud ha sido enviada correctamente! Te contactaremos pronto.',
+            error: 'Hubo un problema al enviar tu solicitud. Por favor, intenta nuevamente.'
+          },
+          fields: {
+            name: 'Nombre',
+            email: 'Correo electrónico',
+            subject: 'Asunto',
+            description: 'Descripción',
+          },
+          placeholder: {
+            name: 'Escribe tu nombre',
+            email: 'tu@correo.com',
+            subject: 'Ej. Problema con mi reserva',
+            description: 'Describe detalladamente tu petición, queja, sugerencia o reclamo',
+          },
+          required: {
+            name: 'El nombre es obligatorio',
+            email: 'El correo electrónico es obligatorio',
+            subject: 'El asunto es obligatorio',
+            description: 'La descripción es obligatoria',
+          },
+          btn:{
+            submit: 'Enviar solicitud',
+            sending: 'Enviando...',
+          },
+          fieldsComplete: 'Todos los campos marcados con * son obligatorios',
+        },
+        simpleContactInfo: '¿Necesitas ayuda inmediata? Contáctanos:',
+      },
     }
   },
   en: {
@@ -805,6 +840,41 @@ const resources = {
             contactSales: 'Contact sales'
           }
         }
+      },
+      support: {
+        title: 'Support Center',
+        form: {
+          title: 'How can we help you?',
+          description: 'Fill out the form and our team will get back to you as soon as possible',
+          submitStatus:{
+            success: 'Your request has been sent successfully! We will contact you soon.',
+            error: 'There was a problem sending your request. Please try again.'
+          },
+          fields: {
+            name: 'Name',
+            email: 'Email',
+            subject: 'Subject',
+            description: 'Description',
+          },
+          placeholder: {
+            name: 'Type your name',
+            email: 'you@email.com',
+            subject: 'E.g. Problem with my reservation',
+            description: 'Describe in detail your request, complaint, suggestion or claim',
+          },
+          required: {
+            name: 'Name is required',
+            email: 'Email is required',
+            subject: 'Subject is required',
+            description: 'Subject is required',
+          },
+          btn:{
+            submit: 'Send request',
+            sending: 'Sending...',
+          },
+          fieldsComplete: 'All fields marked with * are required',
+        },
+        simpleContactInfo: 'Need immediate assistance? Contact us:',
       },
     }
   }
