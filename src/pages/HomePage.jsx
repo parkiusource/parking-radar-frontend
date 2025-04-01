@@ -702,7 +702,9 @@ const HomePage = () => {
                   <img
                     src={imgParkiu}
                     alt="Plataforma de administración ParkiÜ"
-                    className="relative rounded-2xl shadow-2xl border-4 border-white/20 transform hover:scale-105 transition-transform duration-300"
+                    width={800}
+                    height={600}
+                    className="relative rounded-2xl shadow-2xl border-4 border-white/20 transform hover:scale-105 transition-transform duration-300 w-full h-auto"
                     loading="lazy"
                   />
                 </div>
