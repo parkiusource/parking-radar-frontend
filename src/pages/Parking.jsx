@@ -245,6 +245,13 @@ export default function Parking() {
     };
   }, [cancelPendingSearches, cleanupState]);
 
+  const handleSpotSelect = useCallback((spot) => {
+    setSelectedSpot(spot);
+    if (mapRef.current) {
+      mapRef.current.handleCardClick(spot);
+    }
+  }, []);
+
   return (
     <LazyMotion features={domAnimation}>
       <div className="flex flex-col h-[100dvh] overflow-hidden bg-white">
@@ -294,6 +301,7 @@ export default function Parking() {
                 setSelectedSpot={setSelectedSpot}
                 targetLocation={targetLocation}
                 onParkingSpotSelected={handleParkingSpotSelected}
+                onLocationChange={handleSpotSelect}
               />
             </motion.section>
 
@@ -319,6 +327,8 @@ export default function Parking() {
                     spots={nearbySpots}
                     selectedSpot={selectedSpot}
                     onSpotClick={handleParkingCardClick}
+                    onSpotSelect={handleSpotSelect}
+                    mapRef={mapRef}
                   />
                 </AnimatePresence>
               </div>
@@ -338,7 +348,9 @@ export default function Parking() {
               ) : nearbySpots?.length > 0 ? (
                 <ParkingCarousel
                   parkingSpots={nearbySpots}
-                  onSelect={handleParkingCardClick}
+                  onSpotSelect={handleSpotSelect}
+                  selectedSpotId={selectedSpot?.id}
+                  mapRef={mapRef}
                 />
               ) : (
                 <NoResultsMessage />

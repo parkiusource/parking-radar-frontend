@@ -2,7 +2,7 @@ import { motion, AnimatePresence, useMotionValue, useTransform, useAnimation } f
 import PropTypes from 'prop-types';
 import { LuMapPin, LuArrowUpDown, LuCar, LuDollarSign } from 'react-icons/lu';
 import { useEffect, useState, useRef } from 'react';
-import { ParkingSpotList } from './ParkingSpotList';
+import ParkingSpotList from '@/components/parking/ParkingSpotList';
 
 export function MobileBottomSheet({
   spots,
