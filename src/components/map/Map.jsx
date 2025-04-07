@@ -127,8 +127,7 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
         lat: parseFloat(spot.latitude),
         lng: parseFloat(spot.longitude)
       };
-      adjustMapForInfoWindow(new window.google.maps.LatLng(position));
-    }
+      adjustMapForInfoWindow(new window.google.maps.LatLng(position.lat, position.lng));
   }, [mapInstance, onLocationChange, adjustMapForInfoWindow]);
 
   // Hook personalizado para manejar la visualización de los marcadores
