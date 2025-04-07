@@ -82,17 +82,16 @@ const ParkingSpotCard = memo(({
   }, [spot.distance]);
 
   return (
-    <div
+    <button
+      type="button"
       className={`
-        bg-white rounded-lg border transition-all cursor-pointer
+        w-full text-left bg-white rounded-lg border transition-all
         ${isCarousel ? 'w-[300px] flex-none snap-start' : 'w-full'}
         ${isSelected ? 'ring-2 ring-primary shadow-md' : 'hover:shadow-md border-gray-200'}
-        ${isCarousel ? 'p-3 sm:p-4' : 'p-3 sm:p-4'}
+        p-3 sm:p-4
       `}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
-      role="button"
-      tabIndex={0}
       aria-pressed={isSelected}
     >
       <div className="relative">
@@ -124,12 +123,20 @@ const ParkingSpotCard = memo(({
               {getStatusBadge()}
               {isParkiu ? (
                 <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[10px] sm:text-xs font-medium bg-gray-50 text-gray-700 border border-gray-200">
-                  <img src="/icons/providers/parkiu.svg" alt="Parkiu" className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1" />
+                  <img
+                    src="/icons/providers/parkiu.svg"
+                    alt="Parkiu"
+                    className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1"
+                  />{' '}
                   Parkiu
                 </span>
               ) : (
                 <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-[10px] sm:text-xs font-medium bg-gray-50 text-gray-600 border border-gray-200">
-                  <img src="/icons/providers/google.svg" alt="Google" className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1" />
+                  <img
+                    src="/icons/providers/google.svg"
+                    alt="Google"
+                    className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1"
+                  />{' '}
                   Google
                 </span>
               )}
@@ -159,6 +166,7 @@ const ParkingSpotCard = memo(({
 
               {variant === 'expanded' && (
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsExpanded(!isExpanded);
@@ -268,18 +276,19 @@ const ParkingSpotCard = memo(({
               </span>
             )}
             <button
+              type="button"
               onClick={handleNavigateClick}
               onKeyDown={handleNavigateKeyDown}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-full transition-colors"
               aria-label="Navegar al parqueadero"
             >
               <Navigation className="w-4 h-4" />
-              Navegar
+              <span>Navegar</span>
             </button>
           </div>
         </div>
       </div>
-    </div>
+    </button>
   );
 });
 
