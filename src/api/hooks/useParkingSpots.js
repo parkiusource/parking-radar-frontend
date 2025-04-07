@@ -60,7 +60,7 @@ export const useParkingSpots = ({ queryClient, ...options }) => {
 
         // Valores por defecto para horarios y estado
         const operationalData = {
-          is24h: parking.is_24h || true,
+          is24h: parking.is_24h ?? true,
           operatingHours: parking.operating_hours || '24/7',
           businessStatus: parking.business_status || 'OPERATIONAL',
         };
