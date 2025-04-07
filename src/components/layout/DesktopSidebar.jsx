@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import { ParkingSpotList } from './ParkingSpotList';
+import ParkingSpotList from '@/components/parking/ParkingSpotList';
 
 export function DesktopSidebar({
   spots,

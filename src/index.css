@@ -176,7 +176,8 @@ body {
 
 .gm-style-iw-chr {
   width: 24px;
-  height: 30px;
+  height: 0 !important;
+  display: none !important;
 }
 
 /* Hide the default right arrows for the number inputs */
@@ -285,4 +286,55 @@ input[type='number'] {
   color: #374151;
   overflow-x: auto;
   margin-bottom: 0.5rem;
+}
+
+/* Ocultar el botón de cierre por defecto del InfoWindow de Google Maps */
+.gm-ui-hover-effect {
+  display: none !important;
+}
+
+/* Eliminar espacios innecesarios del InfoWindow */
+.gm-style .gm-style-iw-t {
+  margin: 0 !important;
+}
+
+.gm-style-iw.gm-style-iw-c {
+  padding: 0 !important;
+  max-width: 280px !important;
+}
+
+.gm-style-iw-d {
+  overflow: auto !important;
+  padding: 0 !important;
+  max-width: none !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(0, 0, 0, 0.3) transparent !important;
+}
+
+.gm-style-iw-d::-webkit-scrollbar {
+  width: 4px !important;
+}
+
+.gm-style-iw-d::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.gm-style-iw-d::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.3) !important;
+  border-radius: 2px !important;
+}
+
+/* Ajustar el contenedor del InfoWindow */
+.gm-style-iw > button {
+  display: none !important;
+}
+
+.gm-style-iw > div:first-of-type {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Ajustar la flecha del InfoWindow */
+.gm-style-iw-tc {
+  height: 12px !important;
 }

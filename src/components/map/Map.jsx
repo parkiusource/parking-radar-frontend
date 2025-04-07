@@ -82,28 +82,6 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
   // Estado para manejar la selección de manera independiente
   const [selectedSpotId, setSelectedSpotId] = useState(null);
 
-  // Optimizar markSpotAsSelected para no actualizar todos los spots
-  const markSpotAsSelected = useCallback((spot) => {
-    if (!spot) return;
-
-    // Solo actualizamos el ID seleccionado
-    const spotId = spot.id || spot.googlePlaceId;
-    setSelectedSpotId(spotId);
-
-    // Actualizamos el selectedSpot para el InfoWindow sin modificar el array completo
-    setSelectedSpot(spot);
-  }, []);
-
-  // Hook personalizado para manejar la visualización de los marcadores
-  const getMarkerOptions = useCallback((spot) => {
-    const isSelected = spot.id === selectedSpotId || spot.googlePlaceId === selectedSpotId;
-    return {
-      opacity: isSelected ? 1 : 0.8,
-      zIndex: isSelected ? 2 : 1,
-      optimized: false // Desactivar optimización para evitar parpadeos
-    };
-  }, [selectedSpotId]);
-
   // Función para ajustar el mapa cuando se abre un InfoWindow
   const adjustMapForInfoWindow = useCallback((position) => {
     if (!mapInstance) return;
@@ -126,6 +104,42 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
     // Animar el mapa suavemente a la nueva posición
     mapInstance.panTo(newLatLng);
   }, [mapInstance]);
+
+  // Modificar markSpotAsSelected para que sea más robusto
+  const markSpotAsSelected = useCallback((spot) => {
+    if (!spot) return;
+
+    // Solo actualizamos el ID seleccionado
+    const spotId = spot.id || spot.googlePlaceId;
+    setSelectedSpotId(spotId);
+
+    // Actualizamos el selectedSpot para el InfoWindow
+    setSelectedSpot(spot);
+
+    // Notificar al componente padre sobre el cambio de ubicación
+    if (onLocationChange) {
+      onLocationChange(spot);
+    }
+
+    // Ajustar el mapa para el InfoWindow
+    if (mapInstance) {
+      const position = {
+        lat: parseFloat(spot.latitude),
+        lng: parseFloat(spot.longitude)
+      };
+      adjustMapForInfoWindow(new window.google.maps.LatLng(position.lat, position.lng));
+    }
+  }, [mapInstance, onLocationChange, adjustMapForInfoWindow]);
+
+  // Hook personalizado para manejar la visualización de los marcadores
+  const getMarkerOptions = useCallback((spot) => {
+    const isSelected = spot.id === selectedSpotId || spot.googlePlaceId === selectedSpotId;
+    return {
+      opacity: isSelected ? 1 : 0.8,
+      zIndex: isSelected ? 2 : 1,
+      optimized: false // Desactivar optimización para evitar parpadeos
+    };
+  }, [selectedSpotId]);
 
   // Modificar el manejo de marcadores para incluir el ajuste del mapa
   const { clearMarkers, updateMarkers } = useMapMarkers(
@@ -208,12 +222,22 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
           pixelOffset: new window.google.maps.Size(0, -40),
           maxWidth: 280,
           disableAutoPan: true,
-          zIndex: 10
+          zIndex: 10,
+          closeBoxURL: '',
+          enableEventPropagation: true,
+          boxStyle: {
+            borderRadius: '8px',
+            padding: '0px',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            border: 'none',
+            backgroundColor: 'transparent'
+          }
         }}
       >
         <ParkingInfoWindow
           spot={selectedSpot}
           onNavigate={() => openNavigation(selectedSpot.latitude, selectedSpot.longitude)}
+          onClose={handleInfoWindowClose}
         />
       </InfoWindowF>
     );
@@ -567,10 +591,6 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
 
       // Actualizar el marcador seleccionado visualmente
       markSpotAsSelected(spot);
-      setSelectedSpot(spot);
-
-      // Ajustar el mapa para el InfoWindow
-      adjustMapForInfoWindow(new window.google.maps.LatLng(position));
 
       // Ocultar el botón de búsqueda
       setShowSearchHereButton(false);
@@ -580,6 +600,7 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
         isMarkerInteractionRef.current = false;
       }, 300);
     },
+    getSelectedSpotId: () => selectedSpotId,
     searchNearbyParking: async (location) => {
       if (!location || !mapInstance) return;
 
@@ -632,7 +653,7 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
       setParkingSpots([]);
       setSelectedSpot(null);
     }
-  }), [mapInstance, contextParkingSpots, markSpotAsSelected, adjustMapForInfoWindow, updateMarkers, getCachedResult, setParkingSpots, searchNearbyParking, clearMarkers]);
+  }), [mapInstance, contextParkingSpots, markSpotAsSelected, updateMarkers, getCachedResult, setParkingSpots, searchNearbyParking, clearMarkers, selectedSpotId]);
 
   // Botón de localización
   const locateUserButton = useMemo(() => (
@@ -975,6 +996,10 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
               setTimeout(() => {
                 isMarkerInteractionRef.current = false;
               }, 300);
+            }}
+            onSpotSelect={(spot) => {
+              if (!spot || !mapInstance) return;
+              markSpotAsSelected(spot);
             }}
             selectedSpotId={selectedSpot?.id}
           />
