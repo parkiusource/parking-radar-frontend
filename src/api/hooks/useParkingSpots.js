@@ -47,7 +47,7 @@ export const useParkingSpots = ({ queryClient, ...options }) => {
           carRate: parking.car_rate || 3000,
           motorcycleRate: parking.motorcycle_rate || 2000,
           bikeRate: parking.bike_rate || 1000,
-          hasFullRate: parking.has_full_rate || true,
+          hasFullRate: parking.has_full_rate ?? true,
         };
 
         // Valores por defecto para espacios disponibles
