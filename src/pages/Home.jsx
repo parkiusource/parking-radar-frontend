@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback } from 'react';
-import Map from '../components/Map';
-import ParkingSpotList from '../components/ParkingSpotList';
+import Map from '@/components/map/Map';
+import ParkingSpotList from '@/components/parking/ParkingSpotList';
 
 const Home = () => {
   const mapRef = useRef(null);

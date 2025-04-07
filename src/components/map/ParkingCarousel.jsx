@@ -1,6 +1,6 @@
 import { memo, useState, useMemo, useCallback } from 'react';
 import PropTypes from 'prop-types';
-import ParkingSpotCard from '../parking/ParkingSpotCard';
+import ParkingSpotCard from '@/components/parking/ParkingSpotCard';
 import { FaFilter, FaArrowsAltV } from 'react-icons/fa';
 import { Badge } from '@/components/common/Badge';
 
