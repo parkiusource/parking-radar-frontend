@@ -41,18 +41,37 @@ const ParkingSpotCard = memo(({
     onSelect(spot);
   }, [spot, onSelect]);
 
+  const handleKeyDown = useCallback((e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onSelect(spot);
+    }
+  }, [spot, onSelect]);
+
+  const handleNavigateKeyDown = useCallback((e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleNavigateClick(e);
+    }
+  }, [handleNavigateClick]);
+
+  const handleExpandKeyDown = useCallback((e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      setIsExpanded(prev => !prev);
+    }
+  }, []);
+
   const getStatusBadge = useCallback(() => {
     if (isParkiu) {
-      if (spot.available_spaces > 0) {
-        return <Badge variant="success" size="small" className="bg-green-50 text-green-700 border-green-200">Disponible</Badge>;
-      }
-      return <Badge variant="error" size="small" className="bg-red-50 text-red-700 border-red-200">Lleno</Badge>;
-    } else {
-      if (spot.businessStatus === 'OPERATIONAL' || spot.openNow) {
-        return <Badge variant="success" size="small" className="bg-blue-50 text-blue-700 border-blue-200">Abierto</Badge>;
-      }
-      return <Badge variant="error" size="small" className="bg-gray-50 text-gray-700 border-gray-200">Cerrado</Badge>;
+      return spot.available_spaces > 0
+        ? <Badge variant="success" size="small" className="bg-green-50 text-green-700 border-green-200">Disponible</Badge>
+        : <Badge variant="error" size="small" className="bg-red-50 text-red-700 border-red-200">Lleno</Badge>;
     }
+
+    return (spot.businessStatus === 'OPERATIONAL' || spot.openNow)
+      ? <Badge variant="success" size="small" className="bg-blue-50 text-blue-700 border-blue-200">Abierto</Badge>
+      : <Badge variant="error" size="small" className="bg-gray-50 text-gray-700 border-gray-200">Cerrado</Badge>;
   }, [isParkiu, spot.available_spaces, spot.businessStatus, spot.openNow]);
 
   const distanceText = useMemo(() => {
@@ -71,7 +90,9 @@ const ParkingSpotCard = memo(({
         ${isCarousel ? 'p-3 sm:p-4' : 'p-3 sm:p-4'}
       `}
       onClick={handleClick}
+      onKeyDown={handleKeyDown}
       role="button"
+      tabIndex={0}
       aria-pressed={isSelected}
     >
       <div className="relative">
@@ -142,6 +163,7 @@ const ParkingSpotCard = memo(({
                     e.stopPropagation();
                     setIsExpanded(!isExpanded);
                   }}
+                  onKeyDown={handleExpandKeyDown}
                   className="w-full flex items-center justify-center text-xs sm:text-sm text-primary hover:text-primary/80 transition-colors py-1 sm:py-1.5 border border-primary/20 rounded-lg hover:bg-primary/5"
                 >
                   {isExpanded ? "Ocultar detalles ▲" : "Ver detalles ▼"}
@@ -247,6 +269,7 @@ const ParkingSpotCard = memo(({
             )}
             <button
               onClick={handleNavigateClick}
+              onKeyDown={handleNavigateKeyDown}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-full transition-colors"
               aria-label="Navegar al parqueadero"
             >
