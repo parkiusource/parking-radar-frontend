@@ -31,6 +31,8 @@ export function ParkingProvider({ children }) {
 
   const queryClient = useQueryClient();
   const { parkingSpots: dbParkingSpots, invalidate, refetch } = useParkingSpots({
+    location: targetLocation,
+    radius: 1, // 1 km de radio
     queryClient,
   });
 
