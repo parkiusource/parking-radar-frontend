@@ -27,84 +27,108 @@ export const useParkingSpots = ({ location, radius = 1, queryClient, ...options 
         },
       });
       return response.data.map((parking) => {
-        // Valores base que vienen del backend
+        // Datos base del parqueadero
         const baseData = {
           id: parking.id,
           name: parking.name || 'Parqueadero sin nombre',
           address: parking.address || 'Dirección no disponible',
-          available_spaces: parking.available_spaces || 0,
-          min_price: parking.min_price || 0,
+          description: parking.description || '',
           distance: parking.distance || 0,
           isGooglePlace: false,
-          // Coordenadas - aseguramos que coincidan con los nombres esperados
-          latitude: parking.latitude || parking.lat || 4.6097100,
-          longitude: parking.longitude || parking.lng || -74.0817500,
-          // Mantenemos también lat/lng para compatibilidad
-          lat: parking.latitude || parking.lat || 4.6097100,
-          lng: parking.longitude || parking.lng || -74.0817500,
-          // Objeto location para otros componentes que lo necesiten
+          is_active: parking.is_active ?? true,
+          // Coordenadas
+          latitude: parking.latitude || 4.6097100,
+          longitude: parking.longitude || -74.0817500,
+          lat: parking.latitude || 4.6097100,
+          lng: parking.longitude || -74.0817500,
           location: {
-            lat: parking.latitude || parking.lat || 4.6097100,
-            lng: parking.longitude || parking.lng || -74.0817500
+            lat: parking.latitude || 4.6097100,
+            lng: parking.longitude || -74.0817500
           }
         };
 
-        // Valores por defecto para precios y tarifas
-        const pricingData = {
-          price_per_hour: parking.price_per_hour || 3000,
-          price_per_minute: parking.price_per_minute || 50,
-          carRate: parking.car_rate || 3000,
-          motorcycleRate: parking.motorcycle_rate || 2000,
-          bikeRate: parking.bike_rate || 1000,
-          hasFullRate: parking.has_full_rate ?? true,
-        };
-
-        // Valores por defecto para espacios disponibles
+        // Espacios disponibles por tipo de vehículo
         const spacesData = {
-          carSpaces: parking.car_spaces || 5,
-          motorcycleSpaces: parking.motorcycle_spaces || 3,
-          bikeSpaces: parking.bike_spaces || 2,
-          totalSpaces: parking.total_spaces || 10,
+          total_spaces: parking.total_spaces || 0,
+          available_spaces: parking.available_spaces || 0,
+          available_car_spaces: parking.available_car_spaces || 0,
+          available_motorcycle_spaces: parking.available_motorcycle_spaces || 0,
+          available_bicycle_spaces: parking.available_bicycle_spaces || 0,
+          // Alias para compatibilidad
+          carSpaces: parking.available_car_spaces || 0,
+          motorcycleSpaces: parking.available_motorcycle_spaces || 0,
+          bikeSpaces: parking.available_bicycle_spaces || 0,
+          totalSpaces: parking.total_spaces || 0,
         };
 
-        // Valores por defecto para horarios y estado
+        // Tarifas por minuto (actuales del backend)
+        const ratesPerMinute = {
+          car_rate_per_minute: parking.car_rate_per_minute || 0,
+          motorcycle_rate_per_minute: parking.motorcycle_rate_per_minute || 0,
+          bicycle_rate_per_minute: parking.bicycle_rate_per_minute || 0,
+          truck_rate_per_minute: parking.truck_rate_per_minute || 0,
+        };
+
+        // Tarifas fijas (después de threshold)
+        const fixedRates = {
+          fixed_rate_car: parking.fixed_rate_car || 0,
+          fixed_rate_motorcycle: parking.fixed_rate_motorcycle || 0,
+          fixed_rate_bicycle: parking.fixed_rate_bicycle || 0,
+          fixed_rate_truck: parking.fixed_rate_truck || 0,
+          fixed_rate_threshold_minutes: parking.fixed_rate_threshold_minutes || 720,
+        };
+
+        // Tarifas legacy (para compatibilidad con código existente)
+        const legacyRates = {
+          hourly_rate: parking.hourly_rate || 0,
+          daily_rate: parking.daily_rate || 0,
+          monthly_rate: parking.monthly_rate || 0,
+          // Convertir tarifas por minuto a por hora para compatibilidad
+          price_per_hour: parking.car_rate_per_minute ? parking.car_rate_per_minute * 60 : (parking.hourly_rate || 0),
+          price_per_minute: parking.car_rate_per_minute || 0,
+          carRate: parking.car_rate_per_minute ? parking.car_rate_per_minute * 60 : 0,
+          motorcycleRate: parking.motorcycle_rate_per_minute ? parking.motorcycle_rate_per_minute * 60 : 0,
+          bikeRate: parking.bicycle_rate_per_minute ? parking.bicycle_rate_per_minute * 60 : 0,
+        };
+
+        // Horarios y contacto
         const operationalData = {
-          is24h: parking.is_24h ?? true,
-          operatingHours: parking.operating_hours || '24/7',
-          businessStatus: parking.business_status || 'OPERATIONAL',
+          opening_time: parking.opening_time || '00:00',
+          closing_time: parking.closing_time || '23:59',
+          is24h: parking.opening_time === '00:00' && parking.closing_time === '23:59',
+          operatingHours: parking.opening_time && parking.closing_time
+            ? `${parking.opening_time} - ${parking.closing_time}`
+            : '24/7',
+          contact_name: parking.contact_name || '',
+          contact_phone: parking.contact_phone || '',
+          admin_id: parking.admin_id,
+          businessStatus: parking.is_active ? 'OPERATIONAL' : 'CLOSED',
         };
 
-        // Valores por defecto para características
-        const featuresData = {
-          hasSecurityCameras: parking.has_security_cameras || true,
-          hasOnSiteStaff: parking.has_onsite_staff || true,
-          isCovered: parking.is_covered || true,
-          heightRestriction: parking.height_restriction || '2.1m',
-          vehicleRestrictions: parking.vehicle_restrictions || 'Solo vehículos de tamaño estándar',
-          services: parking.services || [
-            { id: 1, name: 'Vigilancia 24/7', icon: 'shield' },
-            { id: 2, name: 'Personal en sitio', icon: 'users' },
-            { id: 3, name: 'Cubierto', icon: 'umbrella' },
-          ],
-        };
-
-        // Valores por defecto para calificaciones (si es un lugar de Google)
-        const ratingData = {
-          rating: parking.rating || 4.5,
-          userRatingCount: parking.user_rating_count || 150,
+        // Timestamps
+        const timestamps = {
+          created_at: parking.created_at,
+          updated_at: parking.updated_at,
         };
 
         // Combinar todos los datos
         return {
           ...baseData,
-          ...pricingData,
           ...spacesData,
+          ...ratesPerMinute,
+          ...fixedRates,
+          ...legacyRates,
           ...operationalData,
-          ...featuresData,
-          ...ratingData,
-          // Calcular campos adicionales
-          isFull: baseData.available_spaces === 0,
-          formattedDistance: `${baseData.distance.toFixed(1)}`,
+          ...timestamps,
+          // Campos calculados
+          isFull: (parking.available_spaces || 0) === 0,
+          formattedDistance: parking.distance ? `${parking.distance.toFixed(1)} km` : 'N/A',
+          // Precio mínimo para mostrar (tarifa más baja por minuto convertida a por hora)
+          min_price: Math.min(
+            parking.car_rate_per_minute || Infinity,
+            parking.motorcycle_rate_per_minute || Infinity,
+            parking.bicycle_rate_per_minute || Infinity
+          ) * 60,
         };
       });
     },
