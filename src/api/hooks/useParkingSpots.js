@@ -1,20 +1,29 @@
 import { useQuery } from '@tanstack/react-query';
-import { useAuth0 } from '@auth0/auth0-react';
-import { client } from '../client';
+import axios from 'axios';
 
-export const useParkingSpots = ({ queryClient, ...options }) => {
-  const { isAuthenticated, getAccessTokenSilently } = useAuth0();
+/**
+ * Hook para obtener parqueaderos cercanos a una ubicación específica
+ * @param {Object} params.location - Ubicación con { lat, lng }
+ * @param {number} params.radius - Radio de búsqueda en kilómetros (default: 1)
+ * @param {Object} params.queryClient - Cliente de React Query
+ */
+export const useParkingSpots = ({ location, radius = 1, queryClient, ...options }) => {
+  // Validar que tengamos coordenadas válidas
+  const hasValidLocation = location?.lat != null && location?.lng != null;
 
   const query = useQuery({
-    queryKey: ['parkingSpots'],
+    queryKey: ['parkingSpots', location?.lat, location?.lng, radius],
     queryFn: async () => {
-      if (!isAuthenticated) {
+      if (!hasValidLocation) {
         return [];
       }
-      const token = await getAccessTokenSilently();
-      const response = await client.get('/parking-lots/', {
-        headers: {
-          Authorization: `Bearer ${token}`,
+
+      const baseURL = import.meta.env.VITE_API_BACKEND_URL || 'https://parking-radar.onrender.com';
+      const response = await axios.get(`${baseURL}/parking-lots/nearby`, {
+        params: {
+          lat: location.lat,
+          lng: location.lng,
+          radius,
         },
       });
       return response.data.map((parking) => {
@@ -99,8 +108,9 @@ export const useParkingSpots = ({ queryClient, ...options }) => {
         };
       });
     },
-    enabled: isAuthenticated && options?.enabled,
-    staleTime: Infinity,
+    enabled: hasValidLocation && (options?.enabled !== false),
+    staleTime: 5 * 60 * 1000, // 5 minutos - los datos de parqueaderos cercanos cambian
+    cacheTime: 10 * 60 * 1000, // 10 minutos en caché
     ...options,
   });
 
