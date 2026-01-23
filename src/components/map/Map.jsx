@@ -46,7 +46,10 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
     shouldCenterMap,
     setShouldCenterMap,
     setParkingSpots,
-    setTargetLocation
+    setTargetLocation,
+    isLoadingDB,
+    isFetchingDB,
+    isErrorDB
   } = useContext(ParkingContext);
 
   // Hook de geolocalización
@@ -376,6 +379,9 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
     }
   }, [mapInstance]);
 
+  // Referencia para saber si debemos ejecutar búsqueda de Google después de DB
+  const pendingGoogleSearchRef = useRef(null);
+
   // Update handleSearchHereClick to handle the actual search
   const handleSearchHereClick = useCallback(() => {
     if (!mapInstance) return;
@@ -390,26 +396,62 @@ const ParkingMap = forwardRef(({ onLocationChange }, ref) => {
       lng: center.lng()
     };
 
-    // Perform the search when button is clicked
+    // Limpiar spots de Google anteriores para evitar parpadeo
+    setParkingSpots([]);
+
+    // Actualizar referencias de última búsqueda
+    lastSearchLocationRef.current = locationToSearch;
+    lastIdleTimeRef.current = Date.now();
+
+    // Marcar que hay una búsqueda de Google pendiente
+    pendingGoogleSearchRef.current = {
+      location: locationToSearch,
+      zoom: mapInstance.getZoom()
+    };
+
+    // Actualizar target location en el contexto (dispara búsqueda DB automáticamente)
+    setTargetLocation(locationToSearch);
+
+  }, [mapInstance, setParkingSpots, setTargetLocation]);
+
+  // Efecto para ejecutar búsqueda de Google SOLO después de que DB termine exitosamente
+  useEffect(() => {
+    // Si no hay búsqueda pendiente, salir
+    if (!pendingGoogleSearchRef.current) return;
+
+    // Si aún está cargando o fetching, esperar
+    if (isLoadingDB || isFetchingDB) return;
+
+    const { location, zoom } = pendingGoogleSearchRef.current;
+
+    // Si hubo error en DB, cancelar búsqueda de Google
+    if (isErrorDB) {
+      console.warn('❌ Error en búsqueda DB, no se ejecutará búsqueda de Google');
+      pendingGoogleSearchRef.current = null;
+      isSearchingRef.current = false;
+      return;
+    }
+
+    // DB terminó exitosamente, ejecutar búsqueda de Google
+    console.log('✅ DB terminó exitosamente, ejecutando búsqueda de Google');
     isSearchingRef.current = true;
-    searchNearbyParking(locationToSearch, mapInstance.getZoom(), false, true)
+
+    searchNearbyParking(location, zoom, false, true)
       .then((results) => {
         if (results?.length > 0) {
           setParkingSpots(results);
-          lastSearchLocationRef.current = locationToSearch;
-          lastIdleTimeRef.current = Date.now();
           updateMarkers(results);
         }
       })
       .catch((error) => {
-        console.error('Error en búsqueda:', error);
-        setParkingSpots([]);
-        clearMarkers();
+        console.error('Error en búsqueda de Google:', error);
       })
       .finally(() => {
         isSearchingRef.current = false;
+        pendingGoogleSearchRef.current = null;
       });
-  }, [mapInstance, searchNearbyParking, setParkingSpots, clearMarkers, updateMarkers]);
+
+  }, [isLoadingDB, isFetchingDB, isErrorDB, searchNearbyParking, setParkingSpots, updateMarkers]);
 
   // Update map movement handlers
   const handleMapDragStart = useCallback(() => {

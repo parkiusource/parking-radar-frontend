@@ -30,7 +30,14 @@ export function ParkingProvider({ children }) {
   const lastSearchTimestampRef = useRef(0);
 
   const queryClient = useQueryClient();
-  const { parkingSpots: dbParkingSpots, invalidate, refetch } = useParkingSpots({
+  const {
+    parkingSpots: dbParkingSpots,
+    invalidate,
+    refetch,
+    isLoading: isLoadingDB,
+    isFetching: isFetchingDB,
+    isError: isErrorDB
+  } = useParkingSpots({
     location: targetLocation,
     radius: 1, // 1 km de radio
     queryClient,
@@ -260,7 +267,10 @@ export function ParkingProvider({ children }) {
     getUserLocation,
     invalidate,
     refetch,
-    isInitialized
+    isInitialized,
+    isLoadingDB,
+    isFetchingDB,
+    isErrorDB
   }), [
     parkingSpots,
     updateParkingSpots,
@@ -270,7 +280,10 @@ export function ParkingProvider({ children }) {
     getUserLocation,
     invalidate,
     refetch,
-    isInitialized
+    isInitialized,
+    isLoadingDB,
+    isFetchingDB,
+    isErrorDB
   ]);
 
   return (
