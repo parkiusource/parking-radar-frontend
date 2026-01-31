@@ -6,6 +6,7 @@ const HomePage = lazy(() => import('@/pages/HomePage'));
 const About = lazy(() => import('@/pages/About'));
 const Parking = lazy(() => import('@/pages/Parking'));
 const SupportForm = lazy(() => import('@/pages/SupportForm'));
+const AdminLandingPage = lazy(() => import('@/pages/AdminLandingPage'));
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -22,6 +23,7 @@ const AppRoutes = () => (
       <Route path="/about" element={<About />} />
       <Route path="/parking" element={<Parking />} />
       <Route path="/support" element={<SupportForm />} />
+      <Route path="/admin-landing" element={<AdminLandingPage />} />
 
       {/* Catch all route */}
       <Route path="*" element={<Navigate to="/" replace />} />
