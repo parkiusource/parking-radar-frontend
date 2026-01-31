@@ -12,10 +12,10 @@ const AdminLandingPage = () => {
   const { t } = useTranslation();
 
   const stats = [
-    { value: '45%', label: t('adminLanding.hero.stats.increaseOccupancy', 'Más ingresos promedio') },
+    { value: '✓', label: t('adminLanding.hero.stats.increaseOccupancy', 'Más ingresos garantizados') },
     { value: '15min', label: t('adminLanding.hero.stats.managementTime', 'Setup inicial') },
     { value: '100%', label: t('adminLanding.hero.stats.userSatisfaction', 'En la nube') },
-    { value: '24/7', label: t('adminLanding.hero.stats.technicalSupport', 'Soporte técnico') }
+    { value: '⚡', label: t('adminLanding.hero.stats.technicalSupport', 'Soporte rápido') }
   ];
 
   const features = [
@@ -37,8 +37,8 @@ const AdminLandingPage = () => {
       icon: <FaMoneyBillWave className="w-7 h-7" />,
       number: '03',
       title: t('adminLanding.features.items.financialControl.title', 'Más ingresos'),
-      description: t('adminLanding.features.items.financialControl.description', 'Aparece en Google Maps y nuestra app con millones de usuarios activos buscando parqueadero.'),
-      highlight: t('adminLanding.features.items.financialControl.highlight', 'Visibilidad garantizada')
+      description: t('adminLanding.features.items.financialControl.description', 'Aparece en Google Maps y nuestra app para que conductores te encuentren fácilmente.'),
+      highlight: t('adminLanding.features.items.financialControl.highlight', 'Mayor visibilidad')
     },
     {
       icon: <FaShieldAlt className="w-7 h-7" />,
@@ -52,26 +52,26 @@ const AdminLandingPage = () => {
   const benefits = [
     {
       icon: <FaClock className="w-8 h-8" />,
-      title: t('adminLanding.benefits.items.timeSavings.title', 'Ahorra 5+ horas semanales'),
+      title: t('adminLanding.benefits.items.timeSavings.title', 'Ahorra tiempo valioso'),
       description: t('adminLanding.benefits.items.timeSavings.description', 'Automatización completa de entradas, salidas y facturación. Tu equipo puede enfocarse en lo que realmente importa.'),
-      metric: '-85% tareas manuales'
+      metric: 'Automatizado'
     },
     {
       icon: <FaChartBar className="w-8 h-8" />,
       title: t('adminLanding.benefits.items.increasedVisibility.title', 'Aparece en Google Maps'),
-      description: t('adminLanding.benefits.items.increasedVisibility.description', 'Miles de conductores te encontrarán automáticamente cuando busquen parqueadero cerca de tu ubicación.'),
-      metric: '+200% visibilidad'
+      description: t('adminLanding.benefits.items.increasedVisibility.description', 'Conductores te encontrarán fácilmente cuando busquen parqueadero cerca de tu ubicación.'),
+      metric: 'Más visibilidad'
     },
     {
       icon: <FaMobileAlt className="w-8 h-8" />,
       title: t('adminLanding.benefits.items.mobileManagement.title', 'Controla desde tu celular'),
-      description: t('adminLanding.benefits.items.mobileManagement.description', 'App móvil completa para iOS y Android. Gestiona todo desde la palma de tu mano, 24/7.'),
+      description: t('adminLanding.benefits.items.mobileManagement.description', 'App móvil en desarrollo. Panel web completamente optimizado para móvil desde cualquier navegador.'),
       metric: '100% móvil'
     },
     {
       icon: <FaRegChartBar className="w-8 h-8" />,
       title: t('adminLanding.benefits.items.detailedReports.title', 'Datos en tiempo real'),
-      description: t('adminLanding.benefits.items.detailedReports.description', 'Dashboard completo con métricas de ocupación, ingresos y tendencias actualizadas al segundo.'),
+      description: t('adminLanding.benefits.items.detailedReports.description', 'Dashboard completo con métricas de ocupación, ingresos y tendencias actualizadas constantemente.'),
       metric: 'Tiempo real'
     }
   ];
@@ -99,7 +99,7 @@ const AdminLandingPage = () => {
       label: t('adminLanding.accessControlSystem.elementsSystem.simplifiedControl', 'Control de entradas y salidas simplificado'),
     },
     {
-      label: t('adminLanding.accessControlSystem.elementsSystem.billingSystem', 'Sistema de facturación integrado*'),
+      label: t('adminLanding.accessControlSystem.elementsSystem.billingSystem', 'Sistema de facturación integrado'),
     },
     {
       label: t('adminLanding.accessControlSystem.elementsSystem.realtimeReports', 'Reportes y estadísticas en tiempo real'),
@@ -127,8 +127,8 @@ const AdminLandingPage = () => {
               >
                 {/* Headline Principal */}
                 <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white mb-4 leading-[1.1]">
-                  {t('adminLanding.hero.sectionTitle', 'Aumenta tus ingresos hasta un ')}{' '}
-                  <span className="text-amber-400 block sm:inline">{t('adminLanding.hero.titleHighlighted', '45% en 30 días')}</span>
+                  {t('adminLanding.hero.sectionTitle', 'Aumenta tus ingresos con ')}{' '}
+                  <span className="text-amber-400 block sm:inline">{t('adminLanding.hero.titleHighlighted', 'gestión inteligente')}</span>
                 </h1>
 
                 {/* Subheadline */}
@@ -151,7 +151,7 @@ const AdminLandingPage = () => {
                       <span className="text-primary text-sm font-bold">✓</span>
                     </div>
                     <p className="text-base sm:text-lg md:text-xl font-medium">
-                      {t('adminLanding.hero.benefit2', 'Mayor visibilidad en Google Maps y nuestra app móvil - Atrae más clientes automáticamente')}
+                      {t('adminLanding.hero.benefit2', 'Visibilidad en Google Maps y nuestra app - Atrae más clientes')}
                     </p>
                   </div>
                   <div className="flex items-start gap-3 text-white/90">
@@ -202,8 +202,8 @@ const AdminLandingPage = () => {
                 {/* Social Proof */}
                 <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 text-white/80 text-sm">
                   <div className="flex items-center gap-2">
-                    <span className="text-amber-400">★★★★★</span>
-                    <span>{t('adminLanding.hero.socialProof1', '4.9/5 valoración')}</span>
+                    <span className="text-amber-400">✓</span>
+                    <span>{t('adminLanding.hero.socialProof1', 'Prueba gratis 30 días')}</span>
                   </div>
                   <span className="hidden sm:inline text-white/40">•</span>
                   <span>{t('adminLanding.hero.socialProof2', 'Sin contratos de permanencia')}</span>
@@ -480,7 +480,7 @@ const AdminLandingPage = () => {
 
                   {/* Párrafo de cierre */}
                   <p className="text-base text-gray-700 mb-8 leading-relaxed bg-gray-50 p-5 rounded-xl border border-gray-200">
-                    {t('adminLanding.accessControlSystem.closingText', 'Más de 200 parqueaderos ya están aumentando sus ingresos con ParkiÜ. Únete hoy y empieza tu prueba gratuita sin compromisos.')}
+                    {t('adminLanding.accessControlSystem.closingText', 'Únete a los administradores que ya confían en ParkiÜ. Empieza tu prueba gratuita sin compromisos.')}
                   </p>
 
                   {/* CTAs */}
@@ -553,7 +553,7 @@ const AdminLandingPage = () => {
             >
               <div className="bg-gradient-to-br from-white to-gray-50 rounded-3xl shadow-2xl border-2 border-primary/20 overflow-hidden">
                 <div className="bg-gradient-to-r from-primary to-primary-700 text-white text-center py-4">
-                  <p className="text-lg font-bold">{t('adminLanding.pricing.badge2', '🎉 OFERTA DE LANZAMIENTO - 25% DE DESCUENTO')}</p>
+                  <p className="text-lg font-bold">{t('adminLanding.pricing.badge2', '🎉 OFERTA DE LANZAMIENTO - 50% DE DESCUENTO')}</p>
                 </div>
 
                 <div className="p-8 sm:p-12">
@@ -566,11 +566,11 @@ const AdminLandingPage = () => {
 
                       <div className="mb-6">
                         <div className="flex items-baseline justify-center md:justify-start gap-2 mb-2">
-                          <span className="text-5xl sm:text-6xl font-extrabold text-gray-900">$52.500</span>
+                          <span className="text-5xl sm:text-6xl font-extrabold text-gray-900">$34.950</span>
                           <span className="text-2xl text-gray-600">/mes</span>
                         </div>
                         <p className="text-gray-500 line-through text-lg">
-                          {t('adminLanding.pricing.originalPrice', 'Precio regular: $70.000/mes')}
+                          {t('adminLanding.pricing.originalPrice', 'Precio regular: $69.900/mes')}
                         </p>
                       </div>
 
@@ -609,14 +609,14 @@ const AdminLandingPage = () => {
                       <ul className="space-y-4">
                         {[
                           t('adminLanding.pricing.feature1', 'Espacios ilimitados'),
-                          t('adminLanding.pricing.feature2', 'Usuarios ilimitados'),
+                          t('adminLanding.pricing.feature2', 'Hasta 3 usuarios'),
                           t('adminLanding.pricing.feature3', 'Visibilidad en Google Maps'),
-                          t('adminLanding.pricing.feature4', 'App móvil iOS y Android'),
+                          t('adminLanding.pricing.feature4', 'Panel web optimizado para móvil'),
                           t('adminLanding.pricing.feature5', 'Dashboard en tiempo real'),
                           t('adminLanding.pricing.feature6', 'Reportes y analítica avanzada'),
                           t('adminLanding.pricing.feature7', 'Facturación automática'),
                           t('adminLanding.pricing.feature8', 'Tarifas dinámicas configurables'),
-                          t('adminLanding.pricing.feature9', 'Soporte técnico 24/7'),
+                          t('adminLanding.pricing.feature9', 'Soporte rápido por WhatsApp'),
                           t('adminLanding.pricing.feature10', 'Actualizaciones automáticas')
                         ].map((feature, idx) => (
                           <li key={idx} className="flex items-start gap-3">
@@ -661,11 +661,11 @@ const AdminLandingPage = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-green-600 font-bold">✓</span>
-                  <span className="text-gray-700">{t('adminLanding.pricing.vs3', 'App móvil incluida')}</span>
+                  <span className="text-gray-700">{t('adminLanding.pricing.vs3', 'Optimizado para móvil')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-green-600 font-bold">✓</span>
-                  <span className="text-gray-700">{t('adminLanding.pricing.vs4', 'Mejor precio del mercado')}</span>
+                  <span className="text-gray-700">{t('adminLanding.pricing.vs4', '42% más económico')}</span>
                 </div>
               </div>
             </motion.div>
@@ -705,7 +705,7 @@ const AdminLandingPage = () => {
                 transition={{ delay: 0.1 }}
                 className="text-xl sm:text-2xl text-white/95 mb-4 leading-relaxed max-w-3xl mx-auto"
               >
-                {t('adminLanding.cta.description', 'Únete a más de 200 parqueaderos que ya están generando más ingresos con ParkiÜ.')}
+                {t('adminLanding.cta.description', 'Únete a los administradores que ya están generando más ingresos con ParkiÜ.')}
               </motion.p>
 
               {/* Mini bullets */}
@@ -775,7 +775,7 @@ const AdminLandingPage = () => {
                 className="text-white/80 text-sm"
               >
                 <p className="mb-2">
-                  {t('adminLanding.cta.socialProof', '⚡ Más de 200 parqueaderos registrados · 4.9/5 estrellas · Sin contratos')}
+                  {t('adminLanding.cta.socialProof', '⚡ Administradores confiando en ParkiÜ · Sin contratos · Soporte incluido')}
                 </p>
                 <p className="text-white/60 text-xs">
                   {t('adminLanding.cta.guarantee', '100% gratis por 30 días. No se requiere tarjeta de crédito.')}

@@ -110,7 +110,7 @@ const DarkFooter = ({ className }) => {
             </div>
             <div className="flex items-center gap-2 text-gray-300">
               <FaPhone className="text-primary-300" />
-              <a href="tel:+573001234567" className="hover:text-primary transition-colors">
+              <a href="tel:+573151361080" className="hover:text-primary transition-colors">
                 +57 300 123 4567
               </a>
             </div>
