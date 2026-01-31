@@ -553,7 +553,7 @@ const AdminLandingPage = () => {
             >
               <div className="bg-gradient-to-br from-white to-gray-50 rounded-3xl shadow-2xl border-2 border-primary/20 overflow-hidden">
                 <div className="bg-gradient-to-r from-primary to-primary-700 text-white text-center py-4">
-                  <p className="text-lg font-bold">{t('adminLanding.pricing.badge2', '🎉 OFERTA DE LANZAMIENTO - 50% DE DESCUENTO')}</p>
+                  <p className="text-lg font-bold">{t('adminLanding.pricing.badge2', '🎉 OFERTA DE LANZAMIENTO - 25% DE DESCUENTO')}</p>
                 </div>
 
                 <div className="p-8 sm:p-12">
@@ -566,11 +566,11 @@ const AdminLandingPage = () => {
 
                       <div className="mb-6">
                         <div className="flex items-baseline justify-center md:justify-start gap-2 mb-2">
-                          <span className="text-5xl sm:text-6xl font-extrabold text-gray-900">$45.000</span>
+                          <span className="text-5xl sm:text-6xl font-extrabold text-gray-900">$52.500</span>
                           <span className="text-2xl text-gray-600">/mes</span>
                         </div>
                         <p className="text-gray-500 line-through text-lg">
-                          {t('adminLanding.pricing.originalPrice', 'Precio regular: $80.000/mes')}
+                          {t('adminLanding.pricing.originalPrice', 'Precio regular: $70.000/mes')}
                         </p>
                       </div>
 
@@ -665,7 +665,7 @@ const AdminLandingPage = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-green-600 font-bold">✓</span>
-                  <span className="text-gray-700">{t('adminLanding.pricing.vs4', '50% más económico')}</span>
+                  <span className="text-gray-700">{t('adminLanding.pricing.vs4', 'Mejor precio del mercado')}</span>
                 </div>
               </div>
             </motion.div>
