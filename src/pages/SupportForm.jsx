@@ -274,12 +274,12 @@ const SupportForm = () => {
                   <MailIcon className="w-4 h-4 mr-1.5" />
                   soporte@parkiu.com
                 </a>
-                <a href="tel:+573001234567" className="flex items-center text-primary-600 hover:underline">
+                <a href="tel:+573151361080" className="flex items-center text-primary-600 hover:underline">
                   <PhoneIcon className="w-4 h-4 mr-1.5" />
                   +57 300 123 4567
                 </a>
                 <a
-                  href="https://wa.me/573001234567?text=Hola%2C%20necesito%20ayuda%20con%20ParkiÜ"
+                  href="https://wa.me/573151361080?text=Hola%2C%20necesito%20ayuda%20con%20ParkiÜ"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center text-green-600 hover:underline"
